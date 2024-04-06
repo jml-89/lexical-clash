@@ -1,5 +1,3 @@
-'use client'
-
 import { Letter } from './letter.ts';
 
 // Bonuses are modifiers to the score produced by a given word
@@ -18,7 +16,7 @@ interface BonusCard {
 }
 
 interface BonusImpl {
-	fn: (word: Array<Letter>) => number;
+	fn: (level: number, word: Array<Letter>) => number;
 }
 
 interface BonusBase {
@@ -31,14 +29,14 @@ interface BonusBase {
 const base: BonusBase[] = [
 	{
 		key: "double",
-		name: "Double Letter Bonus",
-		desc: "+2 points when the same letter occurs twice in a row, e.g. gli[mm]er, h[oo]t",
-		fn: (word: Array<Letter>): number => {
+		name: "Double Letter",
+		desc: "Same letter occurs twice in a row, e.g. gli[mm]er, h[oo]t",
+		fn: (level: number, word: Array<Letter>): number => {
 			let n = 0;
 			let bc = '';
 			for (const c of word) {
 				if (c.char === bc) {
-					n += 2;
+					n += level*2;
 				}
 				bc = c.char
 			}
@@ -48,13 +46,13 @@ const base: BonusBase[] = [
 	{
 		key: "thth",
 		name: "Lispers Torment",
-		desc: "+2 points when a word contains the sequence [th]",
-		fn: (word: Array<Letter>): number => {
+		desc: "Word contains the sequence [th]",
+		fn: (level: number, word: Array<Letter>): number => {
 			let n = 0;
 			let bc = '';
 			for (const c of word) {
 				if (bc === 't' && c.char === 'h') {
-					n += 2;
+					n += level*2;
 				}
 				bc = c.char
 			}
@@ -67,6 +65,7 @@ export const BonusCards = new Map(base.map((bonus) => [bonus.key, {
 	key: bonus.key,
 	name: bonus.name,
 	desc: bonus.desc,
+	level: 1
 }]))
 
 export const BonusImpls = new Map(base.map((bonus) => [bonus.key, { fn: bonus.fn }]))

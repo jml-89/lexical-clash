@@ -2,12 +2,12 @@ import {
 	Letter,
 } from './letter.ts';
 
-interface AbilityReq {
-	placed: Array<Letter>;
-	hand: Array<Letter>;
-	bag: Array<Letter>;
-	discard: Array<Letter>;
-}
+import {
+	PlayArea,
+	DiscardPlaced,
+	DrawByIndex,
+	Draw
+} from './playarea.ts';
 
 interface AbilityCard {
 	key: string
@@ -18,16 +18,16 @@ interface AbilityCard {
 }
 
 interface AbilityImpl {
-	pred: (pr: AbilityReq) => boolean;
-	func: (pr: AbilityReq) => void;
+	pred: (pr: PlayArea) => boolean;
+	func: (pr: PlayArea) => void;
 }
 
 interface AbilityBase {
 	key: string
 	name: string
 	desc: string
-	pred: (pr: AbilityReq) => boolean;
-	func: (pr: AbilityReq) => void;
+	pred: (pr: PlayArea) => boolean;
+	func: (pr: PlayArea) => void;
 }
 
 const AbilitiesBase: AbilityBase[] = [
@@ -35,17 +35,16 @@ const AbilitiesBase: AbilityBase[] = [
 		key: 'drawvowel',
 		name: "Vowel Me",
 		desc: "Draw a random vowel from your bag of letters",
-		pred: (pr: AbilityReq): boolean => {
+		pred: (pr: PlayArea): boolean => {
 			return pr.bag.some((letter) => /[AEIOU]/.test(letter.char));
 		},
-		func: (pr: AbilityReq): void => {
+		func: (pr: PlayArea): void => {
 			const idx = pr.bag.findIndex((letter) => /[AEIOU]/.test(letter.char));
 			if (idx === -1) {
 				return;
 			}
 
-			pr.hand = pr.hand.concat([pr.bag[idx]]);
-			pr.bag = pr.bag.slice(0,idx).concat(pr.bag.slice(idx+1));
+			DrawByIndex(pr, idx)
 		}
 	},
 
@@ -53,22 +52,50 @@ const AbilitiesBase: AbilityBase[] = [
 		key: 'dump',
 		name: "Dump",
 		desc: "Discard placed letters, draw new letters",
-		pred: (pr: AbilityReq): boolean => {
+		pred: (pr: PlayArea): boolean => {
 			return pr.placed.length > 0;
 		},
-		func: (pr: AbilityReq): void => {
+		func: (pr: PlayArea): void => {
 			if (pr.placed.length === 0) {
 				return
 			}
 
+			DiscardPlaced(pr)
+			Draw(pr)
+		}
+	},
+
+	{
+		key: 'clone',
+		name: "Clone",
+		desc: "Turn placed letters in clone of leftmost placed letter",
+		pred: (pr: PlayArea): boolean => {
+			return pr.placed.length > 1;
+		},
+		func: (pr: PlayArea): void => {
+			if (pr.placed.length < 2) {
+				return
+			}
+
 			const len = pr.placed.length;
-			pr.hand = pr.hand.filter((left) => !pr.placed.some((right) => left.id === right.id));
+			let clones: Letter[] = []
+			for (const letter of pr.placed.slice(1)) {
+				clones.push({
+					id: `${letter.id}-clone-of-${pr.placed[0].id}`,
+					char: pr.placed[0].char,
+					score: pr.placed[0].score,
+					available: false
+				})
+			}
 
-			pr.discard = pr.discard.concat(pr.placed);
-			pr.placed = [];
-
-			pr.hand = pr.hand.concat(pr.bag.slice(0,len));
-			pr.bag = pr.bag.slice(len);
+			pr.hand = pr.hand.filter((left) => 
+				!pr.placed.slice(1).some((right) => 
+					left.id === right.id
+				)
+			)
+			pr.discard = pr.discard.concat(pr.placed.slice(1))
+			pr.placed = pr.placed.slice(0, 1).concat(clones)
+			pr.hand = pr.hand.concat(clones)
 		}
 	}
 ]

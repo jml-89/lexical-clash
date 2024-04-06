@@ -2,35 +2,47 @@ import Link from 'next/link';
 
 export default async function Intro({ params, searchParams }) {
 	return (
-		<main className={
-			[ "h-svh",
-			, "flex flex-col"
-			, "place-content-center place-items-center"
-			].join(' ')}
-		>
-			<div className={
-				[ "rounded-3xl"
-				, "bg-gradient-to-b from-red-200 via-red-200 to-red-400"
-				, "flex flex-col gap-6"
-				, "place-content-center place-items-center"
-				, "p-4"
-				].join(' ')}
-			>
-				<h1 className="text-3xl font-bold">
-					Lexical Clash
-				</h1>
-
-				<p>
-					Use your powers of spelling and words to defeat opponents<br/>
-					Collect score multipliers and special abilities<br/>
-					Reach the boss and survive<br/>
-					And have fun!<br/>
+		<main className="text-amber-400 flex flex-col justify-between gap-2">
+			<div className="flex flex-col">
+				<div className="bg-slate-800">
+					<h1 className="mx-2 text-2xl font-light">How to Play</h1>
+				</div>
+				<p className="mx-4">
+					You are entering a word battle against fantastical opposition.<br/>
+					Each round your opponent will place down a word.<br/>
+					You must place a better word or lose health.<br/>
+					The battle will continue until you or your opponent run out of health.<br/>
+					<br/>
+					Tap letters to arrange them into a word.<br/>
+					Tap the check word button to see if it's valid.<br/>
+					If the word is valid, a word score will be presented.<br/>
+					If the word score is satisfactory, press attack!<br/>
+					<br/>
+					Use abilities to improve your chances.<br/>
+					Embrace bonuses to improve your word scores.<br/>
 				</p>
-
-				<Link className="text-6xl font-black" href="/play">
-					Play!
-				</Link>
 			</div>
+
+			<div className="flex flex-col">
+				<div className="bg-slate-800">
+					<h1 className="mx-2 text-2xl font-light">Strengths and Weaknesses</h1>
+				</div>
+				<p className="mx-4">
+					Each opponent you face has a unique set of strengths and weaknesses.<br/>
+					Attacking your opponent's weakness makes your word far more powerful.<br/>
+					Likewise, stay away from your opponent's strengths.<br/>
+					<br/>
+					These are based upon WordNet's hypernym/hyponym relations.<br/>
+					Examples follow for illuminative purposes.<br/>
+					Let us consider an opponent weak to <span className="text-lime-300">food</span>.<br/>
+					And word you write which is detected as a type of food will gain an extra multiplier.<br/>
+					This a simple word like <span className="font-medium">pasta</span> suddenly becomes very powerful!<br/>
+				</p>
+			</div>
+
+			<Link className="m-4 text-6xl font-extralight tracking-tighter ring-4 ring-amber-300 bg-red-800 rounded-lg p-4" href="/play">
+				Play!
+			</Link>
 		</main>
 	);
 }

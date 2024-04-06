@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Submit, Backspace, Place, UseAbility, UpdateScores } from '@/lib/battle.ts';
@@ -8,18 +9,10 @@ import { Submit, Backspace, Place, UseAbility, UpdateScores } from '@/lib/battle
 
 export function Battle({ game, statefn }) {
 	return (
-		<main className="h-svh w-svw grid grid-rows-12 grid-cols-1">
-			<div className="row-span-2 p-1">
-				<Opponent game={game} />
-			</div>
-
-			<div className="row-span-2">
-				<Contest game={game} statefn={statefn} />
-			</div>
-
-			<div className="row-span-8 p-2">
-				<Player game={game} statefn={statefn} />
-			</div>
+		<main className="flex-1 flex flex-col justify-between p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
+			<Opponent game={game} />
+			<Contest game={game} statefn={statefn} />
+			<Player game={game} statefn={statefn} />
 		</main>
 	);
 }
@@ -29,18 +22,31 @@ function Opponent({ game }) {
 		<motion.div 
 			name="opponent-area" 
 			className={
-				[ "grid grid-rows-2"
+				[ "flex flex-col"
 				, "gap-2"
 				].join(' ')
 			}
 		>
-			<div className="row-start-1 flex flex-row gap-6">
-				<h2 className="place-self-start text-2xl font-medium tracking-tighter">{game.opponent.name}</h2>
+			<HealthBar badguy={true} health={game.oppHealth} healthMax={game.opponent.healthMax} />
 
-				<HealthBar badguy={true} health={game.oppHealth} healthMax={game.opponent.healthMax} />
+			<div className="flex flex-row gap-4">
+				<div className="">
+					<Image 
+						src={`/${game.opponent.image}`} 
+						width={120}
+						height={120}
+						alt={`Mugshot of ${game.opponent.name}`}
+					/>
+				</div>
+
+				<div className="flex flex-col">
+					<div className="text-amber-300"><span className="text-lg font-bold">{game.opponent.name}</span> (<span className="italic">{game.opponent.desc}</span>)</div>
+					<div className="text-lime-300"><span className="font-bold">Weak to:</span> {game.opponent.weaknesses.join(', ')}</div>
+					<div className="text-red-300"><span className="font-bold">Strong against:</span> {game.opponent.strengths.join(', ')}</div>
+				</div>
 			</div>
 
-			<motion.div initial={{y:-100}} animate={{y:0}} className="row-start-2">
+			<motion.div initial={{y:-100}} animate={{y:0}} className="row-start-2 place-self-start">
 				<Placed letters={game.oppPlaced} />
 			</motion.div>
 		</motion.div>
@@ -81,21 +87,17 @@ function HealthBar({ badguy, health, healthMax }) {
 function ActionButton({ game, statefn }) {
 	if (game.placed.length === 0) {
 		return (
-			<button 
-				className="p-6 rounded-lg bg-neutral-200 text-2xl" 
-			>
-				<div>Check</div>
-			</button>
+			<></>
 		)
 	}
 
 	if (!game.scoresheet.player.checked) { 
 		return (
 			<button 
-				className="p-6 rounded-lg bg-lime-300 text-2xl" 
+				className="p-2 rounded-lg bg-lime-300 text-2xl" 
 				onClick={async () => await statefn(UpdateScores)}
 			>
-				<div>Check</div>
+				<div>Check Word</div>
 			</button>
 		)
 	}
@@ -103,9 +105,9 @@ function ActionButton({ game, statefn }) {
 	if (!game.scoresheet.player.ok) {
 		return (
 			<button 
-				className="p-6 rounded-lg bg-lime-200 text-2xl" 
+				className="p-2 rounded-lg bg-red-200 text-2xl" 
 			>
-				<div>Invalid</div>
+				<div>Invalid Word</div>
 			</button>
 		)
 	}
@@ -120,24 +122,52 @@ function ActionButton({ game, statefn }) {
 	) 
 }
 
-function Contest({ game, statefn }) {
-
+function ScoreTable({ scoreline }) {
 	return (
-		<div className="h-full bg-amber-600 grid grid-cols-3 place-content-center place-items-center">
-			<div className="text-2xl" />
-			<div className="h-full flex place-content-center place-items-center">
-				<div className="place-self-start text-6xl font-bold text-red-900">
-					{game.scoresheet.opponent.score}
-				</div>
+		<table className="text-right">
+			<tbody>
+				{scoreline.adds.map((sm) => (
+				<tr key={sm.source}>
+					<th className="font-medium" scope="row">{sm.source}</th>
+					<td>+{sm.value}</td>
+				</tr>))}
+				{scoreline.muls.map((sm) => (
+				<tr key={sm.source}>
+					<th className="font-medium" scope="row">{sm.source}</th>
+					<td>x{sm.value}</td>
+				</tr>))}
+			</tbody>
+		</table>
+	)
+}
 
-				<div className="place-self-end text-6xl font-bold text-lime-800">
-					{game.scoresheet.player.score}
+function Contest({ game, statefn }) {
+	if (game.scoresheet.player.ok) {
+		return (
+			<div className="flex flex-row-reverse gap-2">
+				<ActionButton game={game} statefn={statefn} />
+				<div className="flex flex-col justify-center text-sm font-light">
+					<div className="flex flex-row-reverse justify-between text-red-300">
+						<div className="self-end text-6xl text-red-300">
+							{game.scoresheet.opponent.score}
+						</div>
+						<ScoreTable scoreline={game.scoresheet.opponent} />
+					</div>
+
+					<div className="flex flex-row-reverse justify-between text-lime-500">
+						<div className="text-6xl text-lime-400">
+							{game.scoresheet.player.score}
+						</div>
+						<ScoreTable scoreline={game.scoresheet.player} />
+					</div>
 				</div>
 			</div>
-
+		);
+	} else {
+		return (
 			<ActionButton game={game} statefn={statefn} />
-		</div>
-	);
+		);
+	}
 }
 
 function Player({ game, statefn }) {
@@ -170,8 +200,9 @@ function Player({ game, statefn }) {
 	}
 
 	return (
-		<div className="size-full grid grid-rows-8 gap-4">
-			<div className="row-span-4">
+		<div className="size-full flex flex-col-reverse gap-4">
+			<HealthBar badguy={false} health={game.health} healthMax={game.healthMax} />
+			{views[view]()}
 			<motion.div 
 				layout 
 				transition={{ type: 'spring' }}
@@ -180,22 +211,13 @@ function Player({ game, statefn }) {
 					,"place-content-center place-items-center"
 					,"m-0"].join(' ')}
 			>
-				<div className="h-14">
+				<div className="place-self-start h-14">
 					<PlayerPlaced letters={game.placed} statefn={statefn} />
 				</div>
 				<div>
 					<Hand letters={game.hand} statefn={statefn} />
 				</div>
 			</motion.div>
-			</div>
-			
-			<div className="row-span-3">
-				{views[view]()}
-			</div>
-
-			<div className="row-span-1">
-				<HealthBar badguy={false} health={game.health} healthMax={game.healthMax} />
-			</div>
 		</div>
 	)
 }
@@ -220,6 +242,7 @@ function BonusCarousel({ game, closefn }) {
 				<p className="">
 					{bonus.desc}
 				</p>
+				<div>Level {bonus.level} (+{bonus.level*2} points)</div>
 			</div>
 
 			<button 
@@ -307,7 +330,7 @@ function Placed({ letters }) {
 		<ul className="flex flex-row gap-1" >
 			{letters.map((letter) => 
 				<motion.li layoutId={letter.id} key={letter.id} >
-					<Letter letter={letter} />
+					<LetterSmall letter={letter} />
 				</motion.li>
 			)}
 		</ul>
@@ -321,7 +344,7 @@ function PlayerPlaced({ letters, statefn }) {
 			<ul className="flex flex-row gap-1" >
 				{letters.map((letter) => 
 					<motion.li layoutId={letter.id} key={letter.id} >
-						<Letter letter={letter} />
+						<LetterSmall letter={letter} />
 					</motion.li>
 				)}
 				{letters.length > 0 && 
@@ -370,10 +393,40 @@ function Hand({ letters, statefn }) {
 	);
 }
 
-function Letter({ letter }) {
+function LetterSmall({ letter }) {
+	const [bg, bo] = letter.upgrades === 0 ? 
+		['bg-stone-400', 'border-stone-600'] :
+		['bg-orange-400', 'border-orange-600'] 
 	return (
-		<div className={["w-12 h-12 border-solid border-4 border-stone-600"
-				,"bg-stone-400",
+		<div className={["w-8 h-8 border-solid border-2"
+				, bg, bo, "p-0.5",
+				,"shadow-sm shadow-zinc-400"
+				,"grid grid-cols-3 grid-rows-3"].join(' ')}
+		>
+			<div className={
+				["row-start-1 col-start-1 row-span-3 col-span-2"
+				,"text-xl font-bold"
+				].join(' ')}
+			>
+				{letter.char}
+			</div>
+			<div className={["row-start-3 col-start-3 self-end"
+					,"text-xs font-light"
+					].join(' ')}
+			>
+				{letter.score}
+			</div>
+		</div>
+	);
+}
+
+function Letter({ letter }) {
+	const [bg, bo] = letter.upgrades === 0 ? 
+		['bg-stone-400', 'border-stone-600'] :
+		['bg-orange-400', 'border-orange-600'] 
+	return (
+		<div className={["w-12 h-12 border-solid border-4"
+				, bg, bo
 				,"shadow-sm shadow-zinc-400"
 				,"grid grid-cols-3 grid-rows-3"].join(' ')}
 		>
@@ -392,9 +445,5 @@ function Letter({ letter }) {
 			</div>
 		</div>
 	);
-}
-
-function keyFaker(handler, key) {
-	return async () => await handler({ key: key });
 }
 

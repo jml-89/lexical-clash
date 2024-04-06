@@ -7,6 +7,13 @@ import {
 	stringToLetters
 } from './letter.ts';
 
+import {
+	DiscardAll,
+	Draw,
+	UnplaceLast,
+	PlaceById
+} from './playarea.ts'
+
 import { Opponent } from './opponent.ts';
 
 import { 
@@ -30,8 +37,8 @@ export type Battle = {
 	type: 'battle';
 
 	round: number;
-	drawNum: number;
 
+	handSize: number;
 	placed: Array<Letter>;
 	hand: Array<Letter>;
 	bag: Array<Letter>;
@@ -58,10 +65,11 @@ export type Outcome = {
 }
 
 export interface BattleSetup {
-	drawNum: number
+	handSize: number
  	bonuses: BonusCard[]
 	abilities: Map<string, AbilityCard>
 	opponent: Opponent
+	letters: Letter[]
 }
 
 export async function NewBattle(bs: BattleSetup, fn: ScoreFunc): Promise<Battle> {
@@ -71,9 +79,9 @@ export async function NewBattle(bs: BattleSetup, fn: ScoreFunc): Promise<Battle>
 		health: 10,
 		healthMax: 10,
 
-		drawNum: bs.drawNum,
+		handSize: bs.handSize,
 
-		bag: ScrabbleDistribution(),
+		bag: bs.letters,
 		hand: [],
 		discard: [],
 		placed: [],
@@ -83,11 +91,15 @@ export async function NewBattle(bs: BattleSetup, fn: ScoreFunc): Promise<Battle>
 		oppPlaced: [],
 		oppPlacedScore: ZeroScore(),
 
-		abilities: bs.abilities,
+		abilities: new Map<string, AbilityCard>(),
 		bonuses: bs.bonuses,
 
 		scoresheet: ZeroScore()
-	};
+	}
+
+	for (const [k, v] of bs.abilities) {
+		battle.abilities.set(k, Object.assign({}, v))
+	}
 
 	await NextRound(battle, fn);
 	return battle;
@@ -103,11 +115,14 @@ export function UseAbility(g: Battle, fn: ScoreFunc, key: string) {
 	console.log(key)
 	AbilityImpls.get(key).func(g)
 	g.abilities.get(key).uses -= 1
+
+	g.scoresheet.player = ZeroScore().player
 	AbilityChecks(g)
 }
 
 async function NextRound(g: Battle, fn: ScoreFunc): Promise<void> {
 	g.round = g.round + 1;
+	DiscardAll(g)
 	Draw(g);
 	NextOpponentWord(g);
 	AbilityChecks(g)
@@ -145,45 +160,19 @@ export async function Submit(g: Battle, fn: ScoreFunc) {
 		return
 	}
 
-	g.discard = g.discard.concat(g.placed).concat(g.hand);
-	g.hand = [];
-	g.placed = [];
-	g.oppPlaced = [];
-
 	await NextRound(g, fn);
 }
 
-function Draw(g: Battle) {
-	g.hand = g.hand.concat(g.bag.slice(0,g.drawNum));
-	g.bag = g.bag.slice(g.drawNum);
-}
-
 export function Backspace(g: Battle, fn: ScoreFunc) {
-	if (g.placed.length === 0) {
-		return g;
-	}
-
-	const li = g.placed.length - 1;
-	const idx = g.hand.findIndex((letter) => letter.id === g.placed[li].id);
-
-	g.hand[idx].available = true;
-	g.placed = g.placed.slice(0, li);
+	UnplaceLast(g)
 	g.scoresheet.player = ZeroScore().player
 	AbilityChecks(g)
 }
 
-export function Place(g: Battle, fn: ScoreFunc, c: string) {
-	const idx = g.hand.findIndex((letter) => 
-		letter.available && letter.id === c 
-	);
-	if (idx === -1) {
-		return;
-	}
-
-	g.placed = g.placed.concat([g.hand[idx]]);
-	g.hand[idx].available = false;
-	AbilityChecks(g)
+export function Place(g: Battle, fn: ScoreFunc, id: string) {
+	PlaceById(g, id)
 	g.scoresheet.player = ZeroScore().player
+	AbilityChecks(g)
 }
 
 function ZeroScore(): Scoresheet {

@@ -1,13 +1,11 @@
-import { randn } from './util.ts';
-
 // Representation of a scrabble-like tile
-// One may consider whether this is worthwhile to use
-// When just a string and looking up scores is quite easy
-// I think in the long run, Letter may be expanded further
-type Letter = {
+// available is a state variable, cause of concern
+
+interface Letter {
 	id: number;
 	char: string;
 	score: number;
+	upgrades: number;
 	available: boolean;
 }
 
@@ -48,14 +46,17 @@ const scrabbleMaterial = [
 ];
 
 
-export function ScrabbleDistribution(): Array<Letter> {
-	let xs = scrabbleMaterial.flatMap((tile) => {
+// UNSORTED distribution of letters according to Scrabble
+// Caller is expected to shuffle
+export function ScrabbleDistribution(): Letter[] { 
+	return scrabbleMaterial.flatMap((tile) => {
 		let ys = new Array(tile.count);
 		for (let i = 0; i < tile.count; i++) {
 			ys[i] = { 
 				id: -1,
 				char: tile.letter,
 				score: tile.score,
+				upgrades: 0,
 				available: true
 			};
 		}
@@ -64,18 +65,6 @@ export function ScrabbleDistribution(): Array<Letter> {
 		letter.id = `scrabble-${idx}`;
 		return letter;
 	});
-
-	// Shuffle
-	let ys = new Array(xs.length);
-	for (const [i, x] of xs.entries()) {
-		const j = randn(i+1);
-		if (j !== i) {
-			ys[i] = ys[j];
-		}
-		ys[j] = x;
-	}
-
-	return ys;
 }
 
 export function stringToLetters(pref: string, word: string): Array<Letter> {
@@ -92,6 +81,7 @@ export function stringToLetters(pref: string, word: string): Array<Letter> {
 			id: i,
 			char: mat.letter,
 			score: mat.score,
+			upgrades: 0,
 			available: true
 		});
 		i++;

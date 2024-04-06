@@ -1,10 +1,10 @@
 'use client'
 
-import { NextPreamble } from '@/lib/game.ts'
+import { EndOutcome } from '@/lib/game.ts'
 
 export function Outcome({ phase, statefn }) {
 	async function nextPreamble(choices) {
-		await statefn((g, s) => NextPreamble(g, s));
+		await statefn((g, s) => EndOutcome(g, s));
 	};
 
 	return (
@@ -16,7 +16,8 @@ export function Outcome({ phase, statefn }) {
 		>
 			<div className={
 				[ "rounded-3xl"
-				, "bg-gradient-to-b from-amber-500 via-amber-500 to-amber-500"
+				, "bg-slate-800"
+				, "text-amber-300"
 				, "flex flex-col gap-6"
 				, "place-content-center place-items-center"
 				, "p-4"
@@ -26,7 +27,9 @@ export function Outcome({ phase, statefn }) {
 					Congratulations!
 				</h1>
 
-				<button onClick={nextPreamble}>
+				<div>Five randomly selected letters have been upgraded</div>
+
+				<button className="p-2 rounded-lg bg-lime-600 text-amber-100" onClick={nextPreamble}>
 					Continue
 				</button>
 			</div>

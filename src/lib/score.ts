@@ -33,7 +33,11 @@ interface Scoresheet {
 interface Scoreline {
 	checked: boolean
 	ok: boolean
+
 	score: number
+
+	totalAdd: number
+	totalMul: number
 	adds: ScoreModifier[]
 	muls: ScoreModifier[]
 }
@@ -48,7 +52,7 @@ interface ScoreModifier {
 // In case of some future changes to layout
 interface ScoreInput {
 	placed: Letter[]
-	bonuses: BonusCard[]
+	bonuses: Map<string, BonusCard>
 	opponent: Opponent // need this for weaknesses, strengths, immunities
 	oppPlaced: Letter[] // we score opponent's word too
 }
@@ -60,7 +64,9 @@ export async function ScoreWord(input: ScoreInput): Promise<Scoresheet> {
 		opponent: {
 			checked: true, 
 			ok: true, 
-			score: simpleScore(input.oppPlaced), 
+			score: 0,
+			totalAdd: 0,
+			totalMul: 0,
 			adds: [],
 			muls: []
 		},
@@ -68,9 +74,29 @@ export async function ScoreWord(input: ScoreInput): Promise<Scoresheet> {
 			checked: true, 
 			ok: false, 
 			score: 0, 
+			totalAdd: 0,
+			totalMul: 0,
 			adds: [],
 			muls: [] 
 		}
+	}
+
+
+	sheet.player.adds.push({
+		source: 'Letter Score Sum',
+		value: simpleScore(input.placed)
+	})
+
+	sheet.opponent.adds.push({
+		source: 'Letter Score Sum',
+		value: simpleScore(input.oppPlaced)
+	})
+
+	for (const who of ['player', 'opponent']) {
+		sheet[who].muls.push({
+			source: 'Base Mult.',
+			value: 1
+		})
 	}
 
 	const word = lettersToString(input.placed)
@@ -79,10 +105,21 @@ export async function ScoreWord(input: ScoreInput): Promise<Scoresheet> {
 		return sheet
 	}
 
-	sheet.player.adds.push({ 
-		source: 'base',
-		value: simpleScore(input.placed)
-	})
+	for (const [k, v] of input.bonuses) {
+		if (!BonusImpls.has(k)) {
+			console.log(`Could not find ${k} in BonusImpls:`, BonusImpls)
+			continue
+		}
+
+		const impl = BonusImpls.get(k)
+		const val = impl.fn(v.level, input.placed)
+		if (val !== 0) {
+			sheet.player.adds.push({ 
+				source: v.name,
+				value: val
+			})
+		}
+	}
 
 	for (const weakness of input.opponent.weaknesses) {
 		const hit = await isRelatedWords('hypernym', weakness, word)
@@ -90,14 +127,27 @@ export async function ScoreWord(input: ScoreInput): Promise<Scoresheet> {
 			continue
 		}
 		sheet.player.muls.push({
-			source: `weakness to ${weakness}`,
+			source: `Weakness: ${weakness}`,
 			value: 1
 		})
 	}
 
-	const sum = sheet.player.adds.reduce((xs, x) => xs+x.value, 0)
-	const mul = sheet.player.muls.reduce((xs, x) => xs+x.value, 1)
-	sheet.player.score = sum * mul + 100
+	for (const strength of input.opponent.strengths) {
+		const hit = await isRelatedWords('hypernym', strength, word)
+		if (!hit) {
+			continue
+		}
+		sheet.player.muls.push({
+			source: `strength: ${strength}`,
+			value: -1
+		})
+	}
+
+	for (const who of ['player', 'opponent']) {
+		sheet[who].totalAdd = sheet[who].adds.reduce((xs, x) => xs+x.value, 0)
+		sheet[who].totalMul = sheet[who].muls.reduce((xs, x) => xs+x.value, 0)
+		sheet[who].score = sheet[who].totalAdd * sheet[who].totalMul
+	}
 
 	return sheet
 }

@@ -1,13 +1,33 @@
+import prand from 'pure-rand'
 
+export function shuffle<T>(xs: T[], prng: RandomGenerator): [T[], RandomGenerator] {
+	let ys = new Array(xs.length);
 
-export function randn(n: number): number {
-	return Math.floor(Math.random() * n);
+	let curr = prng
+	for (const [i, x] of xs.entries()) {
+		const [j, next] = prand.uniformIntDistribution(0, i, curr)
+		if (j !== i) {
+			ys[i] = ys[j];
+		}
+		ys[j] = x;
+		curr = next
+	}
+
+	return [ys, curr];
 }
 
-export function randelem<T>(xs: Array<T>): T {
-	return xs[randn(xs.length)];
+export function pickN<T>(m: Map<string, T>, n: number, prng: RandomGenerator): [Map<string, T>, RandomGenerator] {
+	const res = new Map<string, T>
+	const [keys, next] = shuffle([...m.keys()], prng)
+
+	for (const key of keys.slice(0, n)) {
+		res.set(key, m.get(key))
+	}
+
+	return [res, next]
 }
 
+// naive Levenshtein distance implementation
 export function distance(x: string, y: string): number {
 	let v0: Array<number> = Array(y.length+1).fill(0);
 	let v1: Array<number> = Array(y.length+1).fill(0);

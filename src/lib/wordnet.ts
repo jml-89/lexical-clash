@@ -9,8 +9,8 @@ export async function WordCheck(word: string): Promise<boolean> {
 		const res = await pool.query({
 			text: `
 				select *
-				from lexicalentry
-				where writtenform ilike $1;
+				from writtenform
+				where form ilike $1;
 			`, 
 			values: [word]
 		})
@@ -36,7 +36,11 @@ export async function getSynids(writtenform: string): Promise<string[]> {
 			where memberid in (
 				select id 
 				from lexicalentry 
-				where writtenform ilike $1
+				where id in (
+					select lexid
+					from writtenform 
+					where form ilike $1
+				)
 			);`,
 		values: [writtenform]
 	})

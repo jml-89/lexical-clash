@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { WithCopy, EndPreamble } from '@/lib/game.ts';
+import Image from 'next/image';
 
 export function Preamble({ phase, statefn }) {
 	const [choices, setChoices] = useState({
+		opponents: '',
 		abilities: [],
 		bonuses: []
 	});
@@ -30,16 +32,17 @@ export function Preamble({ phase, statefn }) {
 
 	const stages = [
 		{
-			title: "(1/3) Pick Opponent",
+			title: "Select Your Opponent",
 			options: mugshots,
 			field: 'opponents',
 			apply: (key: string): void => {
-				setChoices({...choices, opponents: key})
+				choices.opponents = key
+				setChoices(choices)
 				setStageidx(stageidx + 1)
 			}
 		},
 		{
-			title: "(2/3) Pick an Ability",
+			title: "Select Ability",
 			options: abticks,
 			field: 'abilities',
 			apply: (key: string): void => {
@@ -49,7 +52,7 @@ export function Preamble({ phase, statefn }) {
 			}
 		},
 		{
-			title: "(3/3) Pick a Bonus",
+			title: "Select Bonus",
 			options: boticks,
 			field: 'bonuses',
 			apply: (key: string): void => {
@@ -76,36 +79,22 @@ export function Preamble({ phase, statefn }) {
 	}
 	
 	return (
-		<main className={
-			[ "h-svh"
-			, "flex flex-col"
-			, "place-content-center place-items-center"
-			].join(' ')}
-		>
-			<Selection 
-				title={stage.title} 
-				options={options}
-			/>
-		</main>
+		<Selection 
+			title={stage.title} 
+			options={options}
+		/>
 	);
 }
 
 function Selection({ title, options }) {
 	return (
-		<div className={
-			[ "rounded-3xl"
-			, "bg-gradient-to-b from-amber-500 via-amber-500 to-amber-500"
-			, "flex flex-col gap-6"
-			, "place-content-center place-items-center"
-			, "p-4"
-			].join(' ')}
-		>
-			<h1 className="text-3xl font-bold">
+		<main className="flex-1 flex flex-col justify-start gap-2 mx-2">
+			<h1 className="text-amber-300 text-4xl font-light">
 				{title}
 			</h1>
 
 			{options}
-		</div>
+		</main>
 	);
 }
 
@@ -122,17 +111,44 @@ function OptionTile({ key, children, handler }) {
 }
 
 function OpponentMugshot({ opponent }) {
+	let tableData: string[][] = []
+	for (const weakness of opponent.weaknesses) {
+		tableData.push([weakness, ''])
+	}
+
+	for (const [i, strength] of opponent.strengths.entries()) {
+		if (i < tableData.length) {
+			tableData[i][1] = strength
+		} else {
+			tableData.push(['', strength])
+		}
+	}
+
 	return (
 		<div key={opponent.name} 
 			className={[
 				"flex flex-col",
 				"rounded-xl",
-				"bg-gradient-to-b from-red-400 via-red-400 to-red-500",
-				"p-4"
+				"bg-slate-700",
+				"p-2 gap-2"
 			].join(' ')}
 		>
-			<h1 className="text-xl font-bold">{opponent.name}</h1>
-			<p>{opponent.desc}</p>
+
+			<h1 className="text-amber-300 text-xl">{opponent.name} <span className="italic">({opponent.desc})</span></h1>
+			
+			<div className="flex flex-row gap-2">
+				<Image 
+					src={`/${opponent.image}`} 
+					width={120}
+					height={120}
+					alt={`Mugshot of ${opponent.name}`}
+				/>
+
+				<div className="flex flex-col">
+					<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opponent.weaknesses.join(', ')}</div>
+					<div className="text-red-300"><span className="font-bold">Strong against:</span> {opponent.strengths.join(', ')}</div>
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -143,12 +159,13 @@ function AbilityTicket({ ability }) {
 			className={[
 				"flex flex-col",
 				"rounded-xl",
-				"bg-gradient-to-b from-red-400 via-red-400 to-red-500",
-				"p-4"
+				"bg-slate-700",
+				"text-amber-300",
+				"p-2 gap-2"
 			].join(' ')}
 		>
 			<h1 className="text-xl font-bold">{ability.name}</h1>
-			<p>{ability.desc}</p>
+			<div className="italic">{ability.desc}</div>
 		</div>
 	);
 }
@@ -159,12 +176,13 @@ function BonusTicket({ bonus }) {
 			className={[
 				"flex flex-col",
 				"rounded-xl",
-				"bg-gradient-to-b from-red-400 via-red-400 to-red-500",
-				"p-4"
+				"bg-slate-700",
+				"text-amber-300",
+				"p-2 gap-2"
 			].join(' ')}
 		>
 			<h1 className="text-xl font-bold">{bonus.name}</h1>
-			<p>{bonus.desc}</p>
+			<div className="italic">{bonus.desc}</div>
 		</div>
 	);
 }
