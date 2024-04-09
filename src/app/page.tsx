@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export default async function Intro({ params, searchParams }) {
+export default async function Intro() {
 	return (
 		<main className="text-amber-400 flex flex-col justify-between gap-2">
 			<div className="flex flex-col">
@@ -14,7 +14,7 @@ export default async function Intro({ params, searchParams }) {
 					The battle will continue until you or your opponent run out of health.<br/>
 					<br/>
 					Tap letters to arrange them into a word.<br/>
-					Tap the check word button to see if it's valid.<br/>
+					Tap the check word button to see if it is valid.<br/>
 					If the word is valid, a word score will be presented.<br/>
 					If the word score is satisfactory, press attack!<br/>
 					<br/>
@@ -29,10 +29,10 @@ export default async function Intro({ params, searchParams }) {
 				</div>
 				<p className="mx-4">
 					Each opponent you face has a unique set of strengths and weaknesses.<br/>
-					Attacking your opponent's weakness makes your word far more powerful.<br/>
-					Likewise, stay away from your opponent's strengths.<br/>
+					Attacking your opponents weakness makes your word far more powerful.<br/>
+					Likewise, stay away from your opponents strengths.<br/>
 					<br/>
-					These are based upon WordNet's hypernym/hyponym relations.<br/>
+					These are based upon WordNets hypernym/hyponym relations.<br/>
 					Examples follow for illuminative purposes.<br/>
 					Let us consider an opponent weak to <span className="text-lime-300">food</span>.<br/>
 					And word you write which is detected as a type of food will gain an extra multiplier.<br/>

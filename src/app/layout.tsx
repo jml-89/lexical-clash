@@ -25,7 +25,7 @@ export default function RootLayout({
 				{children}
 
 				<div className="flex-none flex flex-row-reverse bg-slate-900">
-					<div className="text-lg text-amber-300 mx-2">/jml89</div>
+					<div className="text-lg text-amber-300 mx-2">/jml-89</div>
 				</div>
 			</div>
 		</body>

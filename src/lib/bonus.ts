@@ -1,4 +1,4 @@
-import { Letter } from './letter.ts';
+import { Letter } from './letter';
 
 // Bonuses are modifiers to the score produced by a given word
 // If I can get a good set of data going, it can proc off cool things like
@@ -9,21 +9,22 @@ import { Letter } from './letter.ts';
 //
 // Eventually they'll have graphics, levels, etc.
 
-interface BonusCard {
+export interface BonusCard {
 	key: string
 	name: string
 	desc: string
+	level: number
 }
 
-interface BonusImpl {
-	fn: (level: number, word: Array<Letter>) => number;
+export interface BonusImpl {
+	fn: (level: number, word: Letter[]) => number;
 }
 
 interface BonusBase {
 	key: string
 	name: string
 	desc: string
-	fn: (word: Array<Letter>) => number;
+	fn: (level: number, word: Letter[]) => number;
 }
 
 const base: BonusBase[] = [
@@ -31,7 +32,7 @@ const base: BonusBase[] = [
 		key: "double",
 		name: "Double Letter",
 		desc: "Same letter occurs twice in a row, e.g. gli[mm]er, h[oo]t",
-		fn: (level: number, word: Array<Letter>): number => {
+		fn: (level: number, word: Letter[]): number => {
 			let n = 0;
 			let bc = '';
 			for (const c of word) {
@@ -47,7 +48,7 @@ const base: BonusBase[] = [
 		key: "thth",
 		name: "Lispers Torment",
 		desc: "Word contains the sequence [th]",
-		fn: (level: number, word: Array<Letter>): number => {
+		fn: (level: number, word: Letter[]): number => {
 			let n = 0;
 			let bc = '';
 			for (const c of word) {

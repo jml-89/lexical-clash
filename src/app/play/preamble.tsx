@@ -1,116 +1,85 @@
 'use client'
 
 import { useState } from 'react';
-import { WithCopy, EndPreamble } from '@/lib/game.ts';
 import Image from 'next/image';
 
-export function Preamble({ phase, statefn }) {
-	const [choices, setChoices] = useState({
-		opponents: '',
-		abilities: [],
-		bonuses: []
-	});
-	const [stageidx, setStageidx] = useState(0);
+import { 
+	Preamble, 
+	PreambleStage,
+	PreambleStageType,
+	PreambleChoice 
+} from '@/lib/preamble';
 
-	async function endPreamble(choices) {
-		await statefn((g, s) => EndPreamble(g, s, choices));
-	};
+import { Opponent } from '@/lib/opponent'
+import { AbilityCard } from '@/lib/ability'
+import { BonusCard } from '@/lib/bonus'
 
-	const mugshots = new Map<string, any>();
-	for (const [key, opponent] of phase.opponents) {
-		mugshots.set(key, OpponentMugshot({ opponent: opponent }))
+type statefnT = (fn: (p: Preamble) => void) => Promise<void>
+
+type renderT = (ps: any) => React.ReactNode
+
+function chooseRenderFn(stage: any): renderT {
+	if (stage.field === 'opponent') {
+		return (opponent: Opponent): React.ReactNode => 
+			OpponentMugshot({ opponent: opponent })
+	} 
+	if (stage.field === 'ability') {
+		return (ability: AbilityCard): React.ReactNode => 
+			AbilityTicket({ ability: ability })
 	}
-	const abticks = new Map<string, any>()
-	for (const [key, ability] of phase.abilities) {
-		abticks.set(key, AbilityTicket({ ability: ability }))
-	}
+	return (bonus: BonusCard): React.ReactNode =>
+		BonusTicket({ bonus: bonus })
+}
 
-	const boticks = new Map<string, any>()
-	for ( const [key, bonus] of phase.bonuses) {
-		boticks.set(key, BonusTicket({ bonus: bonus }))
-	}
+export function ShowPreamble({ preamble, statefn }: {
+	preamble: Preamble,
+	statefn: statefnT
+}) {
+	const stage = 
+		preamble.stagekey === 'opponent' ? preamble.opponent :
+		preamble.stagekey === 'ability' ? preamble.ability :
+		preamble.bonus
+	const renderFn = chooseRenderFn(stage)
 
-	const stages = [
-		{
-			title: "Select Your Opponent",
-			options: mugshots,
-			field: 'opponents',
-			apply: (key: string): void => {
-				choices.opponents = key
-				setChoices(choices)
-				setStageidx(stageidx + 1)
-			}
-		},
-		{
-			title: "Select Ability",
-			options: abticks,
-			field: 'abilities',
-			apply: (key: string): void => {
-				choices.abilities.push(key)
-				setChoices(choices)
-				setStageidx(stageidx + 1)
-			}
-		},
-		{
-			title: "Select Bonus",
-			options: boticks,
-			field: 'bonuses',
-			apply: (key: string): void => {
-				choices.bonuses.push(key)
-				endPreamble(choices)
-			}
-		}
-	];
-
-	const stage = stages[stageidx];
-
-	const toOptionTile = ([k, v]) => {
-		const params = {
-			key: k, 
-			children: v, 
-			handler: stage.apply
-		};
-		return OptionTile(params);
-	}
-
-	let options = []
+	let options: React.ReactNode[] = []
 	for (const [k, v] of stage.options) {
-		options.push(toOptionTile([k, v]))
+		const art = renderFn(v)
+		const tile = OptionTile({
+			key: k,
+			children: art,
+			handler: async () => await statefn((p: Preamble) => PreambleChoice(p, k))
+		})
+		options.push(tile)
 	}
 	
 	return (
-		<Selection 
-			title={stage.title} 
-			options={options}
-		/>
-	);
-}
-
-function Selection({ title, options }) {
-	return (
-		<main className="flex-1 flex flex-col justify-start gap-2 mx-2">
+		<main className="flex-1 flex flex-col gap-2 mx-2">
 			<h1 className="text-amber-300 text-4xl font-light">
-				{title}
+				{stage.title}
 			</h1>
 
-			{options}
+			<div className="flex-1 flex flex-col justify-evenly">
+				{options}
+			</div>
 		</main>
 	);
 }
 
-function Nothing({ arg }) {
-	return (<div></div>);
-}
-
-function OptionTile({ key, children, handler }) {
+function OptionTile({ key, children, handler }: {
+	key: string
+	children: React.ReactNode,
+	handler: () => Promise<void>
+}) {
 	return (
-		<button key={key} onClick={() => handler(key)}>
+		<button key={key} onClick={handler}>
 			{children}
 		</button>
 	);
 }
 
-function OpponentMugshot({ opponent }) {
+function OpponentMugshot({ opponent }: {
+	opponent: Opponent
+}) {
 	let tableData: string[][] = []
 	for (const weakness of opponent.weaknesses) {
 		tableData.push([weakness, ''])
@@ -153,7 +122,9 @@ function OpponentMugshot({ opponent }) {
 	);
 }
 
-function AbilityTicket({ ability }) {
+function AbilityTicket({ ability }: {
+	ability: AbilityCard
+}) {
 	return (
 		<div key={ability.name} 
 			className={[
@@ -170,7 +141,9 @@ function AbilityTicket({ ability }) {
 	);
 }
 
-function BonusTicket({ bonus }) {
+function BonusTicket({ bonus }: {
+	bonus: BonusCard
+}) {
 	return (
 		<div key={bonus.name} 
 			className={[

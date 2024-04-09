@@ -4,9 +4,9 @@
 
 import {
 	Letter
-} from './letter.ts'
+} from './letter'
 
-interface PlayArea {
+export interface PlayArea {
 	handSize: number
 
 	placed: Letter[]
@@ -48,10 +48,10 @@ export function DrawById(g: PlayArea, id: string): void {
 		return
 	}
 
-	DrawByIndex(g, id)
+	DrawByIndex(g, idx)
 }
 
-export function DrawByIndex(g: PlayArea, idx: string): void {
+export function DrawByIndex(g: PlayArea, idx: number): void {
 	g.hand = g.hand.concat([g.bag[idx]]);
 	g.bag = g.bag.slice(0, idx).concat(g.bag.slice(idx+1));
 }
@@ -67,7 +67,7 @@ export function UnplaceById(g: PlayArea, id: string): void {
 
 export function UnplaceLast(g: PlayArea): void {
 	if (g.placed.length === 0) {
-		return g;
+		return
 	}
 
 	const li = g.placed.length - 1;
@@ -75,6 +75,17 @@ export function UnplaceLast(g: PlayArea): void {
 
 	g.hand[idx].available = true;
 	g.placed = g.placed.slice(0, li);
+}
+
+export function UnplaceAll(g: PlayArea): void {
+	if (g.placed.length === 0) {
+		return
+	}
+
+	g.placed = []
+	for (const h of g.hand) {
+		h.available = true
+	}
 }
 
 export function PlaceById(g: PlayArea, id: string): void {
@@ -98,3 +109,4 @@ function makeAvail(letter: Letter): Letter {
 function isPlaced(g: PlayArea, letter: Letter): boolean {
 	return g.placed.some((pl) => letter.id === pl.id)
 }
+

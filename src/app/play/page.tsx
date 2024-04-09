@@ -1,11 +1,12 @@
 import Link from 'next/link';
 
-import { ScoreWord } from '@/lib/score.ts';
-import { serverSeed } from '@/lib/serveronly.ts';
-import { Game } from './game.tsx';
+import { ScoreWord } from '@/lib/score';
+import { serverSeed } from '@/lib/serveronly';
+import { Game } from './game';
 
-export default async function Home({ params, searchParams }) {
+// { params, searchParams }
+export default async function Home() {
 	return (
-		<Game seed={await serverSeed()} wordchecker={ScoreWord} />
+		<Game seed={await serverSeed()} scorefn={ScoreWord} />
 	);
 }

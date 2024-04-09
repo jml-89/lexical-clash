@@ -14,8 +14,7 @@ export async function WordCheck(word: string): Promise<boolean> {
 			`, 
 			values: [word]
 		})
-		//console.log(res)
-		return res.rowCount > 0
+		return res.rowCount !== null && res.rowCount > 0
 	} catch (e) {
 		console.log("Database whoopsie uh oh")
 		console.log(e)
@@ -24,7 +23,7 @@ export async function WordCheck(word: string): Promise<boolean> {
 }
 
 // For the purposes of this simple game, return all matching synids
-// Normally you would query by written form and part of speech
+// Normally you would query by written form /and/ part of speech
 // However you can't expect the player to have to choose that
 // Just return everything
 // Verb, noun, what have you -- better to cover more than less

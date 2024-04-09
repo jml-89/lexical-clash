@@ -1,6 +1,6 @@
 import prand from 'pure-rand'
 
-export function shuffle<T>(xs: T[], prng: RandomGenerator): [T[], RandomGenerator] {
+export function shuffle<T>(xs: T[], prng: prand.RandomGenerator): [T[], prand.RandomGenerator] {
 	let ys = new Array(xs.length);
 
 	let curr = prng
@@ -16,12 +16,12 @@ export function shuffle<T>(xs: T[], prng: RandomGenerator): [T[], RandomGenerato
 	return [ys, curr];
 }
 
-export function pickN<T>(m: Map<string, T>, n: number, prng: RandomGenerator): [Map<string, T>, RandomGenerator] {
+export function pickN<T>(m: Map<string, T>, n: number, prng: prand.RandomGenerator): [Map<string, T>, prand.RandomGenerator] {
 	const res = new Map<string, T>
 	const [keys, next] = shuffle([...m.keys()], prng)
 
 	for (const key of keys.slice(0, n)) {
-		res.set(key, m.get(key))
+		res.set(key, m.get(key) as T)
 	}
 
 	return [res, next]
@@ -52,4 +52,11 @@ export function distance(x: string, y: string): number {
 	return v0[v0.length-1];
 }
 
+export function copyMap<K, T>(m: Map<K, T>): Map<K, T> {
+	let cp = new Map<K, T>()
+	for (const [k, v] of m) {
+		cp.set(k, Object.assign({}, v))
+	}
+	return cp
+}
 

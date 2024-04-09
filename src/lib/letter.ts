@@ -1,14 +1,15 @@
-// Representation of a scrabble-like tile
-// available is a state variable, cause of concern
-
-interface Letter {
-	id: number;
-	char: string;
-	score: number;
-	upgrades: number;
-	available: boolean;
+// Representation of a scrabble-like tile with some extra bits
+// id of a letter needs to be unique amongst other letters in bag/hand/placed
+export interface Letter {
+	id: string
+	char: string
+	score: number
+	level: number
+	available: boolean
 }
 
+// Hastily borrowed from Wikipedia
+// No blank tiles included -- maybe worth trying
 const scrabbleMaterial = [
 	{letter: 'A', score: 1, count: 9},
 	{letter: 'E', score: 1, count: 12},
@@ -45,18 +46,17 @@ const scrabbleMaterial = [
 	{letter: 'Z', score: 10, count: 1}
 ];
 
-
-// UNSORTED distribution of letters according to Scrabble
+// Returns an UNSORTED distribution of letters based on Scrabble letter counts
 // Caller is expected to shuffle
 export function ScrabbleDistribution(): Letter[] { 
 	return scrabbleMaterial.flatMap((tile) => {
 		let ys = new Array(tile.count);
 		for (let i = 0; i < tile.count; i++) {
 			ys[i] = { 
-				id: -1,
+				id: '',
 				char: tile.letter,
 				score: tile.score,
-				upgrades: 0,
+				level: 1,
 				available: true
 			};
 		}
@@ -67,8 +67,11 @@ export function ScrabbleDistribution(): Letter[] {
 	});
 }
 
-export function stringToLetters(pref: string, word: string): Array<Letter> {
-	let xs = new Array(word.length);
+// Returns word transformed into Letter array
+// pref: prefix for the id of the letter
+// word: Word to turn into an array of letters
+export function stringToLetters(pref: string, word: string): Letter[] {
+	let xs: Letter[] = []
 	let i = 0;
 	for (const c of word.toUpperCase()) {
 		let idx = scrabbleMaterial.findIndex((s) => s.letter === c);
@@ -78,10 +81,10 @@ export function stringToLetters(pref: string, word: string): Array<Letter> {
 
 		let mat = scrabbleMaterial[idx];
 		xs.push({ 
-			id: i,
+			id: `${pref}-${word}-${i}`,
 			char: mat.letter,
 			score: mat.score,
-			upgrades: 0,
+			level: 1,
 			available: true
 		});
 		i++;
@@ -89,7 +92,7 @@ export function stringToLetters(pref: string, word: string): Array<Letter> {
 	return xs;
 }
 
-export function lettersToString(letters: Array<Letter>): string {
+export function lettersToString(letters: Letter[]): string {
 	return letters.map((letter) => letter.char).join('');
 }
 

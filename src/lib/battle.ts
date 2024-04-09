@@ -1,3 +1,8 @@
+// With a bit of luck, everytihng in this file is purely sychronous client code
+// However, the scoring function lives on the server 
+// As it has to perform queries on the server database
+// This will be handled elsewhere
+
 'use client';
 
 import { 
@@ -5,192 +10,220 @@ import {
 	ScrabbleDistribution,
 	lettersToString,
 	stringToLetters
-} from './letter.ts';
+} from './letter';
+
+import {
+	PlayArea
+} from './playarea'
 
 import {
 	DiscardAll,
 	Draw,
 	UnplaceLast,
-	PlaceById
-} from './playarea.ts'
+	PlaceById,
+	UnplaceAll
+} from './playarea'
 
-import { Opponent } from './opponent.ts';
+import { PlayerProfile, Opponent } from './opponent';
 
 import { 
 	AbilityCard, 
-	AbilityCards, 
 	AbilityImpl, 
+
+	AbilityCards, 
 	AbilityImpls,
-} from './ability.ts'
+} from './ability'
 
 import {
 	BonusCard,
 	BonusCards
-} from './bonus.ts'
+} from './bonus'
 
 import { 
 	Scoresheet, 
-	ScoreFunc,
-} from './score.ts'
+} from './score'
 
-export type Battle = {
-	type: 'battle';
+import {
+	copyMap
+} from './util'
 
-	round: number;
+export interface Battler extends PlayArea, Opponent {
+	health: number
 
-	handSize: number;
-	placed: Array<Letter>;
-	hand: Array<Letter>;
-	bag: Array<Letter>;
-	discard: Array<Letter>;
-
-	healthMax: number;
-	health: number;
-
-	opponent: Opponent;
-	oppHealth: number;
-	oppPlaced: Array<Letter>;
-
-	abilities: Map<string, AbilityCard>
-	bonuses: BonusCard[]
-
+	checkScore: boolean
 	scoresheet: Scoresheet;
-}
 
-export type Outcome = {
-	type: 'outcome';
-
-	victory: boolean;
-	roundsPlayed: number;
-}
-
-export interface BattleSetup {
-	handSize: number
- 	bonuses: BonusCard[]
 	abilities: Map<string, AbilityCard>
-	opponent: Opponent
-	letters: Letter[]
+	bonuses: Map<string, BonusCard>
 }
 
-export async function NewBattle(bs: BattleSetup, fn: ScoreFunc): Promise<Battle> {
-	const battle = {
-		type: 'battle',
-		round: 0,
-		health: 10,
-		healthMax: 10,
+interface BattlerSetup {
+	handSize: number
+	letters: Letter[]
+ 	bonuses: Map<string, BonusCard>
+	abilities: Map<string, AbilityCard>
+}
+
+function NewBattler(bs: BattlerSetup, profile: Opponent): Battler {
+	return {
+		health: profile.healthMax,
 
 		handSize: bs.handSize,
-
 		bag: bs.letters,
 		hand: [],
 		discard: [],
 		placed: [],
 
-		opponent: bs.opponent,
-		oppHealth: bs.opponent.healthMax,
-		oppPlaced: [],
-		oppPlacedScore: ZeroScore(),
+		abilities: copyMap(bs.abilities),
+		bonuses: copyMap(bs.bonuses),
 
-		abilities: new Map<string, AbilityCard>(),
-		bonuses: bs.bonuses,
+		scoresheet: ZeroScore(),
+		checkScore: false,
 
-		scoresheet: ZeroScore()
+		...profile
 	}
 
-	for (const [k, v] of bs.abilities) {
-		battle.abilities.set(k, Object.assign({}, v))
+}
+
+export interface Battle {
+	type: 'battle'
+
+	done: boolean
+	victory: boolean
+
+	round: number
+
+	player: Battler
+	opponent: Battler
+}
+
+export interface BattleSetup {
+	handSize: number
+ 	bonuses: Map<string, BonusCard>
+	abilities: Map<string, AbilityCard>
+	opponent: Opponent
+	letters: Letter[]
+}
+
+export function NewBattle(bs: BattleSetup): Battle {
+	const battle: Battle = {
+		type: 'battle',
+
+		done: false,
+		victory: false,
+
+		round: 0,
+
+		player: NewBattler(bs, PlayerProfile),
+		opponent: NewBattler(bs, bs.opponent)
 	}
 
-	await NextRound(battle, fn);
+	NextRound(battle);
 	return battle;
 }
 
-function AbilityChecks(g: Battle) {
-	for (const [k, v] of g.abilities) {
-		v.ok =  v.uses > 0 && AbilityImpls.get(k).pred(g)
+function AbilityChecks(b: Battler): void {
+	for (const [k, v] of b.abilities) {
+		const impl = AbilityImpls.get(k) as AbilityImpl
+		v.ok =  v.uses > 0 && impl.pred(b)
 	}
 }
 
-export function UseAbility(g: Battle, fn: ScoreFunc, key: string) { 
-	console.log(key)
-	AbilityImpls.get(key).func(g)
-	g.abilities.get(key).uses -= 1
+function UseAbilityReal(g: Battler, key: string): void {
+	const impl = AbilityImpls.get(key) as AbilityImpl
+	impl.func(g)
 
-	g.scoresheet.player = ZeroScore().player
+	const ability = g.abilities.get(key) as AbilityCard
+	ability.uses -= 1
+
+	g.scoresheet = ZeroScore()
 	AbilityChecks(g)
 }
 
-async function NextRound(g: Battle, fn: ScoreFunc): Promise<void> {
+export function UseAbility(g: Battle, key: string): void { 
+	UseAbilityReal(g.player, key)
+}
+
+function NextRound(g: Battle): void {
 	g.round = g.round + 1;
-	DiscardAll(g)
-	Draw(g);
-	NextOpponentWord(g);
-	AbilityChecks(g)
-	await UpdateScores(g, fn)
+	DiscardAll(g.player)
+	Draw(g.player);
+
+	DiscardAll(g.opponent)
+	Draw(g.opponent)
+
+	NextWord(g.opponent, g.round)
+
+	AbilityChecks(g.player)
+	AbilityChecks(g.player)
+
+	UpdateScore(g.player)
+	UpdateScore(g.opponent)
 }
 
-function NextOpponentWord(g: Battle) {
-	const idx = g.round % g.opponent.words.length;
-	g.oppPlaced = stringToLetters(g.opponent.name, g.opponent.words[idx])
+function NextWord(g: Battler, round: number): void {
+	const idx = round % g.words.length
+	g.placed = stringToLetters(g.name, g.words[idx])
 }
 
-export async function UpdateScores(g: Battle, fn: ScoreFunc) {
-	g.scoresheet = await fn(g)
-}
-
-export async function Submit(g: Battle, fn: ScoreFunc) {
-	const diff = g.scoresheet.player.score - g.scoresheet.opponent.score 
+export function Submit(g: Battle): void {
+	const diff = g.player.scoresheet.score - g.opponent.scoresheet.score
 	if (diff > 0) {
-		g.oppHealth -= diff;
+		g.opponent.health -= diff
 	} else if (diff < 0) {
-		g.health += diff;
+		g.player.health += diff
 	}
 
-	if (g.health <= 0) {
-		g.type = 'outcome'
+	if (g.player.health <= 0) {
 		g.victory = false
-		g.roundsPlayed = g.round
+		g.done = true
 		return
 	} 
 
-	if (g.oppHealth <= 0) {
-		g.type = 'outcome'
-		g.victory = true
-		g.roundsPlayed = g.round
+	if (g.opponent.health <= 0) {
+		g.victory = true 
+		g.done = true
 		return
 	}
 
-	await NextRound(g, fn);
+	NextRound(g);
 }
 
-export function Backspace(g: Battle, fn: ScoreFunc) {
-	UnplaceLast(g)
-	g.scoresheet.player = ZeroScore().player
-	AbilityChecks(g)
+export function Backspace(g: Battle): void {
+	UnplaceLast(g.player)
+	g.player.scoresheet = ZeroScore()
+	AbilityChecks(g.player)
 }
 
-export function Place(g: Battle, fn: ScoreFunc, id: string) {
-	PlaceById(g, id)
-	g.scoresheet.player = ZeroScore().player
-	AbilityChecks(g)
+export function Wipe(g: Battle): void {
+	UnplaceAll(g.player)
+	g.player.scoresheet = ZeroScore()
+	AbilityChecks(g.player)
+}
+
+export function Place(g: Battle, id: string): void {
+	PlaceById(g.player, id)
+	g.player.scoresheet = ZeroScore()
+	AbilityChecks(g.player)
+}
+
+function UpdateScore(g: Battler): void {
+	g.checkScore = true
+}
+
+export function UpdateScores(g: Battle): void {
+	g.player.checkScore = true
 }
 
 function ZeroScore(): Scoresheet {
 	return {
-		player: {
-			checked: false,
-			ok: false,
-			score: 0,
-			adds: [],
-			muls: []
-		},
-		opponent: {
-			checked: false,
-			ok: false,
-			score: 0,
-			adds: [],
-			muls: []
-		}
+		checked: false,
+		ok: false,
+		score: 0,
+		adds: [],
+		muls: [],
+		totalAdd: 0,
+		totalMul: 0
 	}
 }
 

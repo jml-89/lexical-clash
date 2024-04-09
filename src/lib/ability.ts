@@ -1,23 +1,23 @@
 import { 
 	Letter,
-} from './letter.ts';
+} from './letter';
 
 import {
 	PlayArea,
 	DiscardPlaced,
 	DrawByIndex,
 	Draw
-} from './playarea.ts';
+} from './playarea';
 
-interface AbilityCard {
+export interface AbilityCard {
 	key: string
 	name: string
 	desc: string
-	uses: string
+	uses: number 
 	ok: boolean
 }
 
-interface AbilityImpl {
+export interface AbilityImpl {
 	pred: (pr: PlayArea) => boolean;
 	func: (pr: PlayArea) => void;
 }
@@ -80,12 +80,9 @@ const AbilitiesBase: AbilityBase[] = [
 			const len = pr.placed.length;
 			let clones: Letter[] = []
 			for (const letter of pr.placed.slice(1)) {
-				clones.push({
-					id: `${letter.id}-clone-of-${pr.placed[0].id}`,
-					char: pr.placed[0].char,
-					score: pr.placed[0].score,
-					available: false
-				})
+				const clone = Object.assign({}, pr.placed[0])
+				clone.id = `${letter.id}-clone-of-${pr.placed[0].id}`
+				clones.push(clone)
 			}
 
 			pr.hand = pr.hand.filter((left) => 
@@ -100,14 +97,20 @@ const AbilitiesBase: AbilityBase[] = [
 	}
 ]
 
-export const AbilityCards = new Map(AbilitiesBase.map((x) => {
-	const y = Object.assign({}, x)
-	y.uses = 1
-	y.ok = false
-	delete y.pred
-	delete y.func
-	return [x.key, y]
-}))
+export const AbilityCards = new Map(AbilitiesBase.map((x) => [
+	x.key, {
+		key: x.key,
+		name: x.name,
+		desc: x.desc,
+		uses: 1,
+		ok: false
+	}
+]))
 
-export const AbilityImpls = new Map(AbilitiesBase.map((x) => [x.key, { pred: x.pred, func: x.func }]))
+export const AbilityImpls = new Map(AbilitiesBase.map((x) => [
+	x.key, { 
+		pred: x.pred, 
+		func: x.func 
+	}
+]))
 

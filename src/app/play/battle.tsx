@@ -4,71 +4,59 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Submit, Backspace, Place, UseAbility, UpdateScores } from '@/lib/battle.ts';
+import { Battler, Battle, Submit, Backspace, Wipe, Place, UseAbility, UpdateScores } from '@/lib/battle';
+import { Scoresheet } from '@/lib/score'
 
+import { Letter } from '@/lib/letter'
+import { DrawLetter } from './letter'
 
-export function Battle({ game, statefn }) {
+import { BonusCard } from '@/lib/bonus'
+import { AbilityCard } from '@/lib/ability'
+
+type statefnT = (fn: (a: Battle) => void) => Promise<void>
+
+export function PlayBattle({ game, statefn }: { game: Battle, statefn: statefnT }) {
 	return (
-		<main className="flex-1 flex flex-col justify-between p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
-			<Opponent game={game} />
+		<main className="flex-1 flex flex-col items-center p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
+			<DrawOpponent opp={game.opponent} />
 			<Contest game={game} statefn={statefn} />
-			<Player game={game} statefn={statefn} />
+			<Player player={game.player} statefn={statefn} />
 		</main>
 	);
 }
 
-function Opponent({ game }) {
+function DrawOpponent({ opp }: { opp: Battler }) {
 	return (
-		<motion.div 
-			name="opponent-area" 
-			className={
-				[ "flex flex-col"
-				, "gap-2"
-				].join(' ')
-			}
-		>
-			<HealthBar badguy={true} health={game.oppHealth} healthMax={game.opponent.healthMax} />
+		<motion.div className="flex flex-col gap-2">
+			<HealthBar badguy={true} health={opp.health} healthMax={opp.healthMax} />
 
 			<div className="flex flex-row gap-4">
 				<div className="">
 					<Image 
-						src={`/${game.opponent.image}`} 
+						src={`/${opp.image}`} 
 						width={120}
 						height={120}
-						alt={`Mugshot of ${game.opponent.name}`}
+						alt={`Mugshot of ${opp.name}`}
 					/>
 				</div>
 
 				<div className="flex flex-col">
-					<div className="text-amber-300"><span className="text-lg font-bold">{game.opponent.name}</span> (<span className="italic">{game.opponent.desc}</span>)</div>
-					<div className="text-lime-300"><span className="font-bold">Weak to:</span> {game.opponent.weaknesses.join(', ')}</div>
-					<div className="text-red-300"><span className="font-bold">Strong against:</span> {game.opponent.strengths.join(', ')}</div>
+					<div className="text-amber-300"><span className="text-lg font-bold">{opp.name}</span> <span className="italic">({opp.desc})</span></div>
+					<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opp.weaknesses.join(', ')}</div>
+					<div className="text-red-300"><span className="font-bold">Strong against:</span> {opp.strengths.join(', ')}</div>
 				</div>
 			</div>
 
-			<motion.div initial={{y:-100}} animate={{y:0}} className="row-start-2 place-self-start">
-				<Placed letters={game.oppPlaced} />
+			<motion.div initial={{y:-100}} animate={{y:0}} >
+				<Placed letters={opp.placed} />
 			</motion.div>
 		</motion.div>
 	)
 }
 
-function HealthBar({ badguy, health, healthMax }) {
+function HealthBar({ badguy, health, healthMax }: { badguy: boolean, health: number, healthMax: number }) {
 	const color = badguy ? "bg-red-800" : "bg-lime-500";
-	function pip(idx, color) {
-		const k = `pip-${idx}`;
-		const cn = ["flex-1", color].join(' ');
-		return (<div key={k} className={cn} />);
-	}
-
-	const pips = []
-	for (let i = 0; i < health; i++) {
-		pips.push(pip(i, color));
-	}
-
-	for (let i = health; i < healthMax; i++) {
-		pips.push(pip(i, 'bg-zinc-400'));
-	}
+	const healthpct = Math.floor((health/healthMax) * 100.0)
 
 	return (
 		<div
@@ -79,59 +67,66 @@ function HealthBar({ badguy, health, healthMax }) {
 				"flex"
 			].join(' ')}
 		>
-			{pips}
+			{healthpct > 0 &&
+			<motion.div 
+				initial={{width:"0%"}} 
+				animate={{width:`${healthpct}%`}} 
+				className={color}
+			/>
+			}
 		</div>
 	);
 }
 
-function ActionButton({ game, statefn }) {
-	if (game.placed.length === 0) {
-		return (
-			<></>
-		)
-	}
-
-	if (!game.scoresheet.player.checked) { 
-		return (
-			<button 
-				className="p-2 rounded-lg bg-lime-300 text-2xl" 
-				onClick={async () => await statefn(UpdateScores)}
-			>
-				<div>Check Word</div>
-			</button>
-		)
-	}
-
-	if (!game.scoresheet.player.ok) {
-		return (
-			<button 
-				className="p-2 rounded-lg bg-red-200 text-2xl" 
-			>
-				<div>Invalid Word</div>
-			</button>
-		)
-	}
-
+function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT }) {
 	return (
-		<button 
-			className="p-6 rounded-lg bg-lime-500 text-2xl" 
-			onClick={async () => await statefn(Submit)}
-		>
-			<div>Attack</div>
-		</button>
-	) 
+		<AnimatePresence>
+			{ player.placed.length === 0 ? (
+				<></>
+			) : !player.scoresheet.checked ? (
+				<motion.button 
+					key="checkbutton"
+					className="p-2 rounded-lg bg-lime-300 text-2xl" 
+					onClick={async () => await statefn(UpdateScores)}
+					animate={{ scale: 1 }}
+					initial={{ scale: 0 }}
+					exit={{ scale: 0 }}
+				>
+					Check Word
+				</motion.button>
+			) : !player.scoresheet.ok ? (
+				<motion.button 
+					key="checkbutton"
+					className="p-2 rounded-lg bg-red-200 text-2xl" 
+				>
+					Invalid Word
+				</motion.button>
+			) : (
+				<motion.button 
+					key="attackbutton"
+					className="p-4 m-4 rounded-lg bg-lime-500 text-2xl" 
+					onClick={async () => await statefn(Submit)}
+					animate={{ x: 0 }}
+					initial={{ x: 200 }}
+					exit={{ y: -100 }}
+				>
+					Attack
+				</motion.button>
+			) }
+		</AnimatePresence>
+	)
 }
 
-function ScoreTable({ scoreline }) {
+function ScoreTable({ sheet }: { sheet: Scoresheet}) {
 	return (
 		<table className="text-right">
 			<tbody>
-				{scoreline.adds.map((sm) => (
+				{sheet.adds.map((sm) => (
 				<tr key={sm.source}>
 					<th className="font-medium" scope="row">{sm.source}</th>
 					<td>+{sm.value}</td>
 				</tr>))}
-				{scoreline.muls.map((sm) => (
+				{sheet.muls.map((sm) => (
 				<tr key={sm.source}>
 					<th className="font-medium" scope="row">{sm.source}</th>
 					<td>x{sm.value}</td>
@@ -141,39 +136,41 @@ function ScoreTable({ scoreline }) {
 	)
 }
 
-function Contest({ game, statefn }) {
-	if (game.scoresheet.player.ok) {
-		return (
-			<div className="flex flex-row-reverse gap-2">
-				<ActionButton game={game} statefn={statefn} />
-				<div className="flex flex-col justify-center text-sm font-light">
-					<div className="flex flex-row-reverse justify-between text-red-300">
-						<div className="self-end text-6xl text-red-300">
-							{game.scoresheet.opponent.score}
-						</div>
-						<ScoreTable scoreline={game.scoresheet.opponent} />
-					</div>
 
-					<div className="flex flex-row-reverse justify-between text-lime-500">
-						<div className="text-6xl text-lime-400">
-							{game.scoresheet.player.score}
-						</div>
-						<ScoreTable scoreline={game.scoresheet.player} />
-					</div>
-				</div>
+function Contest({ game, statefn }: { game: Battle, statefn: statefnT }) {
+	const playerZone = game.player.scoresheet.ok ? (
+		<div className="flex flex-row-reverse justify-between text-lime-500">
+			<div className="text-6xl text-lime-400">
+				{game.player.scoresheet.score}
 			</div>
-		);
-	} else {
-		return (
-			<ActionButton game={game} statefn={statefn} />
-		);
-	}
+			<ScoreTable sheet={game.player.scoresheet} />
+		</div>
+	) : (
+		<ActionButton player={game.player} statefn={statefn} />
+	)
+	return (
+		<div className="flex flex-row gap-2">
+			<div className="flex flex-col justify-center text-sm font-light">
+				<div className="flex flex-row-reverse justify-between text-red-300">
+					<div className="self-end text-6xl text-red-300">
+						{game.opponent.scoresheet.score}
+					</div>
+					<ScoreTable sheet={game.opponent.scoresheet} />
+				</div>
+
+				{playerZone}
+			</div>
+			{game.player.scoresheet.ok &&
+				<ActionButton player={game.player} statefn={statefn} />
+			}
+		</div>
+	)
 }
 
-function Player({ game, statefn }) {
+function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 	const [view, setView] = useState('buttons');
 
-	const somebutton = (alias, key) => (
+	const somebutton = (alias: string, key: string): React.ReactNode => (
 		<button 
 			className="p-6 bg-lime-600 rounded-3xl"
 			onClick={() => setView(key)}
@@ -182,57 +179,53 @@ function Player({ game, statefn }) {
 		</button>
 	)
 
-	const views = {
-		buttons: () => (
-			<div className="grid grid-cols-2 place-items-center">
+	const views: Record<string, () => React.ReactNode> = {
+		buttons: (): React.ReactNode => (
+			<div className="flex flex-row gap-4 justify-center">
 				{somebutton('Bonuses', 'bonuses')}
 				{somebutton('Abilities', 'abilities')}
 			</div>
 		),
 
-		abilities: () => (
-			<AbilityCarousel game={game} statefn={statefn} closefn={() => setView('buttons')}/>
+		abilities: (): React.ReactNode => (
+			<AbilityCarousel player={player} statefn={statefn} closefn={() => setView('buttons')}/>
 		),
 
-		bonuses: () => (
-			<BonusCarousel game={game} closefn={() => setView('buttons')}/>
+		bonuses: (): React.ReactNode => (
+			<BonusCarousel player={player} closefn={() => setView('buttons')}/>
 		)
 	}
 
 	return (
-		<div className="size-full flex flex-col-reverse gap-4">
-			<HealthBar badguy={false} health={game.health} healthMax={game.healthMax} />
+		<motion.div className="flex-1 flex flex-col gap-4"
+			layout 
+			transition={{ type: 'spring' }}
+		>
+			<div className="flex-1">
+				<PlayerPlaced letters={player.placed} statefn={statefn} />
+			</div>
+			<Hand letters={player.hand} statefn={statefn} />
 			{views[view]()}
-			<motion.div 
-				layout 
-				transition={{ type: 'spring' }}
-				className={[""
-					,"flex flex-col gap-4"
-					,"place-content-center place-items-center"
-					,"m-0"].join(' ')}
-			>
-				<div className="place-self-start h-14">
-					<PlayerPlaced letters={game.placed} statefn={statefn} />
-				</div>
-				<div>
-					<Hand letters={game.hand} statefn={statefn} />
-				</div>
-			</motion.div>
-		</div>
+			<HealthBar badguy={false} health={player.health} healthMax={player.healthMax} />
+		</motion.div>
 	)
 }
 
-function BonusCarousel({ game, closefn }) {
-	if (game.bonuses.size === 0) {
+
+function BonusCarousel({ player, closefn }: { 
+	player: Battler,
+	closefn: () => void
+}) {
+	const [idx, setIdx] = useState(0);
+	if (player.bonuses.size === 0) {
 		return (<></>)
 	}
 
 	let keys: string[] = []
-	for (const [k, v] of game.bonuses) {
+	for (const [k, v] of player.bonuses) {
 		keys.push(k)
 	}
-	const [idx, setIdx] = useState(0);
-	const bonus = game.bonuses.get(keys[idx])
+	const bonus = player.bonuses.get(keys[idx]) as BonusCard
 	return (
 		<div className="grid grid-cols-5 grid-rows-5 gap-2 place-content-center">
 			<div className="row-start-1 row-span-4 col-start-1 col-span-5 flex flex-col bg-orange-200 p-2">
@@ -266,18 +259,23 @@ function BonusCarousel({ game, closefn }) {
 	);
 }
 
-function AbilityCarousel({ game, statefn, closefn }) {
-	if (game.abilities.size === 0) {
+function AbilityCarousel({ player, statefn, closefn }: {
+	player: Battler,
+	statefn: statefnT,
+	closefn: () => void
+}) {
+	const [idx, setIdx] = useState(0);
+	if (player.abilities.size === 0) {
 		return (<></>)
 	}
 
 	let keys: string[] = []
-	for (const [k, v] of game.abilities) {
+	for (const [k, v] of player.abilities) {
 		keys.push(k)
 	}
-	const [idx, setIdx] = useState(0);
-	const ability = game.abilities.get(keys[idx]);
+	const ability = player.abilities.get(keys[idx]) as AbilityCard
 	const canuse = ability.ok && ability.uses > 0;
+	const use = async () => await statefn((g: Battle) => UseAbility(g, keys[idx]))
 	return (
 		<div className="grid grid-cols-5 grid-rows-5 gap-2 place-content-center">
 			<div className="row-start-1 row-span-4 col-start-1 col-span-4 flex flex-col bg-orange-200 p-2">
@@ -294,7 +292,7 @@ function AbilityCarousel({ game, statefn, closefn }) {
 
 			{canuse ? 
 				<button className="row-start-1 row-span-4 col-start-5 col-span-1 bg-lime-500 w-20"
-					onClick={async () => await statefn((g, s) => UseAbility(g, s, keys[idx]))}
+					onClick={use}
 				>
 					Use
 				</button>
@@ -325,52 +323,62 @@ function AbilityCarousel({ game, statefn, closefn }) {
 	);
 }
 
-function Placed({ letters }) {
+function Placed({ letters }: { letters: Letter[] }) {
 	return (
-		<ul className="flex flex-row gap-1" >
+		<ul className="flex flex-row justify-center gap-1" >
 			{letters.map((letter) => 
 				<motion.li layoutId={letter.id} key={letter.id} >
-					<LetterSmall letter={letter} />
+					<DrawLetter letter={letter} small={true} />
 				</motion.li>
 			)}
 		</ul>
 	);
 }
 
+function PlayerPlaced({ letters, statefn }: { letters: Letter[], statefn: statefnT }) {
+	if (letters.length === 0) {
+		return (<></>)
+	}
 
-function PlayerPlaced({ letters, statefn }) {
 	return (
-		<button onClick={async () => await statefn(Backspace)}>
+		<div className="self-stretch flex flex-row justify-between gap-4">
+			<button className="bg-red-500 my-1 px-2 rounded-lg align-top text-2xl"
+				onClick={async () => await statefn(Wipe)}
+			>
+				Clear
+			</button>
+
 			<ul className="flex flex-row gap-1" >
 				{letters.map((letter) => 
 					<motion.li layoutId={letter.id} key={letter.id} >
-						<LetterSmall letter={letter} />
+						<DrawLetter letter={letter} small={true} />
 					</motion.li>
 				)}
-				{letters.length > 0 && 
-					<div className="bg-red-500 my-1 px-2 rounded-2xl align-top text-4xl font-black">
-						⌫
-					</div>
-				}
 			</ul>
-		</button>
+
+			<button className="bg-red-500 my-0.5 px-2 rounded-lg text-2xl font-black"
+				onClick={async () => await statefn(Backspace)}
+			>
+				⌫
+			</button>
+		</div>
 	);
 }
 
-function Hand({ letters, statefn }) {
-	const placefn = (id) => {
+function Hand({ letters, statefn }: { letters: Letter[], statefn: statefnT }) {
+	const placefn = (id: string): ()=>Promise<void> => {
 		return async () => {
-			return await statefn((g, s) => Place(g, s, id))
+			return await statefn((g: Battle) => Place(g, id))
 		}
 	}
 	return (
-		<ul className="flex flex-row gap-1 flex-wrap place-content-start" >
+		<ul className="flex flex-row gap-1 flex-wrap place-content-center" >
 			{letters.map((letter) => { 
 				if (letter.available) {
 					return (
 						<motion.li layoutId={letter.id} key={letter.id} >
 							<button onClick={placefn(letter.id)}>
-								<Letter letter={letter} />
+								<DrawLetter letter={letter} small={false} />
 							</button>
 						</motion.li>
 					)
@@ -384,66 +392,12 @@ function Hand({ letters, statefn }) {
 							layoutId={nid} 
 							key={nid} 
 						>
-							<Letter letter={letter} />
+							<DrawLetter letter={letter} small={false} />
 						</motion.li>
 					)
 				}
 			})}
 		</ul>
-	);
-}
-
-function LetterSmall({ letter }) {
-	const [bg, bo] = letter.upgrades === 0 ? 
-		['bg-stone-400', 'border-stone-600'] :
-		['bg-orange-400', 'border-orange-600'] 
-	return (
-		<div className={["w-8 h-8 border-solid border-2"
-				, bg, bo, "p-0.5",
-				,"shadow-sm shadow-zinc-400"
-				,"grid grid-cols-3 grid-rows-3"].join(' ')}
-		>
-			<div className={
-				["row-start-1 col-start-1 row-span-3 col-span-2"
-				,"text-xl font-bold"
-				].join(' ')}
-			>
-				{letter.char}
-			</div>
-			<div className={["row-start-3 col-start-3 self-end"
-					,"text-xs font-light"
-					].join(' ')}
-			>
-				{letter.score}
-			</div>
-		</div>
-	);
-}
-
-function Letter({ letter }) {
-	const [bg, bo] = letter.upgrades === 0 ? 
-		['bg-stone-400', 'border-stone-600'] :
-		['bg-orange-400', 'border-orange-600'] 
-	return (
-		<div className={["w-12 h-12 border-solid border-4"
-				, bg, bo
-				,"shadow-sm shadow-zinc-400"
-				,"grid grid-cols-3 grid-rows-3"].join(' ')}
-		>
-			<div className={
-				["row-start-1 col-start-1 row-span-3 col-span-2"
-				,"text-3xl font-bold"
-				].join(' ')}
-			>
-				{letter.char}
-			</div>
-			<div className={["row-start-3 col-start-3 self-end"
-					,"text-xs font-light"
-					].join(' ')}
-			>
-				{letter.score}
-			</div>
-		</div>
 	);
 }
 

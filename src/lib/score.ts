@@ -3,20 +3,20 @@
 import { 
 	Letter, 
 	lettersToString 
-} from './letter.ts'
+} from './letter'
 
-import { Opponent } from './opponent.ts'
+import { Opponent } from './opponent'
 
 import { 
 	BonusCard, 
 	BonusImpl,
 	BonusImpls 
-} from './bonus.ts'
+} from './bonus'
 
 import { 
 	WordCheck, 
 	isRelatedWords 
-} from './wordnet.ts'
+} from './wordnet'
 
 // Scoring has to take place on the server
 // Why?
@@ -25,12 +25,7 @@ import {
 // But eventually dictionary can grow to be large
 // Hundreds of megabytes -- possibly eventually maybe
 
-interface Scoresheet {
-	player: Scoreline
-	opponent: Scoreline
-}
-
-interface Scoreline {
+export interface Scoresheet {
 	checked: boolean
 	ok: boolean
 
@@ -42,7 +37,7 @@ interface Scoreline {
 	muls: ScoreModifier[]
 }
 
-interface ScoreModifier {
+export interface ScoreModifier {
 	source: string
 	value: number
 }
@@ -50,109 +45,90 @@ interface ScoreModifier {
 // ScoreWord really just expects a Battle object
 // But nice to pare it down to what really matters
 // In case of some future changes to layout
-interface ScoreInput {
+export interface ScoreInput {
 	placed: Letter[]
 	bonuses: Map<string, BonusCard>
-	opponent: Opponent // need this for weaknesses, strengths, immunities
-	oppPlaced: Letter[] // we score opponent's word too
 }
 
-export type ScoreFunc = (input: ScoreInput) => Promise<Scoresheet>
+export type ScoreFunc = (input: ScoreInput, opp: Opponent) => Promise<Scoresheet>
 
-export async function ScoreWord(input: ScoreInput): Promise<Scoresheet> {
-	let sheet = {
-		opponent: {
-			checked: true, 
-			ok: true, 
-			score: 0,
-			totalAdd: 0,
-			totalMul: 0,
-			adds: [],
-			muls: []
-		},
-		player: {
-			checked: true, 
-			ok: false, 
-			score: 0, 
-			totalAdd: 0,
-			totalMul: 0,
-			adds: [],
-			muls: [] 
-		}
+export async function ScoreWord(input: ScoreInput, opponent: Opponent): Promise<Scoresheet> {
+	let sheet: Scoresheet = {
+		checked: true, 
+		ok: true, 
+		score: 0,
+		totalAdd: 0,
+		totalMul: 0,
+		adds: [],
+		muls: []
 	}
 
-
-	sheet.player.adds.push({
+	sheet.adds.push({
 		source: 'Letter Score Sum',
 		value: simpleScore(input.placed)
 	})
 
-	sheet.opponent.adds.push({
-		source: 'Letter Score Sum',
-		value: simpleScore(input.oppPlaced)
+	sheet.muls.push({
+		source: 'Base Mult.',
+		value: 1
 	})
 
-	for (const who of ['player', 'opponent']) {
-		sheet[who].muls.push({
-			source: 'Base Mult.',
-			value: 1
-		})
-	}
-
 	const word = lettersToString(input.placed)
-	sheet.player.ok = await WordCheck(word)
-	if (!sheet.player.ok) {
+	sheet.ok = await WordCheck(word)
+	if (!sheet.ok) {
 		return sheet
 	}
 
 	for (const [k, v] of input.bonuses) {
-		if (!BonusImpls.has(k)) {
+		const impl = BonusImpls.get(k)
+		if (impl === undefined) {
 			console.log(`Could not find ${k} in BonusImpls:`, BonusImpls)
 			continue
 		}
 
-		const impl = BonusImpls.get(k)
 		const val = impl.fn(v.level, input.placed)
 		if (val !== 0) {
-			sheet.player.adds.push({ 
+			sheet.adds.push({ 
 				source: v.name,
 				value: val
 			})
 		}
 	}
 
-	for (const weakness of input.opponent.weaknesses) {
+	for (const weakness of opponent.weaknesses) {
 		const hit = await isRelatedWords('hypernym', weakness, word)
 		if (!hit) {
 			continue
 		}
-		sheet.player.muls.push({
+		sheet.muls.push({
 			source: `Weakness: ${weakness}`,
 			value: 1
 		})
 	}
 
-	for (const strength of input.opponent.strengths) {
+	for (const strength of opponent.strengths) {
 		const hit = await isRelatedWords('hypernym', strength, word)
 		if (!hit) {
 			continue
 		}
-		sheet.player.muls.push({
+		sheet.muls.push({
 			source: `strength: ${strength}`,
 			value: -1
 		})
 	}
 
-	for (const who of ['player', 'opponent']) {
-		sheet[who].totalAdd = sheet[who].adds.reduce((xs, x) => xs+x.value, 0)
-		sheet[who].totalMul = sheet[who].muls.reduce((xs, x) => xs+x.value, 0)
-		sheet[who].score = sheet[who].totalAdd * sheet[who].totalMul
-	}
-
+	sumScore(sheet)
 	return sheet
 }
 
 function simpleScore(word: Letter[]): number {
 	return word.reduce((xs, x) => xs + x.score, 0)
+}
+
+function sumScore(s: Scoresheet) {
+	const add = (xs: number, x: ScoreModifier): number => xs + x.value
+	s.totalAdd = s.adds.reduce(add, 0)
+	s.totalMul = s.muls.reduce(add, 0)
+	s.score = s.totalAdd * s.totalMul
 }
 

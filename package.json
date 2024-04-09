@@ -2,6 +2,8 @@
   "name": "word-game",
   "version": "0.1.0",
   "private": true,
+  "author": "jml89",
+  "description": "Lexical Clash - a word game",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -18,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pg": "^8.11.4",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",

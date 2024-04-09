@@ -1,9 +1,10 @@
-import { Letter, stringToLetters } from './letter.ts'
+import { Letter, stringToLetters } from './letter'
 
-interface Opponent {
+export interface Opponent {
 	key: string;
 	name: string;
 	desc: string;
+	level: number;
 	healthMax: number;
 	weaknesses: string[];
 	strengths: string[];
@@ -11,11 +12,24 @@ interface Opponent {
 	image: string
 }
 
+export const PlayerProfile = {
+	key: "player",
+	name: "Player",
+	desc: "Gamer Neckus",
+	level: 1,
+	healthMax: 10,
+	weaknesses: [],
+	strengths: [],
+	words: [],
+	image: "portrait/dark/frog.jpg"
+}
+
 export const Opponents = new Map([
 	["dog", {
 		key: "dog",
 		name: "Dog",
 		desc: "Canis Familiaris",
+		level: 1,
 		healthMax: 10,
 		weaknesses: ['food'],
 		strengths: ['toy'],
@@ -26,6 +40,7 @@ export const Opponents = new Map([
 		key: "cat",
 		name: "Cat",
 		desc: "Felinus Scratchus",
+		level: 1,
 		healthMax: 10,
 		weaknesses: ['flora', 'water'],
 		strengths: ['fauna'],
@@ -36,6 +51,7 @@ export const Opponents = new Map([
 		key: "philosopher",
 		name: "The Philosopher",
 		desc: "Nerdus Wordus",
+		level: 2,
 		healthMax: 10,
 		weaknesses: ['color'],
 		strengths: ['time'],
@@ -45,7 +61,8 @@ export const Opponents = new Map([
 	['vampire', {
 		key: 'vampire',
 		name: 'Nosferatu',
-		desc: 'Red Gourmand',
+		desc: 'The Gourmand',
+		level: 2,
 		healthMax: 10,
 		weaknesses: ['morality', 'water', 'belief', 'light'],
 		strengths: ['darkness', 'misconduct'],

@@ -4,38 +4,51 @@ import {
 	Letter, 
 	lettersToString,
 	ScrabbleDistribution
-} from './letter.ts';
+} from './letter';
 
-import { Opponent, Opponents } from './opponent.ts';
+import { Opponent, Opponents } from './opponent';
 
 import prand from 'pure-rand'
 
 import {
 	Battle,
-	Outcome,
 
 	NewBattle,
 	Submit,
 	Place,
-	Backspace
-} from './battle.ts';
+	Backspace,
+	Wipe
+} from './battle';
 
-import { BonusCard, BonusCards} from './bonus.ts';
-import { AbilityCard, AbilityCards } from './ability.ts';
-import { ScoreFunc } from './score.ts'
+import { BonusCard, BonusCards} from './bonus';
+import { AbilityCard, AbilityCards } from './ability';
+import { ScoreFunc } from './score'
 
-import { shuffle, pickN } from './util.ts'
+import { shuffle, pickN } from './util'
+
+import {
+	Preamble
+} from './preamble'
 
 // Initially thought TS had ADTs & pattern matching on them
 // But appears to be closer to C-style union types
 // Still a nice modeling exercise
-type Phase 
+export type Phase 
 	= Preamble
 	| Battle 
-	| Outcome;
+	| Outcome
 
-type GameState = {
-	prng: RandomGenerator
+export interface Outcome {
+	type: 'outcome'
+	done: boolean
+	victory: boolean
+
+	opponent: Opponent
+	letterUpgrades: number
+}
+
+interface GameState {
+	prng: prand.RandomGenerator
 
 	phase: Phase;
 
@@ -46,7 +59,51 @@ type GameState = {
 	bonuses: Map<string, BonusCard>
 }
 
+interface hasprng {
+	prng: prand.RandomGenerator
+}
+
+// saves on managing the prng mutations, a little bit
+function GpickN<T>(g: hasprng, m: Map<string, T>, n: number): Map<string, T> {
+	const [res, next] = pickN(m, n, g.prng)
+	g.prng = next
+	return res
+}
+
+function NewPreamble(g: hasprng): Preamble {
+	return {
+		type: 'preamble',
+		done: false,
+		opponent: 
+			{
+				title: 'Select Your Opponent',
+				field: 'opponent',
+				options: GpickN(g, Opponents, 3),
+				choice: ''
+			},
+		ability:
+			{
+				title: 'Select An Ability',
+				field: 'ability',
+				options: GpickN(g, AbilityCards, 3),
+				choice: ''
+			},
+		bonus:
+			{
+				title: 'Select A Bonus',
+				field: 'bonus',
+				options: GpickN(g, BonusCards, 3),
+				choice: ''
+			},
+		stagekey: 'opponent'
+	}
+}
+
 function Upgrade(g: GameState, n: number): void {
+	if (n < 1) {
+		return
+	}
+
 	let indices: number[] = []
 	for (let i = 0; i < g.letters.length; i++) {
 		indices[i] = i
@@ -57,111 +114,142 @@ function Upgrade(g: GameState, n: number): void {
 
 	shuffled.slice(0, n).forEach((idx) => {
 		g.letters[idx].score += 2
-		g.letters[idx].upgrades += 1
+		g.letters[idx].level += 1
 	})
 }
 
-type Preamble = {
-	type: 'preamble';
-
-	abilities: Map<string, AbilityCard>;
-	bonuses: Map<string, BonusCard>;
-	opponents: Map<string, Opponent>;
+export function EndOutcome(o: Outcome): void {
+	o.done = true
 }
 
-type PreambleChoices = {
-	opponents: string
-	abilities: string[]
-	bonuses: string[]
-}
-
-function GpickN<T>(g: GameState, m: Map<string, T>, n: number): Map<string, T> {
-	const [res, next] = pickN(m, n, g.prng)
-	g.prng = next
-	return res
-}
-
-function NewPreamble(g: GameState, fn: ScoreFunc): Preamble {
-	//const [a, an] = pickN(AbilityCards, 2, g.prng)
-	//const [b, bn] = pickN(BonusCards, 2, an)
-	//const [c, cn] = pickN(Opponents, 2, bn)
-	//g.prng = cn
-
-	return {
-		type: 'preamble',
-		abilities: GpickN(g, AbilityCards, 3),
-		bonuses: GpickN(g, BonusCards, 3),
-		opponents: GpickN(g, Opponents, 3)
+export function OutcomeToPreamble(g: GameState): void {
+	if (g.phase.type !== 'outcome') {
+		return
 	}
+	console.log(`Time to upgrade ${g.phase.letterUpgrades} letters`)
+	Upgrade(g, g.phase.letterUpgrades)
+	for (const letter of g.letters) {
+		if (letter.level === 1) {
+			continue
+		}
+		console.log(letter)
+	}
+	g.phase = NewPreamble(g);
 }
 
-export function EndOutcome(g: GameState, fn: ScoreFunc) {
-	Upgrade(g, 5)
-	g.phase = NewPreamble(g, fn);
-}
+export async function LaunchBattle(g: GameState, scorefn: ScoreFunc): Promise<void> {
+	if (g.phase.type !== 'preamble') {
+		return
+	}
 
-export async function EndPreamble(g: GameState, fn: ScoreFunc, choices: PreambleChoices): Promise<void> {
-	for (const k of choices.abilities) {
+	for (const k of [g.phase.ability.choice]) {
 		if (g.abilities.has(k)) {
-			g.abilities.get(k).uses += 1
+			(g.abilities.get(k) as AbilityCard).uses += 1
 		} else {
-			g.abilities.set(k, AbilityCards.get(k))
+			g.abilities.set(k, AbilityCards.get(k) as AbilityCard)
 		}
 	}
 
-	for (const k of choices.bonuses) {
+	for (const k of [g.phase.bonus.choice]) {
 		if (g.bonuses.has(k)) {
-			g.bonuses.get(k).level += 1
+			(g.bonuses.get(k) as BonusCard).level += 1
 		} else {
-			g.bonuses.set(k, BonusCards.get(k))
+			g.bonuses.set(k, BonusCards.get(k) as BonusCard)
 		}
 	}
 
 	const [letters, next] = shuffle(g.letters, g.prng)
 	g.prng = next
 
-	g.phase = await NewBattle({
+	g.phase = NewBattle({
 		handSize: g.handSize, 
 		bonuses: g.bonuses,
 		abilities: g.abilities,
-		opponent: Opponents.get(choices.opponents),
+		opponent: Opponents.get(g.phase.opponent.choice) as Opponent,
 		letters: letters
-	}, fn);
+	});
+
+	await ApplyScore(g.phase, scorefn)
 }
 
 export function NewGame(seed: number): GameState {
-	let x = {
+	const base: hasprng = {
+		prng: prand.xoroshiro128plus(seed)
+	}
+
+	const preamble = NewPreamble(base)
+
+	return {
 		handSize: 12,
 		abilities: new Map<string, AbilityCard>(),
 		bonuses: new Map<string, BonusCard>(),
-		prng: prand.xoroshiro128plus(seed),
-	};
-
-	x.phase = NewPreamble(x, undefined)
-	x.letters = ScrabbleDistribution()
-
-	return x
+		prng: base.prng,
+		phase: preamble,
+		letters: ScrabbleDistribution() 
+	}
 }
 
-export async function WithCopy(g: GameState, scorefn: ScoreFunc, fn: any): Promise<GameState> {
-	if (g.phase.type === 'preamble') {
-		const ng = Object.assign({}, g);
-		await fn(ng, scorefn);
-		return ng;
+async function ApplyScore(b: Battle, scorefn: ScoreFunc): Promise<void> {
+	if (b.player.checkScore) {
+		b.player.scoresheet = await scorefn(b.player, b.opponent)
+		b.player.checkScore = false
+	} 
+	if (b.opponent.checkScore) {
+		b.opponent.scoresheet = await scorefn(b.opponent, b.player)
+		b.opponent.checkScore = false
+	}
+}
+
+export async function BattleFn(g: GameState, scorefn: ScoreFunc, fn: (b: Battle) => void): Promise<GameState> {
+	const ng = Object.assign({}, g);
+	if (ng.phase.type !== 'battle') {
+		return ng
 	}
 
-	if (g.phase.type === 'outcome') {
-		const ng = Object.assign({}, g);
-		await fn(ng, scorefn);
-		return ng;
+	fn(ng.phase);
+
+	if (ng.phase.done) {
+		ng.phase = { 
+			type: 'outcome', 
+			done: false,
+			victory: ng.phase.victory,
+			opponent: ng.phase.opponent,
+			letterUpgrades: ng.phase.victory ? ng.phase.opponent.level * 5 : 0
+		}
+	} else {
+		await ApplyScore(ng.phase, scorefn)
 	}
 
-	if (g.phase.type === 'battle') {
-		const ng = Object.assign({}, g);
-		await fn(ng.phase, scorefn);
-		return ng;
+	return ng;
+}
+
+export async function PreambleFn(g: GameState, scorefn: ScoreFunc, fn: (p: Preamble) => void): Promise<GameState> {
+	const ng = Object.assign({}, g);
+	if (ng.phase.type !== 'preamble') {
+		return ng
 	}
 
-	return g;
+	fn(ng.phase);
+
+	if (g.phase.done) {
+		await LaunchBattle(ng, scorefn)
+	}
+
+	return ng;
+}
+
+export function OutcomeFn(g: GameState, fn: (o: Outcome) => void): GameState {
+	const ng = Object.assign({}, g);
+	if (ng.phase.type !== 'outcome') {
+		return ng
+	}
+
+	fn(ng.phase)
+
+	if (g.phase.done) {
+		OutcomeToPreamble(ng)
+	}
+
+	return ng;
 }
 
