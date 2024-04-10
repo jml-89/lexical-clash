@@ -1,4 +1,4 @@
-import { Letter, stringToLetters } from './letter'
+import { Letter, stringToLetters, simpleScore } from './letter'
 
 export interface Opponent {
 	key: string;
@@ -24,6 +24,12 @@ export const PlayerProfile = {
 	image: "portrait/dark/frog.jpg"
 }
 
+export async function PickWord(lookup: (s: string) => Promise<string[]>, o: Opponent): Promise<Letter[]> {
+	return (await lookup(o.words[0]))
+		.map((s) => stringToLetters(o.name, s))
+		.sort((a, b) => simpleScore(a) - simpleScore(b))[0]
+}
+
 export const Opponents = new Map([
 	["dog", {
 		key: "dog",
@@ -33,7 +39,7 @@ export const Opponents = new Map([
 		healthMax: 10,
 		weaknesses: ['food'],
 		strengths: ['toy'],
-		words: ["arf", "borf", "woof", "awooooo"],
+		words: ['toy'],
 		image: "portrait/dark/dog.jpg"
 	}],
 	["cat", {
@@ -44,29 +50,29 @@ export const Opponents = new Map([
 		healthMax: 10,
 		weaknesses: ['flora', 'water'],
 		strengths: ['fauna'],
-		words: ["meow", "blep", "nyan", "mrow"],
+		words: ['fauna'],
 		image: "portrait/dark/cat.jpg"
 	}],
 	["philosopher", {
 		key: "philosopher",
-		name: "The Philosopher",
+		name: "Philosopher",
 		desc: "Nerdus Wordus",
 		level: 2,
 		healthMax: 10,
 		weaknesses: ['color'],
 		strengths: ['time'],
-		words: ['phenomenon', 'noumenon', 'synthesis', 'antithesis', 'hypothesis'],
+		words: ['time'],
 		image: "portrait/dark/philo.jpg"
 	}],
 	['vampire', {
 		key: 'vampire',
-		name: 'Nosferatu',
-		desc: 'The Gourmand',
+		name: 'Vampire',
+		desc: 'Ah ah ah!',
 		level: 2,
 		healthMax: 10,
 		weaknesses: ['morality', 'water', 'belief', 'light'],
 		strengths: ['darkness', 'misconduct'],
-		words: ['blood', 'sanguinity', 'chalice', 'fanged'],
+		words: ['misconduct'],
 		image: 'portrait/dark/vamp.jpg'
 	}]
 ])

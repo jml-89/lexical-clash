@@ -22,12 +22,12 @@ export function ShowOutcome({ outcome, statefn }: {
 		]
 
 	return (
-		<main className="flex flex-col justify-center">
+		<main className="flex flex-col justify-center items-center">
 			<div className={
-				[ "rounded-3xl"
-				, "bg-slate-900"
+				[ "rounded-lg"
+				, "bg-slate-700"
 				, "text-amber-300"
-				, "flex flex-col gap-3"
+				, "flex flex-col items-center gap-2"
 				, "p-4 m-4"
 				].join(' ')}
 			>
@@ -39,7 +39,7 @@ export function ShowOutcome({ outcome, statefn }: {
 
 				<div>{reward}</div>
 
-				<button className="p-2 rounded-lg bg-lime-600 text-amber-100" onClick={endOutcome}>
+				<button className="p-2 rounded-lg text-2xl bg-lime-600 text-amber-100" onClick={endOutcome}>
 					Continue
 				</button>
 			</div>

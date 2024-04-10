@@ -5,12 +5,12 @@ import Image from 'next/image';
 
 import { 
 	Preamble, 
+	OpponentPreamble,
 	PreambleStage,
 	PreambleStageType,
 	PreambleChoice 
 } from '@/lib/preamble';
 
-import { Opponent } from '@/lib/opponent'
 import { AbilityCard } from '@/lib/ability'
 import { BonusCard } from '@/lib/bonus'
 
@@ -20,7 +20,7 @@ type renderT = (ps: any) => React.ReactNode
 
 function chooseRenderFn(stage: any): renderT {
 	if (stage.field === 'opponent') {
-		return (opponent: Opponent): React.ReactNode => 
+		return (opponent: OpponentPreamble): React.ReactNode => 
 			OpponentMugshot({ opponent: opponent })
 	} 
 	if (stage.field === 'ability') {
@@ -53,7 +53,7 @@ export function ShowPreamble({ preamble, statefn }: {
 	}
 	
 	return (
-		<main className="flex-1 flex flex-col gap-2 mx-2">
+		<main className="flex-1 flex flex-col gap-2 mx-2 items-center">
 			<h1 className="text-amber-300 text-4xl font-light">
 				{stage.title}
 			</h1>
@@ -78,7 +78,7 @@ function OptionTile({ key, children, handler }: {
 }
 
 function OpponentMugshot({ opponent }: {
-	opponent: Opponent
+	opponent: OpponentPreamble
 }) {
 	let tableData: string[][] = []
 	for (const weakness of opponent.weaknesses) {
@@ -93,29 +93,42 @@ function OpponentMugshot({ opponent }: {
 		}
 	}
 
+	const [note, noteColor] 
+		= opponent.relativeLevel < 0 ? 
+			["Easy", "text-lime-300" ] 
+		: opponent.relativeLevel === 0 ? 
+			[ "Medium", "text-amber-300" ]
+		: opponent.relativeLevel === 1 ? 
+			[ "Challenging", "text-orange-300" ]
+		: 
+			[ "Very Dangerous", "text-red-300" ]
+
 	return (
 		<div key={opponent.name} 
 			className={[
-				"flex flex-col",
+				"flex flex-row",
 				"rounded-xl",
 				"bg-slate-700",
 				"p-2 gap-2"
 			].join(' ')}
 		>
+			<div className="flex-none">
+			<Image 
+				src={`/${opponent.image}`} 
+				width={120}
+				height={120}
+				alt={`Mugshot of ${opponent.name}`}
+			/>
+			</div>
 
-			<h1 className="text-amber-300 text-xl">{opponent.name} <span className="italic">({opponent.desc})</span></h1>
+			<div className="flex flex-col justify-between items-baseline text-left">
+				<h1 className="text-amber-300 text-xl">{opponent.name} <span className="italic">({opponent.desc})</span></h1>
 			
-			<div className="flex flex-row gap-2">
-				<Image 
-					src={`/${opponent.image}`} 
-					width={120}
-					height={120}
-					alt={`Mugshot of ${opponent.name}`}
-				/>
+				<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opponent.weaknesses.join(', ')}</div>
+				<div className="text-red-300"><span className="font-bold">Strong against:</span> {opponent.strengths.join(', ')}</div>
 
-				<div className="flex flex-col">
-					<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opponent.weaknesses.join(', ')}</div>
-					<div className="text-red-300"><span className="font-bold">Strong against:</span> {opponent.strengths.join(', ')}</div>
+				<div className="text-xl text-yellow-500">
+					Difficulty: <span className={`text-2xl font-light ${noteColor}`}>{note}</span>
 				</div>
 			</div>
 		</div>

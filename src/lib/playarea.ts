@@ -59,7 +59,7 @@ export function DrawByIndex(g: PlayArea, idx: number): void {
 // Remove letter with id=${id} from placed letters
 export function UnplaceById(g: PlayArea, id: string): void {
 	const pi = g.placed.findIndex((letter) => letter.id === id)
-	g.placed = g.placed.slice(0, pi).concat(g.placed.slice(pi))
+	g.placed = g.placed.slice(0, pi).concat(g.placed.slice(pi+1))
 
 	const hi = g.hand.findIndex((letter) => letter.id === id)
 	g.hand[hi].available = true;

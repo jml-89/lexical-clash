@@ -34,17 +34,20 @@ const AbilitiesBase: AbilityBase[] = [
 	{
 		key: 'drawvowel',
 		name: "Vowel Me",
-		desc: "Draw a random vowel from your bag of letters",
+		desc: "Conjure up one of every vowel",
 		pred: (pr: PlayArea): boolean => {
-			return pr.bag.some((letter) => /[AEIOU]/.test(letter.char));
+			return true
 		},
 		func: (pr: PlayArea): void => {
-			const idx = pr.bag.findIndex((letter) => /[AEIOU]/.test(letter.char));
-			if (idx === -1) {
-				return;
+			for (const c of 'AEIOU') {
+				pr.hand.push({
+					id: `vowel-magic-${c}`,
+					char: c,
+					score: 1,
+					level: 2,
+					available: true
+				})
 			}
-
-			DrawByIndex(pr, idx)
 		}
 	},
 

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Battler, Battle, Submit, Backspace, Wipe, Place, UseAbility, UpdateScores } from '@/lib/battle';
+import { Battler, Battle, Submit, Backspace, BackspaceId, Wipe, Place, UseAbility, UpdateScores } from '@/lib/battle';
 import { Scoresheet } from '@/lib/score'
 
 import { Letter } from '@/lib/letter'
@@ -31,7 +31,7 @@ function DrawOpponent({ opp }: { opp: Battler }) {
 			<HealthBar badguy={true} health={opp.health} healthMax={opp.healthMax} />
 
 			<div className="flex flex-row gap-4">
-				<div className="">
+				<div className="flex-none">
 					<Image 
 						src={`/${opp.image}`} 
 						width={120}
@@ -83,6 +83,16 @@ function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT 
 		<AnimatePresence>
 			{ player.placed.length === 0 ? (
 				<></>
+			) : player.checkScore ? (
+				<motion.button 
+					key="checkbutton"
+					className="p-2 rounded-lg bg-lime-300 text-2xl" 
+					animate={{ scale: 1 }}
+					initial={{ scale: 0 }}
+					exit={{ scale: 0 }}
+				>
+					Checking...
+				</motion.button>
 			) : !player.scoresheet.checked ? (
 				<motion.button 
 					key="checkbutton"
@@ -92,14 +102,14 @@ function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT 
 					initial={{ scale: 0 }}
 					exit={{ scale: 0 }}
 				>
-					Check Word
+					Check
 				</motion.button>
 			) : !player.scoresheet.ok ? (
 				<motion.button 
 					key="checkbutton"
 					className="p-2 rounded-lg bg-red-200 text-2xl" 
 				>
-					Invalid Word
+					Invalid
 				</motion.button>
 			) : (
 				<motion.button 
@@ -342,21 +352,25 @@ function PlayerPlaced({ letters, statefn }: { letters: Letter[], statefn: statef
 
 	return (
 		<div className="self-stretch flex flex-row justify-between gap-4">
-			<button className="bg-red-500 my-1 px-2 rounded-lg align-top text-2xl"
+			<button className="bg-red-500 p-1 rounded-lg align-top text-lg"
 				onClick={async () => await statefn(Wipe)}
 			>
 				Clear
 			</button>
 
-			<ul className="flex flex-row gap-1" >
+			<ul className="flex flex-row flex-wrap gap-1" >
 				{letters.map((letter) => 
 					<motion.li layoutId={letter.id} key={letter.id} >
+						<button 
+							onClick={async () => await statefn((b: Battle) => BackspaceId(b, letter.id))}
+						>
 						<DrawLetter letter={letter} small={true} />
+						</button>
 					</motion.li>
 				)}
 			</ul>
 
-			<button className="bg-red-500 my-0.5 px-2 rounded-lg text-2xl font-black"
+			<button className="bg-red-500 p-1 rounded-lg text-lg font-black"
 				onClick={async () => await statefn(Backspace)}
 			>
 				⌫

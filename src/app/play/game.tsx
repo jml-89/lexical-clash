@@ -8,12 +8,12 @@ import {
 	Outcome,
 
 	NewGame, 
-	PreambleFn,
-	BattleFn,
-	OutcomeFn
+
+	PhaseFn,
+	Mutate	
 } from '@/lib/game';
 
-import { ScoreFunc } from '@/lib/score'
+import { KnowledgeBase } from '@/lib/util'
 import { Preamble } from '@/lib/preamble'
 import { Battle } from '@/lib/battle'
 
@@ -21,40 +21,27 @@ import { PlayBattle } from './battle';
 import { ShowPreamble } from './preamble';
 import { ShowOutcome } from './outcome';
 
-export function Game({ seed, scorefn }: { 
+export function Game({ seed, knowledge }: { 
 	seed: number, 
-	scorefn: ScoreFunc
+	knowledge: KnowledgeBase
 }) {
 	const [game, setGame] = useState(NewGame(seed));
 
-	const preambleFn = useCallback(
-		async function(fn: (p: Preamble) => void): Promise<void> {
-			const ng = await PreambleFn(game, scorefn, fn)
-			setGame(ng)
-	}, [game, setGame, scorefn])
-
-	const battleFn = useCallback(
-		async function(fn: (b: Battle) => void): Promise<void> {
-			const ng = await BattleFn(game, scorefn, fn)
-			setGame(ng)
-	}, [game, setGame, scorefn])
-
-	const outcomeFn = useCallback(
-		async function(fn: (o: Outcome) => void): Promise<void> {
-			const ng = await OutcomeFn(game, fn)
-			setGame(ng)
-	}, [game, setGame])
+	const mutator = useCallback(
+		async function(fn: PhaseFn): Promise<void> {
+			await Mutate(game, knowledge, fn, setGame)
+	}, [game, setGame, knowledge])
 
 	if (game.phase.type === 'preamble') {
-		return (<ShowPreamble preamble={game.phase} statefn={preambleFn} />);
+		return (<ShowPreamble preamble={game.phase} statefn={mutator} />);
 	}
 
 	if (game.phase.type === 'battle') {
-		return (<PlayBattle game={game.phase} statefn={battleFn} />);
+		return (<PlayBattle game={game.phase} statefn={mutator} />);
 	}
 
 	if (game.phase.type === 'outcome') {
-		return (<ShowOutcome outcome={game.phase} statefn={outcomeFn} />);
+		return (<ShowOutcome outcome={game.phase} statefn={mutator} />);
 	}
 
 	return (<></>);

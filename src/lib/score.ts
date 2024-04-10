@@ -1,8 +1,7 @@
-'use server'
-
 import { 
 	Letter, 
-	lettersToString 
+	lettersToString,
+	simpleScore
 } from './letter'
 
 import { Opponent } from './opponent'
@@ -13,10 +12,9 @@ import {
 	BonusImpls 
 } from './bonus'
 
-import { 
-	WordCheck, 
-	isRelatedWords 
-} from './wordnet'
+import {
+	KnowledgeBase
+} from './util'
 
 // Scoring has to take place on the server
 // Why?
@@ -50,12 +48,10 @@ export interface ScoreInput {
 	bonuses: Map<string, BonusCard>
 }
 
-export type ScoreFunc = (input: ScoreInput, opp: Opponent) => Promise<Scoresheet>
-
-export async function ScoreWord(input: ScoreInput, opponent: Opponent): Promise<Scoresheet> {
+export async function ScoreWord(kb: KnowledgeBase, input: ScoreInput, opponent: Opponent): Promise<Scoresheet> {
 	let sheet: Scoresheet = {
 		checked: true, 
-		ok: true, 
+		ok: false, 
 		score: 0,
 		totalAdd: 0,
 		totalMul: 0,
@@ -74,7 +70,7 @@ export async function ScoreWord(input: ScoreInput, opponent: Opponent): Promise<
 	})
 
 	const word = lettersToString(input.placed)
-	sheet.ok = await WordCheck(word)
+	sheet.ok = await kb.valid(word)
 	if (!sheet.ok) {
 		return sheet
 	}
@@ -86,7 +82,7 @@ export async function ScoreWord(input: ScoreInput, opponent: Opponent): Promise<
 			continue
 		}
 
-		const val = impl.fn(v.level, input.placed)
+		const val = await impl.fn(kb.related, v.level, input.placed)
 		if (val !== 0) {
 			sheet.adds.push({ 
 				source: v.name,
@@ -96,7 +92,7 @@ export async function ScoreWord(input: ScoreInput, opponent: Opponent): Promise<
 	}
 
 	for (const weakness of opponent.weaknesses) {
-		const hit = await isRelatedWords('hypernym', weakness, word)
+		const hit = await kb.related('hypernym', weakness, word)
 		if (!hit) {
 			continue
 		}
@@ -107,7 +103,7 @@ export async function ScoreWord(input: ScoreInput, opponent: Opponent): Promise<
 	}
 
 	for (const strength of opponent.strengths) {
-		const hit = await isRelatedWords('hypernym', strength, word)
+		const hit = await kb.related('hypernym', strength, word)
 		if (!hit) {
 			continue
 		}
@@ -119,10 +115,6 @@ export async function ScoreWord(input: ScoreInput, opponent: Opponent): Promise<
 
 	sumScore(sheet)
 	return sheet
-}
-
-function simpleScore(word: Letter[]): number {
-	return word.reduce((xs, x) => xs + x.score, 0)
 }
 
 function sumScore(s: Scoresheet) {

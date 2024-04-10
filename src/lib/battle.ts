@@ -1,7 +1,4 @@
 // With a bit of luck, everytihng in this file is purely sychronous client code
-// However, the scoring function lives on the server 
-// As it has to perform queries on the server database
-// This will be handled elsewhere
 
 'use client';
 
@@ -17,11 +14,14 @@ import {
 } from './playarea'
 
 import {
-	DiscardAll,
 	Draw,
-	UnplaceLast,
 	PlaceById,
-	UnplaceAll
+
+	UnplaceLast,
+	UnplaceAll,
+	UnplaceById,
+
+	DiscardAll,
 } from './playarea'
 
 import { PlayerProfile, Opponent } from './opponent';
@@ -62,11 +62,12 @@ interface BattlerSetup {
 	letters: Letter[]
  	bonuses: Map<string, BonusCard>
 	abilities: Map<string, AbilityCard>
+	profile: Opponent
 }
 
-function NewBattler(bs: BattlerSetup, profile: Opponent): Battler {
+function NewBattler(bs: BattlerSetup): Battler {
 	return {
-		health: profile.healthMax,
+		health: bs.profile.healthMax,
 
 		handSize: bs.handSize,
 		bag: bs.letters,
@@ -80,7 +81,7 @@ function NewBattler(bs: BattlerSetup, profile: Opponent): Battler {
 		scoresheet: ZeroScore(),
 		checkScore: false,
 
-		...profile
+		...bs.profile
 	}
 
 }
@@ -99,10 +100,12 @@ export interface Battle {
 
 export interface BattleSetup {
 	handSize: number
+	letters: Letter[]
+
  	bonuses: Map<string, BonusCard>
 	abilities: Map<string, AbilityCard>
+
 	opponent: Opponent
-	letters: Letter[]
 }
 
 export function NewBattle(bs: BattleSetup): Battle {
@@ -114,8 +117,18 @@ export function NewBattle(bs: BattleSetup): Battle {
 
 		round: 0,
 
-		player: NewBattler(bs, PlayerProfile),
-		opponent: NewBattler(bs, bs.opponent)
+		player: NewBattler({
+			...bs,
+			profile: PlayerProfile
+		}),
+
+		opponent: NewBattler({
+			handSize: 9,
+			letters: bs.letters,
+			bonuses: new Map<string, BonusCard>(),
+			abilities: new Map<string, AbilityCard>(),
+			profile: bs.opponent
+		})
 	}
 
 	NextRound(battle);
@@ -124,16 +137,29 @@ export function NewBattle(bs: BattleSetup): Battle {
 
 function AbilityChecks(b: Battler): void {
 	for (const [k, v] of b.abilities) {
-		const impl = AbilityImpls.get(k) as AbilityImpl
+		const impl = AbilityImpls.get(k)
+		if (impl === undefined) {
+			console.log(`No implementation found for bonus ${k}`)
+			continue
+		}
 		v.ok =  v.uses > 0 && impl.pred(b)
 	}
 }
 
 function UseAbilityReal(g: Battler, key: string): void {
-	const impl = AbilityImpls.get(key) as AbilityImpl
-	impl.func(g)
+	const impl = AbilityImpls.get(key)
+	if (impl === undefined) {
+		console.log(`No implementation found for ability ${key}`)
+		return
+	}
 
-	const ability = g.abilities.get(key) as AbilityCard
+	const ability = g.abilities.get(key)
+	if (ability === undefined) {
+		console.log(`No card found for ability ${key}`)
+		return
+	}
+
+	impl.func(g)
 	ability.uses -= 1
 
 	g.scoresheet = ZeroScore()
@@ -152,13 +178,12 @@ function NextRound(g: Battle): void {
 	DiscardAll(g.opponent)
 	Draw(g.opponent)
 
-	NextWord(g.opponent, g.round)
+	//NextWord(g.opponent, g.round)
 
-	AbilityChecks(g.player)
 	AbilityChecks(g.player)
 
 	UpdateScore(g.player)
-	UpdateScore(g.opponent)
+	//UpdateScore(g.opponent)
 }
 
 function NextWord(g: Battler, round: number): void {
@@ -194,6 +219,13 @@ export function Backspace(g: Battle): void {
 	g.player.scoresheet = ZeroScore()
 	AbilityChecks(g.player)
 }
+
+export function BackspaceId(g: Battle, id: string): void {
+	UnplaceById(g.player, id)
+	g.player.scoresheet = ZeroScore()
+	AbilityChecks(g.player)
+}
+
 
 export function Wipe(g: Battle): void {
 	UnplaceAll(g.player)

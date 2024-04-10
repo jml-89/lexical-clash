@@ -8,6 +8,10 @@ export interface Letter {
 	available: boolean
 }
 
+export function simpleScore(word: Letter[]): number {
+	return word.reduce((xs, x) => xs + x.score, 0)
+}
+
 // Hastily borrowed from Wikipedia
 // No blank tiles included -- maybe worth trying
 const scrabbleMaterial = [
