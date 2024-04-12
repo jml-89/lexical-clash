@@ -1,15 +1,33 @@
 import prand from 'pure-rand'
 
+// This was dumped here just so it's safe to import anywhere
+// Really, belongs in wordnet.ts
 export interface KnowledgeBase {
 	valid: (word: string) => Promise<boolean>
 	related: (relation: string, left: string, right: string) => Promise<boolean>
 	hypos: (word: string) => Promise<string[]>
 }
 
-export function shuffle<T>(xs: T[], prng: prand.RandomGenerator): [T[], prand.RandomGenerator] {
+interface HasPRNG {
+	prng: prand.RandomGenerator
+}
+
+// saves on managing the prng mutations, a little bit
+export function PickRandom<T>(g: HasPRNG, m: Map<string, T>, n: number): Map<string, T> {
+	const res = new Map<string, T>
+	const keys = Shuffle(g, [...m.keys()])
+
+	for (const key of keys.slice(0, n)) {
+		res.set(key, m.get(key) as T)
+	}
+
+	return res
+}
+
+export function Shuffle<T>(g: HasPRNG, xs: T[]): T[] {
 	let ys = new Array(xs.length);
 
-	let curr = prng
+	let curr = g.prng
 	for (const [i, x] of xs.entries()) {
 		const [j, next] = prand.uniformIntDistribution(0, i, curr)
 		if (j !== i) {
@@ -19,18 +37,8 @@ export function shuffle<T>(xs: T[], prng: prand.RandomGenerator): [T[], prand.Ra
 		curr = next
 	}
 
-	return [ys, curr];
-}
-
-export function pickN<T>(m: Map<string, T>, n: number, prng: prand.RandomGenerator): [Map<string, T>, prand.RandomGenerator] {
-	const res = new Map<string, T>
-	const [keys, next] = shuffle([...m.keys()], prng)
-
-	for (const key of keys.slice(0, n)) {
-		res.set(key, m.get(key) as T)
-	}
-
-	return [res, next]
+	g.prng = curr
+	return ys
 }
 
 // naive Levenshtein distance implementation
@@ -64,16 +72,5 @@ export function copyMap<K, T>(m: Map<K, T>): Map<K, T> {
 		cp.set(k, Object.assign({}, v))
 	}
 	return cp
-}
-
-interface HasPRNG {
-	prng: prand.RandomGenerator
-}
-
-// saves on managing the prng mutations, a little bit
-export function GpickN<T>(g: HasPRNG, m: Map<string, T>, n: number): Map<string, T> {
-	const [res, next] = pickN(m, n, g.prng)
-	g.prng = next
-	return res
 }
 

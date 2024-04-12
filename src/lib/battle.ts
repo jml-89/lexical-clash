@@ -55,6 +55,8 @@ export interface Battler extends PlayArea, Opponent {
 
 	abilities: Map<string, AbilityCard>
 	bonuses: Map<string, BonusCard>
+
+	wordMatches: string[]
 }
 
 interface BattlerSetup {
@@ -80,6 +82,7 @@ function NewBattler(bs: BattlerSetup): Battler {
 
 		scoresheet: ZeroScore(),
 		checkScore: false,
+		wordMatches: [],
 
 		...bs.profile
 	}
@@ -101,6 +104,8 @@ export interface Battle {
 export interface BattleSetup {
 	handSize: number
 	letters: Letter[]
+
+	wordbank: Letter[][]
 
  	bonuses: Map<string, BonusCard>
 	abilities: Map<string, AbilityCard>
@@ -130,6 +135,9 @@ export function NewBattle(bs: BattleSetup): Battle {
 			profile: bs.opponent
 		})
 	}
+
+	battle.player.wordbank = bs.wordbank
+	console.log('wordbank', battle.player.wordbank)
 
 	NextRound(battle);
 	return battle;
@@ -168,27 +176,73 @@ function UseAbilityReal(g: Battler, key: string): void {
 
 export function UseAbility(g: Battle, key: string): void { 
 	UseAbilityReal(g.player, key)
+	WordbankCheck(g.player)
+}
+
+function WordbankCheck(g: Battler): void {
+	g.wordMatches = []
+
+	let pm = new Map<string, number>()
+	for (const letter of g.hand) {
+		const n = pm.get(letter.char)
+		pm.set(letter.char, n === undefined ? 0 : n+1)
+	}
+
+	for (const word of g.wordbank) {
+		let wm = new Map<string, number>()
+		for (const letter of word) {
+			const n = wm.get(letter.char)
+			wm.set(letter.char, n === undefined ? 0 : n+1)
+		}
+
+		let good = true
+		for (const [c, n] of wm) {
+			const m = pm.get(c)
+			good = good && m !== undefined && n <= m
+			if (!good) {
+				break
+			}
+		}
+
+		if (good) {
+			g.wordMatches.push(lettersToString(word))
+		}
+	}
+
+	g.wordMatches.sort((a, b) => a.length - b.length)
 }
 
 function NextRound(g: Battle): void {
 	g.round = g.round + 1;
 	DiscardAll(g.player)
 	Draw(g.player);
+	WordbankCheck(g.player)
 
 	DiscardAll(g.opponent)
 	Draw(g.opponent)
 
-	//NextWord(g.opponent, g.round)
+
+	NextWord(g.opponent, g.round)
 
 	AbilityChecks(g.player)
 
 	UpdateScore(g.player)
-	//UpdateScore(g.opponent)
+	UpdateScore(g.opponent)
 }
 
-function NextWord(g: Battler, round: number): void {
-	const idx = round % g.words.length
-	g.placed = stringToLetters(g.name, g.words[idx])
+export function NextWord(g: Battler, round: number): void {
+	g.placed = g.wordbank[round % g.wordbank.length]
+
+	/*
+	const step = Math.floor(g.wordbank.length / g.healthMax)
+	const off = g.healthMax - g.health
+	const idx = Math.floor(step * off + round)
+	console.log(`${g.wordbank.length} words, stride of ${step}, idx of ${idx}`)
+	if (idx < g.wordbank.length) {
+		g.placed = g.wordbank[idx]
+	} else {
+	}
+	*/
 }
 
 export function Submit(g: Battle): void {
@@ -198,6 +252,8 @@ export function Submit(g: Battle): void {
 	} else if (diff < 0) {
 		g.player.health += diff
 	}
+
+	g.player.wordbank.push(g.player.placed)
 
 	if (g.player.health <= 0) {
 		g.victory = false

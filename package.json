@@ -16,7 +16,8 @@
     "pg": "^8.11.3",
     "pure-rand": "^6.1.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "sharp": "^0.33.3"
   },
   "devDependencies": {
     "@types/node": "^20",

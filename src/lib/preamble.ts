@@ -15,7 +15,7 @@ import  {
 } from './bonus'
 
 import {
-	GpickN
+	PickRandom
 } from './util'
 
 import prand from 'pure-rand'
@@ -71,19 +71,19 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 		opponent: {
 			title: 'Select Your Opponent',
 			field: 'opponent',
-			options: GpickN(g, opponents, 3),
+			options: PickRandom(g, opponents, 3),
 			choice: ''
 		},
 		ability: {
 			title: 'Select An Ability',
 			field: 'ability',
-			options: GpickN(g, AbilityCards, 3),
+			options: PickRandom(g, AbilityCards, 3),
 			choice: ''
 		},
 		bonus: {
 			title: 'Select A Bonus',
 			field: 'bonus',
-			options: GpickN(g, BonusCards, 3),
+			options: PickRandom(g, BonusCards, 3),
 			choice: ''
 		},
 		stagekey: 'opponent'

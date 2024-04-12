@@ -7,12 +7,13 @@ import {
 	ScrabbleDistribution
 } from './letter';
 
-import { Opponent, Opponents, PickWord } from './opponent';
+import { Opponent, Opponents, FillWordbank } from './opponent';
 
 import prand from 'pure-rand'
 
 import {
 	Battle,
+	NextWord,
 
 	NewBattle,
 	Submit,
@@ -25,7 +26,7 @@ import { BonusCard, BonusCards} from './bonus';
 import { AbilityCard, AbilityCards } from './ability';
 import { ScoreWord } from './score'
 
-import { KnowledgeBase, shuffle } from './util'
+import { KnowledgeBase, Shuffle } from './util'
 
 import {
 	Preamble,
@@ -67,6 +68,7 @@ interface GameState {
 	handSize: number;
 	letters: Letter[]; 
 
+	wordbank: Map<string, Map<string, Letter[]>>
 	abilities: Map<string, AbilityCard>
 	bonuses: Map<string, BonusCard>
 }
@@ -81,10 +83,7 @@ function Upgrade(g: GameState, n: number): void {
 		indices[i] = i
 	}
 
-	const [shuffled, next] = shuffle(indices, g.prng)
-	g.prng = next
-
-	shuffled.slice(0, n).forEach((idx) => {
+	Shuffle(g, indices).slice(0, n).forEach((idx) => {
 		g.letters[idx].score += 2
 		g.letters[idx].level += 1
 	})
@@ -131,15 +130,22 @@ export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<voi
 		}
 	}
 
-	const [letters, next] = shuffle(g.letters, g.prng)
-	g.prng = next
+	const opponent = Opponents.get(g.phase.opponent.choice)
+	if (opponent === undefined) {
+		console.log(`Could not find opponent: ${g.phase.opponent.choice}`)
+		return
+	}
+
+	await FillWordbank(kb.hypos, opponent)
+	opponent.wordbank = Shuffle(g, opponent.wordbank)
 
 	g.phase = NewBattle({
 		handSize: g.handSize, 
 		bonuses: g.bonuses,
 		abilities: g.abilities,
-		opponent: Opponents.get(g.phase.opponent.choice) as Opponent,
-		letters: letters
+		opponent: opponent,
+		letters: Shuffle(g, g.letters),
+		wordbank: squashit(g)
 	});
 
 	await ApplyScore(g.phase, kb)
@@ -160,7 +166,8 @@ export function NewGame(seed: number): GameState {
 		bonuses: new Map<string, BonusCard>(),
 		prng: base.prng,
 		phase: preamble,
-		letters: ScrabbleDistribution() 
+		letters: ScrabbleDistribution(),
+		wordbank: new Map<string, Map<string, Letter[]>>
 	}
 }
 
@@ -169,11 +176,6 @@ async function ApplyScore(b: Battle, kb: KnowledgeBase): Promise<void> {
 		b.player.scoresheet = await ScoreWord(kb, b.player, b.opponent)
 		b.player.checkScore = false
 	} 
-
-	if (b.opponent.placed.length === 0) {
-		b.opponent.placed = await PickWord(kb.hypos, b.opponent)
-		b.opponent.checkScore = true
-	}
 
 	if (b.opponent.checkScore) {
 		b.opponent.scoresheet = await ScoreWord(kb, b.opponent, b.player)
@@ -193,6 +195,37 @@ function DoPhase(g: GameState, phasefn: PhaseFn): GameState {
 	}
 
 	return ng
+}
+
+function bankit(g: GameState, words: Letter[][]): void {
+	for (const word of words) {
+		let str = lettersToString(word)
+
+		let cs = []
+		for (const c of str) {
+			cs.push(c)
+		}
+		cs.sort()
+
+		const key = cs.join('')
+
+		let banked = g.wordbank.get(key)
+		if (banked === undefined) {
+			g.wordbank.set(key, new Map<string, Letter[]>([[str, word]]))
+		} else {
+			banked.set(str, word)
+		}
+	}
+}
+
+function squashit(g: GameState): Letter[][] {
+	let words = []
+	for (const [k, vs] of g.wordbank) {
+		for (const [j, v] of vs) {
+			words.push(v)
+		}
+	}
+	return words
 }
 
 export async function Mutate(
@@ -220,12 +253,16 @@ export async function Mutate(
 		setfn(ng)
 		return
 	} else if (ng.phase.type === 'battle') {
+		bankit(ng, ng.phase.player.wordbank)
+		if (ng.phase.victory) {
+			bankit(ng, ng.phase.opponent.wordbank)
+		}
 		ng.phase = { 
 			type: 'outcome', 
 			done: false,
 			victory: ng.phase.victory,
 			opponent: ng.phase.opponent,
-			letterUpgrades: ng.phase.victory ? ng.phase.opponent.level * 5 : 0
+			letterUpgrades: ng.phase.victory ? ng.phase.opponent.level * 10 : 0
 		}
 		setfn(ng)
 		return

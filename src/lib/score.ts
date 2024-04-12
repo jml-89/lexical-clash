@@ -91,7 +91,7 @@ export async function ScoreWord(kb: KnowledgeBase, input: ScoreInput, opponent: 
 		}
 	}
 
-	for (const weakness of opponent.weaknesses) {
+	for (const weakness of opponent.weakness) {
 		const hit = await kb.related('hypernym', weakness, word)
 		if (!hit) {
 			continue
@@ -102,7 +102,10 @@ export async function ScoreWord(kb: KnowledgeBase, input: ScoreInput, opponent: 
 		})
 	}
 
-	for (const strength of opponent.strengths) {
+	const isntWeakness = (a: string): boolean => 
+		!opponent.weakness.some((b: string) => a === b)
+
+	for (const strength of opponent.strength.filter(isntWeakness)) {
 		const hit = await kb.related('hypernym', strength, word)
 		if (!hit) {
 			continue

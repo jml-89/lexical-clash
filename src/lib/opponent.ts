@@ -6,9 +6,9 @@ export interface Opponent {
 	desc: string;
 	level: number;
 	healthMax: number;
-	weaknesses: string[];
-	strengths: string[];
-	words: string[];
+	weakness: string[];
+	strength: string[];
+	wordbank: Letter[][]
 	image: string
 }
 
@@ -18,16 +18,28 @@ export const PlayerProfile = {
 	desc: "Gamer Neckus",
 	level: 1,
 	healthMax: 10,
-	weaknesses: [],
-	strengths: [],
-	words: [],
+	weakness: [],
+	strength: [],
+	wordbank: [],
 	image: "portrait/dark/frog.jpg"
 }
 
-export async function PickWord(lookup: (s: string) => Promise<string[]>, o: Opponent): Promise<Letter[]> {
-	return (await lookup(o.words[0]))
-		.map((s) => stringToLetters(o.name, s))
-		.sort((a, b) => simpleScore(a) - simpleScore(b))[0]
+export async function FillWordbank(lookup: (s: string) => Promise<string[]>, o: Opponent): Promise<void> {
+	let xs = []
+	for (const s of o.strength) {
+		for (const word of await lookup(s)) {
+			xs.push(stringToLetters(o.name, word))
+		}
+	}
+
+	const minScore = 10 * (o.level-1)
+	const maxScore = 10 * o.level
+	xs = xs.filter((a) => {
+		const n = simpleScore(a)
+		return (minScore <= n) && (n <= maxScore)
+	})
+	xs.sort((a, b) => simpleScore(a) - simpleScore(b))
+	o.wordbank = xs
 }
 
 export const Opponents = new Map([
@@ -37,9 +49,9 @@ export const Opponents = new Map([
 		desc: "Canis Familiaris",
 		level: 1,
 		healthMax: 10,
-		weaknesses: ['food'],
-		strengths: ['toy'],
-		words: ['toy'],
+		weakness: ['food'],
+		strength: ['food'],
+		wordbank: [],
 		image: "portrait/dark/dog.jpg"
 	}],
 	["cat", {
@@ -48,9 +60,9 @@ export const Opponents = new Map([
 		desc: "Felinus Scratchus",
 		level: 1,
 		healthMax: 10,
-		weaknesses: ['flora', 'water'],
-		strengths: ['fauna'],
-		words: ['fauna'],
+		weakness: ['flora'],
+		strength: ['fauna'],
+		wordbank: [],
 		image: "portrait/dark/cat.jpg"
 	}],
 	["philosopher", {
@@ -59,9 +71,9 @@ export const Opponents = new Map([
 		desc: "Nerdus Wordus",
 		level: 2,
 		healthMax: 10,
-		weaknesses: ['color'],
-		strengths: ['time'],
-		words: ['time'],
+		weakness: ['color'],
+		strength: ['time'],
+		wordbank: [],
 		image: "portrait/dark/philo.jpg"
 	}],
 	['vampire', {
@@ -70,10 +82,43 @@ export const Opponents = new Map([
 		desc: 'Ah ah ah!',
 		level: 2,
 		healthMax: 10,
-		weaknesses: ['morality', 'water', 'belief', 'light'],
-		strengths: ['darkness', 'misconduct'],
-		words: ['misconduct'],
+		weakness: ['mineral'],
+		strength: ['misconduct'],
+		wordbank: [],
 		image: 'portrait/dark/vamp.jpg'
+	}],
+	['robot', {
+		key: 'robot',
+		name: 'Automaton',
+		desc: 'Beepus Boopus',
+		level: 3,
+		healthMax: 10,
+		weakness: ['water'],
+		strength: ['machine'],
+		wordbank: [],
+		image: 'portrait/dark/robot.jpg'
+	}],
+	['fish', {
+		key: 'fish',
+		name: 'Fish',
+		desc: 'Splishus Splashus',
+		level: 1,
+		healthMax: 10,
+		weakness: ['tool'],
+		strength: ['malacopterygian'],
+		wordbank: [],
+		image: 'portrait/dark/fish.jpg'
+	}],
+	['octopus', {
+		key: 'octopus',
+		name: 'Octopus',
+		desc: 'Extra-Terrestrial',
+		level: 3,
+		healthMax: 10,
+		weakness: ['weather'],
+		strength: ['number'],
+		wordbank: [],
+		image: 'portrait/dark/octopus.jpg'
 	}]
 ])
 

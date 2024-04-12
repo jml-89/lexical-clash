@@ -84,8 +84,6 @@ export async function HypoForms(word: string): Promise<string[]> {
 			select form 
 			from writtenform 
 			where lexid in (select memberid from members)
-			order by random()
-			limit 5;
 		`,
 		values: [word, 'hyponym']
 	})

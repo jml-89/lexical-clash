@@ -42,8 +42,8 @@ function DrawOpponent({ opp }: { opp: Battler }) {
 
 				<div className="flex flex-col">
 					<div className="text-amber-300"><span className="text-lg font-bold">{opp.name}</span> <span className="italic">({opp.desc})</span></div>
-					<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opp.weaknesses.join(', ')}</div>
-					<div className="text-red-300"><span className="font-bold">Strong against:</span> {opp.strengths.join(', ')}</div>
+					<div className="text-red-300"><span className="font-bold">Uses:</span> {opp.strength.join(', ')}</div>
+					<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opp.weakness.join(', ')}</div>
 				</div>
 			</div>
 
@@ -189,6 +189,8 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 		</button>
 	)
 
+	// Wordbank works, but not included right now as it's a half-baked idea
+	//{somebutton('Wordbank', 'wordbank')}
 	const views: Record<string, () => React.ReactNode> = {
 		buttons: (): React.ReactNode => (
 			<div className="flex flex-row gap-4 justify-center">
@@ -203,6 +205,10 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 
 		bonuses: (): React.ReactNode => (
 			<BonusCarousel player={player} closefn={() => setView('buttons')}/>
+		),
+
+		wordbank: (): React.ReactNode => (
+			<ListWords words={player.wordMatches} closefn={() => setView('buttons')}/>
 		)
 	}
 
@@ -221,6 +227,27 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 	)
 }
 
+function ListWords({ words, closefn }: {
+	words: string[],
+	closefn: () => void
+}) {
+	return (
+		<div className="flex flex-row justify-stretch gap-2">
+			<button 
+				className="bg-red-500 p-2 rounded-lg" 
+				onClick={closefn}
+			>
+				Back
+			</button>
+
+			<ul className="flex-1 bg-orange-200 p-2 flex flex-row font-bold text-lg gap-2 flex-wrap">
+				{words.map((word) => (
+					<li key={word}>{word}</li>
+				))}
+			</ul>
+		</div>
+	)
+}
 
 function BonusCarousel({ player, closefn }: { 
 	player: Battler,
@@ -335,7 +362,7 @@ function AbilityCarousel({ player, statefn, closefn }: {
 
 function Placed({ letters }: { letters: Letter[] }) {
 	return (
-		<ul className="flex flex-row justify-center gap-1" >
+		<ul className="flex flex-row flex-wrap justify-center gap-1" >
 			{letters.map((letter) => 
 				<motion.li layoutId={letter.id} key={letter.id} >
 					<DrawLetter letter={letter} small={true} />

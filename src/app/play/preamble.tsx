@@ -80,19 +80,6 @@ function OptionTile({ key, children, handler }: {
 function OpponentMugshot({ opponent }: {
 	opponent: OpponentPreamble
 }) {
-	let tableData: string[][] = []
-	for (const weakness of opponent.weaknesses) {
-		tableData.push([weakness, ''])
-	}
-
-	for (const [i, strength] of opponent.strengths.entries()) {
-		if (i < tableData.length) {
-			tableData[i][1] = strength
-		} else {
-			tableData.push(['', strength])
-		}
-	}
-
 	const [note, noteColor] 
 		= opponent.relativeLevel < 0 ? 
 			["Easy", "text-lime-300" ] 
@@ -124,8 +111,8 @@ function OpponentMugshot({ opponent }: {
 			<div className="flex flex-col justify-between items-baseline text-left">
 				<h1 className="text-amber-300 text-xl">{opponent.name} <span className="italic">({opponent.desc})</span></h1>
 			
-				<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opponent.weaknesses.join(', ')}</div>
-				<div className="text-red-300"><span className="font-bold">Strong against:</span> {opponent.strengths.join(', ')}</div>
+				<div className="text-red-300"><span className="font-bold">Uses:</span> {opponent.strength.join(', ')}</div>
+				<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opponent.weakness.join(', ')}</div>
 
 				<div className="text-xl text-yellow-500">
 					Difficulty: <span className={`text-2xl font-light ${noteColor}`}>{note}</span>
