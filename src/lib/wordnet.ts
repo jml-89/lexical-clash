@@ -1,5 +1,10 @@
 'use server'
 
+import Saxophone from 'saxophone'
+import zlib from 'node:zlib'
+import { pipeline } from 'node:stream/promises'
+import fetch from 'node-fetch'
+
 import { Pool } from 'pg'
 const pool = new Pool()
 
@@ -155,5 +160,275 @@ export async function isRelatedSynid(relation: string, leftsynid: string, rights
 	})
 
 	return res.rows.length > 0 
+}
+
+export async function InitialiseDatabase(): Promise<void> {
+	console.log("Initialising Database")
+
+	interface SaxTagParsed {
+		name: string
+		attrs: Record<string, string>
+	}
+
+	let queries = new Map<string, string>()
+	let queryArgs = new Map<string, string[][]>()
+
+	function addQuery(name: string, text: string, values: string[]): void {
+		if (!queries.has(name)) {
+			queries.set(name, text)
+		}
+
+		if (!queryArgs.has(name)) {
+			queryArgs.set(name, [])
+		}
+		let args = queryArgs.get(name) as string[][]
+		args.push(values)
+	}
+
+	function wordIsGood(word: string): boolean {
+		for (const c of word) {
+			if (c < 'a' || c > 'z') {
+				return false
+			}
+		}
+		return true
+	}
+
+	let tagStack: SaxTagParsed[] = []
+	const sax = new Saxophone();
+	sax.on('tagopen', (tag: SaxTag): void => {
+		const attrs = Saxophone.parseAttrs(tag.attrs)
+
+		if (tag.name === 'Lemma') {
+			addQuery('LexicalEntry',
+				`insert into 
+				LexicalEntry (id, partOfSpeech) 
+				values ($1, $2) 
+				on conflict do nothing;`,
+				[ 
+					tagStack[tagStack.length-1].attrs.id,
+				 	attrs.partOfSpeech
+				]
+			)
+		}
+
+		if (tag.name === 'Form' || tag.name === 'Lemma') {
+			if (wordIsGood(attrs.writtenForm)) {
+				addQuery('WrittenForm',
+					`insert into
+					WrittenForm (lexid, form)
+					values ($1, $2) 
+					on conflict do nothing;`,
+					[ 
+						tagStack[tagStack.length-1].attrs.id,
+						attrs.writtenForm
+					]
+				)
+			}
+		}
+
+		if (tag.name === 'Synset') {
+			addQuery('Synset',
+				`insert into 
+				Synset (id, ili, partOfSpeech) 
+				values ($1, $2, $3) 
+				on conflict do nothing;`,
+				[
+					attrs.id,
+					attrs.ili,
+					attrs.partOfSpeech
+				]
+			)
+
+			for (const member of attrs.members.split(' ')) {
+				addQuery('SynsetMember',
+					`insert into 
+					SynsetMember (synid, memberid) 
+					values ($1, $2) 
+					on conflict do nothing;`,
+					[attrs.id, member]
+				)
+			}
+		}
+
+		if (tag.name === 'SynsetRelation') {
+			addQuery('SynsetRelation',
+				`insert into 
+				SynsetRelation (synid, target, relType) 
+				values ($1, $2, $3) 
+				on conflict do nothing;`,
+				[
+					tagStack[tagStack.length-1].attrs.id,
+					attrs.target, 
+					attrs.relType
+				]
+			)
+		}
+
+
+		if (!tag.isSelfClosing) {
+			tagStack.push({ name: tag.name, attrs: attrs})
+		}
+	})
+
+	sax.on('text', (text: SaxText): void => {
+		if (tagStack.length < 1) {
+			return
+		}
+
+		const tag = tagStack[tagStack.length-1]
+		const isText = tag.name === 'Definition'
+			|| tag.name === 'Example'
+			|| tag.name === 'ILIDefinition'
+		if (isText) {
+			addQuery('SynsetText',
+				 `insert into
+				 SynsetText (synid, nodename, content)
+				 values ($1, $2, $3)
+				 on conflict do nothing;`,
+				 [
+					tagStack[tagStack.length-2].attrs.id,
+					tagStack[tagStack.length-1].name,
+					text.contents
+				 ]
+			)
+		}
+	})
+
+	sax.on('tagclose', (tag: SaxTag): void => {
+		tagStack.pop()
+	})
+
+	console.log("Fetching Wordnet file")
+	const resp = await fetch('https://storage.googleapis.com/lexical-clash-resources/wordnet.xml.gz')
+	if (!resp.ok) {
+		throw new Error(`Failed to fetch wordnet data ${resp.statusText}`)
+	}
+	if (resp.body === null) {
+		throw new Error("Wordnet body is null")
+	}
+
+	console.log("Processing Wordnet file")
+	await pipeline(
+		resp.body, 
+		zlib.createGunzip(), 
+		sax
+	)
+
+
+	console.log("Initialisating database")
+	await init()
+
+	console.log("Adding data to database")
+	const client = await pool.connect()
+	try {
+
+		for (const [query, entries] of queryArgs) {
+			await client.query('BEGIN')
+
+			const q = { 
+				name: query,
+				text: queries.get(query) as string,
+				values: [] as string[]
+			}
+			for (const entry of entries) {
+				q.values = entry
+				await client.query(q)
+			}
+
+			await client.query('COMMIT')
+		}
+
+	} catch (e) {
+		console.log('Something went wrong :(')
+		await client.query('ROLLBACK')
+		throw e
+	} finally {
+		client.release()
+	}
+
+	console.log("Cleaning up database")
+	await cleanup()
+
+	console.log("All done")
+}
+
+async function init(): Promise<void> {
+	await pool.query(`
+		BEGIN;
+
+		DROP TABLE IF EXISTS SynsetRelation;
+		DROP TABLE IF EXISTS SynsetMember;
+		DROP TABLE IF EXISTS SynsetText;
+		DROP TABLE IF EXISTS WrittenForm;
+		DROP TABLE IF EXISTS Synset;
+		DROP TABLE IF EXISTS LexicalEntry;
+
+		CREATE TABLE Synset (
+			id TEXT,
+			ili TEXT,
+			partOfSpeech TEXT,
+			PRIMARY KEY (id)
+		);
+
+		CREATE TABLE LexicalEntry (
+			id TEXT,
+			partOfSpeech TEXT,
+			PRIMARY KEY (id)
+		);
+
+		CREATE TABLE WrittenForm (
+			lexid TEXT REFERENCES LexicalEntry(id),
+			form TEXT,
+			PRIMARY KEY (lexid, form)
+		);
+		CREATE INDEX writtenform_lexid ON WrittenForm(lexid);
+
+		CREATE TABLE SynsetMember (
+			synid TEXT REFERENCES synset(id),
+			memberid TEXT REFERENCES LexicalEntry(id),
+			PRIMARY KEY (synid, memberid)
+		);
+		CREATE INDEX SynsetMember_synid ON SynsetMember(synid);
+		CREATE INDEX SynsetMember_memberid ON SynsetMember(memberid);
+
+		CREATE TABLE SynsetText (
+			synid TEXT REFERENCES Synset(id),
+			nodename TEXT,
+			content TEXT
+		);
+		CREATE INDEX SynsetText_synid ON SynsetText(synid);
+
+		CREATE TABLE SynsetRelation (
+			synid TEXT REFERENCES Synset(id),
+			target TEXT REFERENCES Synset(id),
+			relType TEXT
+		);
+		CREATE INDEX SynsetRelation_synid ON SynsetRelation(synid);
+		CREATE INDEX SynsetRelation_target ON SynsetRelation(target);
+
+		COMMIT;
+	`)
+}
+
+async function cleanup(): Promise<void> {
+	await pool.query(`
+		begin; 
+
+		create temporary table junk as (
+			select distinct(id)
+			from lexicalentry 
+			where id not in (
+				select lexid
+				from writtenform
+			)
+		);
+		alter table junk add primary key (id);
+
+		delete from synsetmember where memberid in (select id from junk);
+		delete from lexicalentry where id in (select id from junk);
+
+		commit;
+	`)
 }
 
