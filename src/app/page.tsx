@@ -43,6 +43,9 @@ export default async function Intro() {
 			<Link className="m-4 text-6xl font-extralight tracking-tighter ring-4 ring-amber-300 bg-red-800 rounded-lg p-4" href="/play">
 				Play!
 			</Link>
+			<Link className="self-end rounded-lg bg-slate-600 p-2 m-2" href="/init">
+				Init
+			</Link>
 		</main>
 	);
 }
