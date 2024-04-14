@@ -315,7 +315,6 @@ export async function InitialiseDatabase(): Promise<void> {
 		sax
 	)
 
-
 	console.log("Initialisating database")
 	await init()
 
@@ -326,6 +325,7 @@ export async function InitialiseDatabase(): Promise<void> {
 		for (const [query, entries] of queryArgs) {
 			await client.query('BEGIN')
 
+			console.log(`Running ${query} inserts`)
 			const q = { 
 				name: query,
 				text: queries.get(query) as string,
@@ -354,6 +354,7 @@ export async function InitialiseDatabase(): Promise<void> {
 }
 
 async function init(): Promise<void> {
+	console.log("Dropping tables")
 	await pool.query(`
 		BEGIN;
 
@@ -363,6 +364,13 @@ async function init(): Promise<void> {
 		DROP TABLE IF EXISTS WrittenForm;
 		DROP TABLE IF EXISTS Synset;
 		DROP TABLE IF EXISTS LexicalEntry;
+
+		COMMIT;
+	`)
+
+	console.log("Creating tables without indices or foreign keys")
+	await pool.query(`
+		begin;
 
 		CREATE TABLE Synset (
 			id TEXT,
@@ -378,42 +386,55 @@ async function init(): Promise<void> {
 		);
 
 		CREATE TABLE WrittenForm (
-			lexid TEXT REFERENCES LexicalEntry(id),
+			lexid TEXT,
 			form TEXT,
 			PRIMARY KEY (lexid, form)
 		);
-		CREATE INDEX writtenform_lexid ON WrittenForm(lexid);
 
 		CREATE TABLE SynsetMember (
-			synid TEXT REFERENCES synset(id),
-			memberid TEXT REFERENCES LexicalEntry(id),
+			synid TEXT,
+			memberid TEXT,
 			PRIMARY KEY (synid, memberid)
 		);
-		CREATE INDEX SynsetMember_synid ON SynsetMember(synid);
-		CREATE INDEX SynsetMember_memberid ON SynsetMember(memberid);
 
 		CREATE TABLE SynsetText (
-			synid TEXT REFERENCES Synset(id),
+			synid TEXT,
 			nodename TEXT,
 			content TEXT
 		);
-		CREATE INDEX SynsetText_synid ON SynsetText(synid);
 
 		CREATE TABLE SynsetRelation (
-			synid TEXT REFERENCES Synset(id),
-			target TEXT REFERENCES Synset(id),
+			synid TEXT,
+			target TEXT,
 			relType TEXT
 		);
-		CREATE INDEX SynsetRelation_synid ON SynsetRelation(synid);
-		CREATE INDEX SynsetRelation_target ON SynsetRelation(target);
 
 		COMMIT;
+
+		ANALYZE;
 	`)
 }
 
 async function cleanup(): Promise<void> {
+	console.log("Creating indices")
 	await pool.query(`
 		begin; 
+
+		CREATE INDEX writtenform_lexid ON WrittenForm(lexid);
+		CREATE INDEX SynsetMember_synid ON SynsetMember(synid);
+		CREATE INDEX SynsetMember_memberid ON SynsetMember(memberid);
+		CREATE INDEX SynsetText_synid ON SynsetText(synid);
+		CREATE INDEX SynsetRelation_synid ON SynsetRelation(synid);
+		CREATE INDEX SynsetRelation_target ON SynsetRelation(target);
+
+		commit;
+
+		ANALYZE;
+	`)
+
+	console.log("Trimming unsuitable words")
+	await pool.query(`
+		begin;
 
 		create temporary table junk as (
 			select distinct(id)
@@ -429,6 +450,47 @@ async function cleanup(): Promise<void> {
 		delete from lexicalentry where id in (select id from junk);
 
 		commit;
+
+		analyze;
+	`)
+
+	console.log("Adding foreign key constraints")
+	await pool.query(`
+		begin;
+
+		ALTER TABLE WrittenForm
+		ADD CONSTRAINT WrittenFormFK
+		FOREIGN KEY (lexid)
+		REFERENCES LexicalEntry(id);
+
+		ALTER TABLE SynsetMember
+		ADD CONSTRAINT SynsetMemberFKL
+		FOREIGN KEY (memberid)
+		REFERENCES LexicalEntry(id);
+
+		ALTER TABLE SynsetMember
+		ADD CONSTRAINT SynsetMemberFKS
+		FOREIGN KEY (synid)
+		REFERENCES Synset(id);
+
+		ALTER TABLE SynsetText
+		ADD CONSTRAINT SynsetTextFK
+		FOREIGN KEY (synid)
+		REFERENCES Synset(id);
+
+		ALTER TABLE SynsetRelation
+		ADD CONSTRAINT SynsetRelationFK1
+		FOREIGN KEY (synid)
+		REFERENCES Synset(id);
+
+		ALTER TABLE SynsetRelation
+		ADD CONSTRAINT SynsetRelationFK2
+		FOREIGN KEY (target)
+		REFERENCES Synset(id);
+
+		commit;
+
+		ANALYZE;
 	`)
 }
 
