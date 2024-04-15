@@ -30,7 +30,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: ghcr.io/jml-89/lexical-clash:latest
+          tags: |
+            ghcr.io/jml-89/lexical-clash:latest
+            ${{ github.sha }}
           build-args: |
             GIT_REF=${{ github.ref_name }}
             GIT_HASH=${{ github.sha }}
