@@ -15,6 +15,7 @@ import  {
 } from './bonus'
 
 import {
+	ShuffleMap,
 	PickRandom
 } from './util'
 
@@ -44,6 +45,8 @@ export interface PreambleStage<T> {
 export interface Preamble {
 	type: 'preamble';
 	done: boolean
+
+	prestige: number
 	level: number
 
 	opponent: PreambleStage<OpponentPreamble>
@@ -56,22 +59,33 @@ export interface Preamble {
 
 export interface PreambleSetup {
 	prng: prand.RandomGenerator
+	prestige: number
 	level: number
 	candidates: string[]
 }
 
 export function NewPreamble(g: PreambleSetup): Preamble {
-	const opponents = new Map<string, OpponentPreamble>()
-	for (const [k, o] of Opponents) {
-		const rel = o.level - g.level
-		if (rel < -1) {
-			continue
+	let opts = new Map<string, OpponentPreamble>()
+
+	let lim = 0
+	while (opts.size < 3) {
+		for (const [k, o] of ShuffleMap(g, Opponents)) {
+			const rel = o.level - g.level
+			if (Math.abs(rel) > lim) {
+				continue
+			}
+
+			opts.set(k, {
+				...o,
+				relativeLevel: rel
+			})
+
+			if (!(opts.size < 3)) {
+				break
+			}
 		}
 
-		opponents.set(k, {
-			...o,
-			relativeLevel: rel
-		})
+		lim += 1
 	}
 
 	const wordmap = new Map<string, WordBooster>()
@@ -83,11 +97,12 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 	return {
 		type: 'preamble',
 		done: false,
+		prestige: g.prestige,
 		level: g.level,
 		opponent: {
 			title: 'Select Your Opponent',
 			field: 'opponent',
-			options: PickRandom(g, opponents, 3),
+			options: opts,
 			choice: ''
 		},
 		ability: {

@@ -142,7 +142,7 @@ export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<voi
 		return
 	}
 
-	opponent.level = (g.prestige * 1) + opponent.level
+	opponent.level = (g.prestige * 3) + opponent.level
 	await FillWordbank(kb.hypos, opponent)
 	opponent.wordbank = ShuffleMap(g, opponent.wordbank)
 
@@ -162,23 +162,21 @@ export function NewGame(seed: number): GameState {
 	const base: PreambleSetup = {
 		prng: prand.xoroshiro128plus(seed),
 		level: 1,
-		candidates: ['metal', 'gum']
+		prestige: 0,
+		candidates: ['time', 'wood', 'boat', 'view', 'tube']
 	}
 
 	const preamble = NewPreamble(base)
 
 	return {
+		...base,
 		handSize: 9,
-		prestige: 0,
-		level: 1,
 		abilities: new Map<string, AbilityCard>(),
 		bonuses: new Map<string, BonusCard>(),
-		prng: base.prng,
 		phase: preamble,
 		letters: ScrabbleDistribution(),
 		banked: new Map<string, boolean>,
 		wordbank: new Map<string, Letter[]>,
-		candidates: base.candidates
 	}
 }
 

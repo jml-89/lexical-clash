@@ -65,7 +65,12 @@ export function ShowPreamble({ preamble, statefn }: {
 				{stage.title}
 			</h1>
 
-			<div className="flex-1 flex flex-col justify-evenly">
+			<div className="flex flex- items-center gap-2 text-amber-500 text-lg">
+				{preamble.prestige > 0 && (<div>Prestige {preamble.prestige}</div>)} 
+				<div>Level {preamble.level}</div>
+			</div>
+
+			<div className="flex-1 flex flex-col gap-2 justify-start">
 				{options}
 			</div>
 		</main>
