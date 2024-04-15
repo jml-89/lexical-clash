@@ -32,7 +32,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/jml-89/lexical-clash:latest
-            ${{ github.sha }}
+            ghcr.io/jml-89/lexical-clash:${{ github.sha }}
           build-args: |
             GIT_REF=${{ github.ref_name }}
             GIT_HASH=${{ github.sha }}
