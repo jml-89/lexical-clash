@@ -88,6 +88,24 @@ export function UnplaceAll(g: PlayArea): void {
 	}
 }
 
+export function PlaceByChar(g: PlayArea, c: string): void {
+	const matches = g.hand
+		.filter((letter) => letter.available)
+		.filter((letter) => letter.char === c)
+		.sort((a, b) => a.score - b.score)
+	if (matches.length === 0) {
+		return
+	}
+
+	PlaceById(g, matches[matches.length-1].id)
+}
+
+export function PlaceWord(g: PlayArea, word: string): void {
+	for (const c of word) {
+		PlaceByChar(g, c)
+	}
+}
+
 export function PlaceById(g: PlayArea, id: string): void {
 	const idx = g.hand.findIndex((letter) => 
 		letter.available && letter.id === id
@@ -99,7 +117,6 @@ export function PlaceById(g: PlayArea, id: string): void {
 	g.placed = g.placed.concat([g.hand[idx]]);
 	g.hand[idx].available = false;
 }
-
 
 function makeAvail(letter: Letter): Letter {
 	letter.available = true

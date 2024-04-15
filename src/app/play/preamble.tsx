@@ -5,6 +5,7 @@ import Image from 'next/image';
 
 import { 
 	Preamble, 
+	WordBooster,
 	OpponentPreamble,
 	PreambleStage,
 	PreambleStageType,
@@ -27,8 +28,12 @@ function chooseRenderFn(stage: any): renderT {
 		return (ability: AbilityCard): React.ReactNode => 
 			AbilityTicket({ ability: ability })
 	}
-	return (bonus: BonusCard): React.ReactNode =>
-		BonusTicket({ bonus: bonus })
+	if (stage.field === 'bonus') {
+		return (bonus: BonusCard): React.ReactNode =>
+			BonusTicket({ bonus: bonus })
+	}
+	return (word: WordBooster): React.ReactNode =>
+		ShowWordBooster({ word: word })
 }
 
 export function ShowPreamble({ preamble, statefn }: {
@@ -38,7 +43,9 @@ export function ShowPreamble({ preamble, statefn }: {
 	const stage = 
 		preamble.stagekey === 'opponent' ? preamble.opponent :
 		preamble.stagekey === 'ability' ? preamble.ability :
-		preamble.bonus
+		preamble.stagekey === 'bonus' ? preamble.bonus :
+		preamble.word
+
 	const renderFn = chooseRenderFn(stage)
 
 	let options: React.ReactNode[] = []
@@ -156,6 +163,24 @@ function BonusTicket({ bonus }: {
 		>
 			<h1 className="text-xl font-bold">{bonus.name}</h1>
 			<div className="italic">{bonus.desc}</div>
+		</div>
+	);
+}
+
+function ShowWordBooster({ word }: {
+	word: WordBooster
+}) {
+	return (
+		<div key={word.word} 
+			className={[
+				"flex flex-col",
+				"rounded-xl",
+				"bg-slate-700",
+				"text-amber-300",
+				"p-2 gap-2"
+			].join(' ')}
+		>
+			<h1 className="text-xl font-bold">{word.word}</h1>
 		</div>
 	);
 }

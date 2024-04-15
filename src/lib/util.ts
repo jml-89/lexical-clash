@@ -6,6 +6,7 @@ export interface KnowledgeBase {
 	valid: (word: string) => Promise<boolean>
 	related: (relation: string, left: string, right: string) => Promise<boolean>
 	hypos: (word: string) => Promise<string[]>
+	candidates: (lo: number, hi: number) => Promise<string[]>
 }
 
 interface HasPRNG {
@@ -39,6 +40,29 @@ export function Shuffle<T>(g: HasPRNG, xs: T[]): T[] {
 
 	g.prng = curr
 	return ys
+}
+
+export function ShuffleMap<T1, T2>(g: HasPRNG, xs: Map<T1, T2>): Map<T1, T2> {
+	let keys = Shuffle(g, [ ...xs.keys() ])
+	let res = new Map<T1, T2>()
+	for (const key of keys) {
+		const v = xs.get(key)
+		if (v !== undefined) {
+			res.set(key, v)
+		}
+	}
+	return res
+}
+
+export function MapConcat<T1, T2>(m1: Map<T1, T2>, m2: Map<T1, T2>): Map<T1, T2> {
+	let xs = new Map<T1, T2>()
+	for (const [k, v] of m1) {
+		xs.set(k, v)
+	}
+	for (const [k, v] of m2) {
+		xs.set(k, v)
+	}
+	return xs
 }
 
 // naive Levenshtein distance implementation

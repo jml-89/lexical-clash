@@ -24,7 +24,15 @@ export interface OpponentPreamble extends Opponent {
 	relativeLevel: number
 }
 
-export type PreambleStageType = OpponentPreamble | AbilityCard | BonusCard
+export interface WordBooster {
+	word: string
+}	
+
+export type PreambleStageType 
+	= OpponentPreamble 
+	| AbilityCard 
+	| BonusCard
+	| WordBooster
 
 export interface PreambleStage<T> {
 	title: string
@@ -41,6 +49,7 @@ export interface Preamble {
 	opponent: PreambleStage<OpponentPreamble>
 	ability: PreambleStage<AbilityCard>
 	bonus: PreambleStage<BonusCard>
+	word: PreambleStage<WordBooster>
 
 	stagekey: string
 }
@@ -48,6 +57,7 @@ export interface Preamble {
 export interface PreambleSetup {
 	prng: prand.RandomGenerator
 	level: number
+	candidates: string[]
 }
 
 export function NewPreamble(g: PreambleSetup): Preamble {
@@ -62,6 +72,12 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 			...o,
 			relativeLevel: rel
 		})
+	}
+
+	const wordmap = new Map<string, WordBooster>()
+	for (const word of g.candidates) {
+		//lmao, so bad
+		wordmap.set(word, { word: word })
 	}
 
 	return {
@@ -86,10 +102,15 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 			options: PickRandom(g, BonusCards, 3),
 			choice: ''
 		},
+		word: {
+			title: 'Select A Wordbank Booster',
+			field: 'word',
+			options: PickRandom(g, wordmap, 5),
+			choice: ''
+		},
 		stagekey: 'opponent'
 	}
 }
-
 
 export function PreambleChoice(p: Preamble, s: string): void {
 	// This conditional ladder isn't pretty
@@ -102,6 +123,9 @@ export function PreambleChoice(p: Preamble, s: string): void {
 		p.stagekey = 'bonus'
 	} else if (p.stagekey === 'bonus') {
 		p.bonus.choice = s
+		p.stagekey = 'word'
+	} else if (p.stagekey === 'word') {
+		p.word.choice = s
 		p.done = true
 	}
 }

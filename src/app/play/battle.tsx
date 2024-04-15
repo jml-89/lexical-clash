@@ -4,7 +4,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Battler, Battle, Submit, Backspace, BackspaceId, Wipe, Place, UseAbility, UpdateScores } from '@/lib/battle';
+import { Battler, 
+	Battle, 
+	Submit, 
+	Backspace, 
+	BackspaceId, 
+	Wipe, 
+	Place, 
+	PlaceWordbank,
+	UseAbility, 
+	UpdateScores 
+} from '@/lib/battle';
 import { Scoresheet } from '@/lib/score'
 
 import { Letter } from '@/lib/letter'
@@ -189,13 +199,12 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 		</button>
 	)
 
-	// Wordbank works, but not included right now as it's a half-baked idea
-	//{somebutton('Wordbank', 'wordbank')}
 	const views: Record<string, () => React.ReactNode> = {
 		buttons: (): React.ReactNode => (
 			<div className="flex flex-row gap-4 justify-center">
 				{somebutton('Bonuses', 'bonuses')}
 				{somebutton('Abilities', 'abilities')}
+				{somebutton('Wordbank', 'wordbank')}
 			</div>
 		),
 
@@ -208,7 +217,7 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 		),
 
 		wordbank: (): React.ReactNode => (
-			<ListWords words={player.wordMatches} closefn={() => setView('buttons')}/>
+			<ListWords words={player.wordMatches} statefn={statefn} closefn={() => setView('buttons')}/>
 		)
 	}
 
@@ -227,10 +236,20 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 	)
 }
 
-function ListWords({ words, closefn }: {
+function ListWords({ words, statefn, closefn }: {
 	words: string[],
+	statefn: statefnT,
 	closefn: () => void
 }) {
+	const placefn = (id: string): ()=>Promise<void> => {
+		return async () => {
+			return await statefn((g: Battle) => {
+				PlaceWordbank(g, id)
+				UpdateScores(g)
+			})
+		}
+	}
+
 	return (
 		<div className="flex flex-row justify-stretch gap-2">
 			<button 
@@ -241,8 +260,12 @@ function ListWords({ words, closefn }: {
 			</button>
 
 			<ul className="flex-1 bg-orange-200 p-2 flex flex-row font-bold text-lg gap-2 flex-wrap">
-				{words.map((word) => (
-					<li key={word}>{word}</li>
+				{words.map((word, letters) => (
+					<li key={word}>
+						<button
+							onClick={placefn(word)}
+						>{word}</button>
+					</li>
 				))}
 			</ul>
 		</div>

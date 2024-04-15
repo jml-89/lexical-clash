@@ -26,7 +26,7 @@ import { BonusCard, BonusCards} from './bonus';
 import { AbilityCard, AbilityCards } from './ability';
 import { ScoreWord } from './score'
 
-import { KnowledgeBase, Shuffle } from './util'
+import { KnowledgeBase, Shuffle, ShuffleMap, MapConcat } from './util'
 
 import {
 	Preamble,
@@ -59,37 +59,46 @@ export interface Outcome {
 	letterUpgrades: number
 }
 
-interface GameState {
+export interface GameState {
 	prng: prand.RandomGenerator
 
 	phase: Phase;
 
+	prestige: number
 	level: number
 	handSize: number;
 	letters: Letter[]; 
 
-	wordbank: Map<string, Map<string, Letter[]>>
+	candidates: string[]
+
+	banked: Map<string, boolean>
+	wordbank: Map<string, Letter[]>
+
 	abilities: Map<string, AbilityCard>
 	bonuses: Map<string, BonusCard>
 }
 
 function Upgrade(g: GameState, n: number): void {
-	if (n < 1) {
-		return
-	}
+	if (n > 0) {
+		let indices: number[] = []
+		for (let i = 0; i < g.letters.length; i++) {
+			indices[i] = i
+		}
 
-	let indices: number[] = []
-	for (let i = 0; i < g.letters.length; i++) {
-		indices[i] = i
+		Shuffle(g, indices).slice(0, n).forEach((idx) => {
+			g.letters[idx].score += 2
+			g.letters[idx].level += 1
+		})
 	}
-
-	Shuffle(g, indices).slice(0, n).forEach((idx) => {
-		g.letters[idx].score += 2
-		g.letters[idx].level += 1
-	})
 
 	g.handSize += 2
-	g.level += 1
+
+	if (g.level >= 5) {
+		g.prestige += 1
+		g.level = 1
+	} else {
+		g.level += 1
+	}
 }
 
 export function EndOutcome(o: Outcome): void {
@@ -100,11 +109,8 @@ export function OutcomeToPreamble(g: GameState): void {
 	if (g.phase.type !== 'outcome') {
 		return
 	}
-	Upgrade(g, g.phase.letterUpgrades)
-	for (const letter of g.letters) {
-		if (letter.level === 1) {
-			continue
-		}
+	if (g.phase.victory) {
+		Upgrade(g, g.phase.letterUpgrades)
 	}
 	g.phase = NewPreamble(g);
 }
@@ -136,8 +142,9 @@ export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<voi
 		return
 	}
 
+	opponent.level = (g.prestige * 1) + opponent.level
 	await FillWordbank(kb.hypos, opponent)
-	opponent.wordbank = Shuffle(g, opponent.wordbank)
+	opponent.wordbank = ShuffleMap(g, opponent.wordbank)
 
 	g.phase = NewBattle({
 		handSize: g.handSize, 
@@ -145,7 +152,7 @@ export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<voi
 		abilities: g.abilities,
 		opponent: opponent,
 		letters: Shuffle(g, g.letters),
-		wordbank: squashit(g)
+		wordbank: g.wordbank
 	});
 
 	await ApplyScore(g.phase, kb)
@@ -154,20 +161,24 @@ export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<voi
 export function NewGame(seed: number): GameState {
 	const base: PreambleSetup = {
 		prng: prand.xoroshiro128plus(seed),
-		level: 1
+		level: 1,
+		candidates: ['metal', 'gum']
 	}
 
 	const preamble = NewPreamble(base)
 
 	return {
 		handSize: 9,
+		prestige: 0,
 		level: 1,
 		abilities: new Map<string, AbilityCard>(),
 		bonuses: new Map<string, BonusCard>(),
 		prng: base.prng,
 		phase: preamble,
 		letters: ScrabbleDistribution(),
-		wordbank: new Map<string, Map<string, Letter[]>>
+		banked: new Map<string, boolean>,
+		wordbank: new Map<string, Letter[]>,
+		candidates: base.candidates
 	}
 }
 
@@ -197,35 +208,18 @@ function DoPhase(g: GameState, phasefn: PhaseFn): GameState {
 	return ng
 }
 
-function bankit(g: GameState, words: Letter[][]): void {
-	for (const word of words) {
-		let str = lettersToString(word)
-
-		let cs = []
-		for (const c of str) {
-			cs.push(c)
-		}
-		cs.sort()
-
-		const key = cs.join('')
-
-		let banked = g.wordbank.get(key)
-		if (banked === undefined) {
-			g.wordbank.set(key, new Map<string, Letter[]>([[str, word]]))
-		} else {
-			banked.set(str, word)
+async function FillPlayerBank(
+	g: GameState, 
+	lookup: (s: string) => Promise<string[]>, 
+	s: string
+): Promise<void> {
+	let xs = []
+	for (const word of await lookup(s)) {
+		const up = word.toUpperCase()
+		if (!g.wordbank.has(up)) {
+			g.wordbank.set(up, stringToLetters(up, up))
 		}
 	}
-}
-
-function squashit(g: GameState): Letter[][] {
-	let words = []
-	for (const [k, vs] of g.wordbank) {
-		for (const [j, v] of vs) {
-			words.push(v)
-		}
-	}
-	return words
 }
 
 export async function Mutate(
@@ -249,13 +243,14 @@ export async function Mutate(
 	}
 
 	if (ng.phase.type === 'preamble') {
+		await FillPlayerBank(ng, kb.hypos, ng.phase.word.choice)
 		await LaunchBattle(ng, kb)
 		setfn(ng)
 		return
 	} else if (ng.phase.type === 'battle') {
-		bankit(ng, ng.phase.player.wordbank)
+		MapConcat(ng.wordbank, ng.phase.player.wordbank)
 		if (ng.phase.victory) {
-			bankit(ng, ng.phase.opponent.wordbank)
+			MapConcat(ng.wordbank, ng.phase.opponent.wordbank)
 		}
 		ng.phase = { 
 			type: 'outcome', 
@@ -267,6 +262,7 @@ export async function Mutate(
 		setfn(ng)
 		return
 	} else if (ng.phase.type === 'outcome') {
+		ng.candidates = await kb.candidates(ng.level * 50, (ng.level+1) * 50)
 		OutcomeToPreamble(ng)
 		setfn(ng)
 		return

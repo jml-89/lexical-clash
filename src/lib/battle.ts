@@ -16,6 +16,7 @@ import {
 import {
 	Draw,
 	PlaceById,
+	PlaceWord,
 
 	UnplaceLast,
 	UnplaceAll,
@@ -105,7 +106,7 @@ export interface BattleSetup {
 	handSize: number
 	letters: Letter[]
 
-	wordbank: Letter[][]
+	wordbank: Map<string, Letter[]>
 
  	bonuses: Map<string, BonusCard>
 	abilities: Map<string, AbilityCard>
@@ -137,7 +138,6 @@ export function NewBattle(bs: BattleSetup): Battle {
 	}
 
 	battle.player.wordbank = bs.wordbank
-	console.log('wordbank', battle.player.wordbank)
 
 	NextRound(battle);
 	return battle;
@@ -188,7 +188,7 @@ function WordbankCheck(g: Battler): void {
 		pm.set(letter.char, n === undefined ? 0 : n+1)
 	}
 
-	for (const word of g.wordbank) {
+	for (const [str, word] of g.wordbank) {
 		let wm = new Map<string, number>()
 		for (const letter of word) {
 			const n = wm.get(letter.char)
@@ -205,7 +205,7 @@ function WordbankCheck(g: Battler): void {
 		}
 
 		if (good) {
-			g.wordMatches.push(lettersToString(word))
+			g.wordMatches.push(str)
 		}
 	}
 
@@ -231,7 +231,11 @@ function NextRound(g: Battle): void {
 }
 
 export function NextWord(g: Battler, round: number): void {
-	g.placed = g.wordbank[round % g.wordbank.length]
+	const keys = [ ...g.wordbank.keys() ]
+	const choice = g.wordbank.get(keys[round % keys.length])
+	if (choice !== undefined) {
+		g.placed = choice
+	}
 
 	/*
 	const step = Math.floor(g.wordbank.length / g.healthMax)
@@ -253,7 +257,10 @@ export function Submit(g: Battle): void {
 		g.player.health += diff
 	}
 
-	g.player.wordbank.push(g.player.placed)
+	const str = lettersToString(g.player.placed)
+	if (!g.player.wordbank.has(str)) {
+		g.player.wordbank.set(str, g.player.placed)
+	}
 
 	if (g.player.health <= 0) {
 		g.victory = false
@@ -291,6 +298,13 @@ export function Wipe(g: Battle): void {
 
 export function Place(g: Battle, id: string): void {
 	PlaceById(g.player, id)
+	g.player.scoresheet = ZeroScore()
+	AbilityChecks(g.player)
+}
+
+export function PlaceWordbank(g: Battle, id: string): void {
+	UnplaceAll(g.player)
+	PlaceWord(g.player, id)
 	g.player.scoresheet = ZeroScore()
 	AbilityChecks(g.player)
 }

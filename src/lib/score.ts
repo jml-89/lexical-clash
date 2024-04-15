@@ -102,20 +102,6 @@ export async function ScoreWord(kb: KnowledgeBase, input: ScoreInput, opponent: 
 		})
 	}
 
-	const isntWeakness = (a: string): boolean => 
-		!opponent.weakness.some((b: string) => a === b)
-
-	for (const strength of opponent.strength.filter(isntWeakness)) {
-		const hit = await kb.related('hypernym', strength, word)
-		if (!hit) {
-			continue
-		}
-		sheet.muls.push({
-			source: `strength: ${strength}`,
-			value: -1
-		})
-	}
-
 	sumScore(sheet)
 	return sheet
 }

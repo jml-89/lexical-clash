@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { 
+	GameState,
 	Outcome,
 
 	NewGame, 
@@ -22,10 +23,10 @@ import { ShowPreamble } from './preamble';
 import { ShowOutcome } from './outcome';
 
 export function Game({ seed, knowledge }: { 
-	seed: number, 
+	seed: number,
 	knowledge: KnowledgeBase
 }) {
-	const [game, setGame] = useState(NewGame(seed));
+	const [game, setGame] = useState(NewGame(seed))
 
 	const mutator = useCallback(
 		async function(fn: PhaseFn): Promise<void> {

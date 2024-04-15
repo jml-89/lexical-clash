@@ -47,6 +47,32 @@ export async function AreWordsRelated(relation: string, left: string, right: str
 // For opponent words
 export async function HypoForms(word: string): Promise<string[]> {
 	const res = await pool.query({
+		text: "select hypo from simplerelations where hyper = $1",
+		values: [word]
+	})
+
+	return res.rows.map((row) => row.hypo)
+}
+
+export async function Candidates(lo: number, hi: number): Promise<string[]> {
+	const res = await pool.query({
+		text: `
+			select hyper
+			from simplerelations 
+			group by hyper
+			having count(*) > $1
+			and count(*) < $2
+			order by random();
+		`,
+		values: [lo, hi]
+	})
+
+	return res.rows.map((row) => row.hyper)
+}
+
+/*
+export async function HypoForms(word: string): Promise<string[]> {
+	const res = await pool.query({
 		text: `
 			with recursive lexids as (
 				select lexid
@@ -95,6 +121,7 @@ export async function HypoForms(word: string): Promise<string[]> {
 
 	return res.rows.map((row) => row.form)
 }
+*/
 
 // For the purposes of this simple game, return all matching synids
 // Normally you would query by written form /and/ part of speech
@@ -364,6 +391,7 @@ async function init(): Promise<void> {
 		DROP TABLE IF EXISTS WrittenForm;
 		DROP TABLE IF EXISTS Synset;
 		DROP TABLE IF EXISTS LexicalEntry;
+		drop table if exists simplerelations; 
 
 		COMMIT;
 	`)
@@ -492,5 +520,63 @@ async function cleanup(): Promise<void> {
 
 		ANALYZE;
 	`)
+
+	console.log("Creating simplerelations Table")
+	await pool.query(`
+		create table simplerelations as 
+			with recursive lexids as (
+				select form, lexid
+				from writtenform
+			), synids as (
+				select 
+					b.form,
+					a.synid
+				from 
+					synsetmember a
+				inner join 
+					lexids b
+				on
+					a.memberid = b.lexid
+			), relations as (
+				select 
+					b.form,
+					a.target
+				from 
+					synsetrelation a
+				inner join
+					synids b
+				on
+					a.reltype = 'hyponym'
+				and 
+					a.synid = b.synid
+
+				union
+
+				select 
+					b.form,
+					a.target
+				from 
+					synsetrelation a
+				inner join
+					relations b
+				on
+					a.reltype = 'hyponym'
+				and
+					a.synid = b.target
+			), outids as (
+				select a.form, b.memberid
+				from relations a
+				inner join synsetmember b
+				on a.target = b.synid
+			)
+			select b.form as hypo, a.form as hyper 
+			from outids a
+			inner join writtenform b
+			on a.memberid = b.lexid;
+		create index simplerelations_hypo on simplerelations(hypo);
+		create index simplerelations_hyper on simplerelations(hyper);
+		analyze;
+		`
+	)
 }
 
