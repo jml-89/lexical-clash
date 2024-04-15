@@ -26,8 +26,9 @@ export default function RootLayout({
 
 				{children}
 
-				<div className="flex-none flex flex-row-reverse bg-slate-900">
-					<div className="text-lg text-amber-300 mx-2"><a href="https://github.com/jml-89/lexical-clash">/jml-89</a></div>
+				<div className="flex-none flex flex-row justify-start bg-slate-900 text-amber-300 p-1 gap-2">
+					<div className="text-lg"><a href="https://github.com/jml-89/lexical-clash">github/jml-89</a></div>
+					<div>{`${process.env.NEXT_PUBLIC_GIT_REF}:${process.env.NEXT_PUBLIC_GIT_HASH}`}</div>
 				</div>
 			</div>
 		</body>
