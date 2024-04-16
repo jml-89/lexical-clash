@@ -12,11 +12,12 @@ export interface PlayArea {
 	placed: Letter[]
 	hand: Letter[]
 	bag: Letter[]
-	discard: Letter[]
+	//discard: Letter[]
 }
 
 export function DiscardPlaced(g: PlayArea): void {
-	g.discard = g.discard.concat(g.hand.filter((letter) => isPlaced(g, letter)))
+	//g.discard = g.discard.concat(g.hand.filter((letter) => isPlaced(g, letter)))
+	g.bag = g.bag.concat(g.hand.filter((letter) => isPlaced(g, letter)))
 	g.hand = g.hand.filter((letter) => !isPlaced(g, letter))
 	g.placed = []
 }
@@ -25,7 +26,8 @@ export function DiscardPlaced(g: PlayArea): void {
 export function DiscardAll(g: PlayArea): void {
 	g.placed = []
 	g.hand = g.hand.map((letter) => {letter.available = true; return letter})
-	g.discard = g.discard.concat(g.hand)
+	//g.discard = g.discard.concat(g.hand)
+	g.bag = g.bag.concat(g.hand)
 	g.hand = []
 }
 

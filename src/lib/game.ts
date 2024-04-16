@@ -66,10 +66,10 @@ export interface GameState {
 
 	prestige: number
 	level: number
+	truelevel: number
+
 	handSize: number;
 	letters: Letter[]; 
-
-	candidates: string[]
 
 	banked: Map<string, boolean>
 	wordbank: Map<string, Letter[]>
@@ -79,6 +79,10 @@ export interface GameState {
 }
 
 function Upgrade(g: GameState, n: number): void {
+	if (g.phase.type !== 'outcome') {
+		return
+	}
+
 	if (n > 0) {
 		let indices: number[] = []
 		for (let i = 0; i < g.letters.length; i++) {
@@ -96,12 +100,14 @@ function Upgrade(g: GameState, n: number): void {
 
 	g.handSize += 2
 
-	if (g.level >= 5) {
+	if (g.phase.opponent.isboss) {
 		g.prestige += 1
 		g.level = 1
 	} else {
 		g.level += 1
 	}
+
+	g.truelevel = (g.prestige * 4) + g.level
 }
 
 export function EndOutcome(o: Outcome): void {
@@ -165,14 +171,14 @@ export function NewGame(seed: number): GameState {
 	const base: PreambleSetup = {
 		prng: prand.xoroshiro128plus(seed),
 		level: 1,
-		prestige: 0,
-		candidates: ['time', 'wood', 'boat', 'view', 'tube']
+		prestige: 0
 	}
 
 	const preamble = NewPreamble(base)
 
 	return {
 		...base,
+		truelevel: base.level,
 		handSize: 9,
 		abilities: new Map<string, AbilityCard>(),
 		bonuses: new Map<string, BonusCard>(),
@@ -240,6 +246,27 @@ export async function Mutate(
 			setfn(ng)
 		} 
 
+		if (ng.phase.type === 'preamble' && ng.phase.reqwords) {
+			const xs = await kb.candidates(
+				ng.truelevel * 50,
+				(ng.truelevel + 1) * 50,
+				ng.handSize - 3,
+				5
+			)
+
+			for (const x of xs) {
+				let words = await kb.hypos(x)
+				words.sort((a, b) => a.length - b.length)
+				ng.phase.word.options.set(x, {
+					word: x,
+					len: words.length,
+					samples: words
+				})
+			}
+			ng.phase.reqwords = false
+			setfn(ng)
+		}
+
 		return
 	}
 
@@ -263,10 +290,6 @@ export async function Mutate(
 		setfn(ng)
 		return
 	} else if (ng.phase.type === 'outcome') {
-		ng.candidates = await kb.candidates(
-			(ng.prestige + ng.level) * 50, 
-			(ng.prestige + ng.level + 1) * 50
-		)
 		OutcomeToPreamble(ng)
 		setfn(ng)
 		return

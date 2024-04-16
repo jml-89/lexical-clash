@@ -2,10 +2,11 @@ import Link from 'next/link';
 
 export default async function Intro() {
 	return (
-		<main className="text-amber-400 flex flex-col justify-between items-center gap-2">
+		<main className="text-amber-400 flex flex-col justify-between items-center gap-2 p-1">
 			<div className="flex flex-col items-baseline gap-2">
+				<div className="flex flex-col items-baseline">
 				<h1 className="text-3xl font-light tracking-tight">How to Play</h1>
-				<p>
+				<p className="px-1">
 					You are entering a word battle against fantastical opposition.<br/>
 					Each round your opponent will place down a word.<br/>
 					You must place a better word or lose health.<br/>
@@ -19,9 +20,11 @@ export default async function Intro() {
 					Use abilities to improve your chances.<br/>
 					Embrace bonuses to improve your word scores.<br/>
 				</p>
+				</div>
 
+				<div className="flex flex-col items-baseline">
 				<h1 className="text-3xl font-light tracking-tight">Strengths and Weaknesses</h1>
-				<p>
+				<p className="px-1">
 					Each opponent you face has a set of words they use, and words they are weak to<br/>
 					Attacking your opponents weakness makes your word far more powerful.<br/>
 					<br/>
@@ -30,11 +33,12 @@ export default async function Intro() {
 					Let us consider an opponent weak to <span className="text-lime-300">food</span>.<br/>
 					Hit that opponent with <span className="font-medium">pasta</span> and deliver double the value of that word!<br/>
 				</p>
+				</div>
 
 				<div className="flex flex-col items-baseline font-mono">
 					<h1 className="font-sans text-2xl">Version</h1>
-					<div>{process.env.NEXT_PUBLIC_GIT_REF}</div>
-					<div>{process.env.NEXT_PUBLIC_GIT_HASH}</div>
+					<div className="px-1">{process.env.NEXT_PUBLIC_GIT_REF}</div>
+					<div className="px-1">{process.env.NEXT_PUBLIC_GIT_HASH}</div>
 				</div>
 			</div>
 

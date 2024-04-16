@@ -75,7 +75,6 @@ function NewBattler(bs: BattlerSetup): Battler {
 		handSize: bs.handSize,
 		bag: bs.letters,
 		hand: [],
-		discard: [],
 		placed: [],
 
 		abilities: copyMap(bs.abilities),

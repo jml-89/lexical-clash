@@ -27,6 +27,8 @@ export interface OpponentPreamble extends Opponent {
 
 export interface WordBooster {
 	word: string
+	len: number
+	samples: string[]
 }	
 
 export type PreambleStageType 
@@ -52,6 +54,8 @@ export interface Preamble {
 	opponent: PreambleStage<OpponentPreamble>
 	ability: PreambleStage<AbilityCard>
 	bonus: PreambleStage<BonusCard>
+
+	reqwords: boolean
 	word: PreambleStage<WordBooster>
 
 	stagekey: string
@@ -61,7 +65,6 @@ export interface PreambleSetup {
 	prng: prand.RandomGenerator
 	prestige: number
 	level: number
-	candidates: string[]
 }
 
 export function NewPreamble(g: PreambleSetup): Preamble {
@@ -75,6 +78,8 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 				continue
 			}
 
+			o.level = (g.prestige * 3) + o.level
+
 			opts.set(k, {
 				...o,
 				relativeLevel: rel
@@ -86,12 +91,6 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 		}
 
 		lim += 1
-	}
-
-	const wordmap = new Map<string, WordBooster>()
-	for (const word of g.candidates) {
-		//lmao, so bad
-		wordmap.set(word, { word: word })
 	}
 
 	return {
@@ -117,10 +116,11 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 			options: PickRandom(g, BonusCards, 3),
 			choice: ''
 		},
+		reqwords: true,
 		word: {
-			title: 'Select A Wordbank Booster',
+			title: 'Select A Wordbank',
 			field: 'word',
-			options: PickRandom(g, wordmap, 5),
+			options: new Map<string, WordBooster>(),
 			choice: ''
 		},
 		stagekey: 'opponent'

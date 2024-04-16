@@ -93,7 +93,7 @@ const AbilitiesBase: AbilityBase[] = [
 					left.id === right.id
 				)
 			)
-			pr.discard = pr.discard.concat(pr.placed.slice(1))
+			pr.bag = pr.bag.concat(pr.placed.slice(1))
 			pr.placed = pr.placed.slice(0, 1).concat(clones)
 			pr.hand = pr.hand.concat(clones)
 		}

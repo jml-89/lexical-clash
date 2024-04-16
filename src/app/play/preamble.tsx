@@ -175,6 +175,14 @@ function BonusTicket({ bonus }: {
 function ShowWordBooster({ word }: {
 	word: WordBooster
 }) {
+	const stride = 4
+	const midx = Math.floor((word.samples.length - stride) / 2)
+
+	const fli = (s: string): React.ReactNode => (<li key={s}>{s}</li>)
+	const lo = word.samples.slice(0, stride)
+	const md = word.samples.slice(midx, midx+stride)
+	const hi = word.samples.slice(word.samples.length - stride)
+
 	return (
 		<div key={word.word} 
 			className={[
@@ -185,7 +193,20 @@ function ShowWordBooster({ word }: {
 				"p-2 gap-2"
 			].join(' ')}
 		>
-			<h1 className="text-xl font-bold">{word.word}</h1>
+			<div className="flex flex-col gap-2 justify-start">
+				<div className="flex flex-row justify-between">
+					<h1 className="text-xl font-bold">{word.word}</h1>
+					<div>{word.len} words</div>
+				</div>
+
+				<ul className="flex flex-row flex-wrap place-content-around gap-1">
+					{lo.map(fli)}
+					<li key="low-key">...</li>
+					{md.map(fli)}
+					<li key="mid-key">...</li>
+					{hi.map(fli)}
+				</ul>
+			</div>
 		</div>
 	);
 }

@@ -6,7 +6,7 @@ export interface KnowledgeBase {
 	valid: (word: string) => Promise<boolean>
 	related: (relation: string, left: string, right: string) => Promise<boolean>
 	hypos: (word: string) => Promise<string[]>
-	candidates: (lo: number, hi: number) => Promise<string[]>
+	candidates: (lo: number, hi: number, maxlen: number, num: number) => Promise<string[]>
 }
 
 interface HasPRNG {

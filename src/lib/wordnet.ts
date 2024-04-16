@@ -54,17 +54,19 @@ export async function HypoForms(word: string): Promise<string[]> {
 	return res.rows.map((row) => row.hypo)
 }
 
-export async function Candidates(lo: number, hi: number): Promise<string[]> {
+export async function Candidates(lo: number, hi: number, maxlen: number, num: number): Promise<string[]> {
 	const res = await pool.query({
 		text: `
 			select hyper
 			from simplerelations 
+			where length(hyper) <= $3
 			group by hyper
 			having count(*) > $1
 			and count(*) < $2
-			order by random();
+			order by random()
+			limit $4;
 		`,
-		values: [lo, hi]
+		values: [lo, hi, maxlen, num]
 	})
 
 	return res.rows.map((row) => row.hyper)
@@ -572,9 +574,12 @@ async function cleanup(): Promise<void> {
 			select b.form as hypo, a.form as hyper 
 			from outids a
 			inner join writtenform b
-			on a.memberid = b.lexid;
+			on a.memberid = b.lexid
+			group by hypo, hyper;
+
 		create index simplerelations_hypo on simplerelations(hypo);
 		create index simplerelations_hyper on simplerelations(hyper);
+
 		analyze;
 		`
 	)
