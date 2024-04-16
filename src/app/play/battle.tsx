@@ -51,7 +51,7 @@ function DrawOpponent({ opp }: { opp: Battler }) {
 				</div>
 
 				<div className="flex flex-col">
-					<div className="text-amber-300"><span className="text-lg font-bold">{opp.name}</span> <span className="italic">({opp.desc})</span></div>
+					<div className="text-amber-300"><span className="text-lg font-bold">{opp.name}</span> <span className="italic">(Level {opp.level} {opp.desc})</span></div>
 					<div className="text-red-300"><span className="font-bold">Uses:</span> {opp.strength.join(', ')}</div>
 					<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opp.weakness.join(', ')}</div>
 				</div>

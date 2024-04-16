@@ -85,8 +85,11 @@ function Upgrade(g: GameState, n: number): void {
 			indices[i] = i
 		}
 
-		Shuffle(g, indices).slice(0, n).forEach((idx) => {
-			g.letters[idx].score += 2
+		Shuffle(g, indices)
+		.filter((idx) => g.letters[idx].level < 4)
+		.slice(0, n)
+		.forEach((idx) => {
+			g.letters[idx].score += 1
 			g.letters[idx].level += 1
 		})
 	}
@@ -255,12 +258,15 @@ export async function Mutate(
 			done: false,
 			victory: ng.phase.victory,
 			opponent: ng.phase.opponent,
-			letterUpgrades: ng.phase.victory ? ng.phase.opponent.level * 10 : 0
+			letterUpgrades: ng.phase.victory ? ng.phase.opponent.level * 5  : 0
 		}
 		setfn(ng)
 		return
 	} else if (ng.phase.type === 'outcome') {
-		ng.candidates = await kb.candidates(ng.level * 50, (ng.level+1) * 50)
+		ng.candidates = await kb.candidates(
+			(ng.prestige + ng.level) * 50, 
+			(ng.prestige + ng.level + 1) * 50
+		)
 		OutcomeToPreamble(ng)
 		setfn(ng)
 		return

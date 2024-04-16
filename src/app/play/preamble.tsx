@@ -121,7 +121,7 @@ function OpponentMugshot({ opponent }: {
 			</div>
 
 			<div className="flex flex-col justify-between items-baseline text-left">
-				<h1 className="text-amber-300 text-xl">{opponent.name} <span className="italic">({opponent.desc})</span></h1>
+				<h1 className="text-amber-300 text-xl">{opponent.name} <span className="text-lg italic">(Level {opponent.level} {opponent.desc})</span></h1>
 			
 				<div className="text-red-300"><span className="font-bold">Uses:</span> {opponent.strength.join(', ')}</div>
 				<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opponent.weakness.join(', ')}</div>

@@ -30,11 +30,18 @@ export default async function Intro() {
 					Let us consider an opponent weak to <span className="text-lime-300">food</span>.<br/>
 					Hit that opponent with <span className="font-medium">pasta</span> and deliver double the value of that word!<br/>
 				</p>
+
+				<div className="flex flex-col items-baseline font-mono">
+					<h1 className="font-sans text-2xl">Version</h1>
+					<div>{process.env.NEXT_PUBLIC_GIT_REF}</div>
+					<div>{process.env.NEXT_PUBLIC_GIT_HASH}</div>
+				</div>
 			</div>
 
-			<Link className="m-4 text-6xl font-extralight tracking-tighter ring-4 ring-amber-300 bg-red-800 rounded-lg p-4" href="/play">
+			<Link className="m-4 text-6xl font-light tracking-tighter ring-4 ring-amber-300 bg-red-800 rounded-lg p-4" href="/play">
 				Play!
 			</Link>
+
 		</main>
 	);
 }
