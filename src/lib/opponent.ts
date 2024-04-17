@@ -80,45 +80,16 @@ export const Opponents: Map<string, Opponent> = new Map([
 		image: "portrait/dark/cat.jpg"
 	},
 	{
-		key: "philosopher",
-		name: "Philosopher",
-		desc: "Nerdus Wordus",
-		level: 3,
-		isboss: false,
-		weakness: ['color'],
-		strength: ['time'],
-		image: "portrait/dark/philo.jpg"
-	},
-	{
-		key: 'vampire',
-		name: 'Vampire',
-		desc: 'Ah ah ah!',
-		level: 2,
-		isboss: false,
-		weakness: ['mineral'],
-		strength: ['misconduct'],
-		image: 'portrait/dark/vamp.jpg'
-	},
-	{
-		key: 'robot',
-		name: 'Automaton',
-		desc: 'Beepus Boopus',
-		level: 3,
-		isboss: false,
-		weakness: ['water'],
-		strength: ['machine'],
-		image: 'portrait/dark/robot.jpg'
-	},
-	{
 		key: 'fish',
 		name: 'Fish',
 		desc: 'Splishus Splashus',
-		level: 2,
+		level: 1,
 		isboss: false,
 		weakness: ['tool'],
 		strength: ['malacopterygian'],
 		image: 'portrait/dark/fish.jpg'
 	},
+
 	{
 		key: 'rat',
 		name: 'Rat',
@@ -130,16 +101,6 @@ export const Opponents: Map<string, Opponent> = new Map([
 		image: 'portrait/dark/rat.jpg'
 	},
 	{
-		key: 'octopus',
-		name: 'Octopus',
-		desc: 'Extra-Terrestrial',
-		level: 3,
-		isboss: false,
-		weakness: ['weather'],
-		strength: ['number'],
-		image: 'portrait/dark/octopus.jpg'
-	},
-	{
 		key: 'bee',
 		name: 'Bee',
 		desc: 'buzz buzz',
@@ -149,6 +110,48 @@ export const Opponents: Map<string, Opponent> = new Map([
 		strength: ['insect'],
 		image: 'portrait/dark/bee.jpg'
 	},
+	{
+		key: 'octopus',
+		name: 'Octopus',
+		desc: 'Extra-Aquatical',
+		level: 2,
+		isboss: false,
+		weakness: ['weather'],
+		strength: ['number'],
+		image: 'portrait/dark/octopus.jpg'
+	},
+
+	{
+		key: 'vampire',
+		name: 'Vampire',
+		desc: 'Ah ah ah!',
+		level: 3,
+		isboss: false,
+		weakness: ['mineral'],
+		strength: ['misconduct'],
+		image: 'portrait/dark/vamp.jpg'
+	},
+	{
+		key: "philosopher",
+		name: "Philosopher",
+		desc: "Nerdus Wordus",
+		level: 3,
+		isboss: false,
+		weakness: ['color'],
+		strength: ['time'],
+		image: "portrait/dark/philo.jpg"
+	},
+	{
+		key: 'robot',
+		name: 'Automaton',
+		desc: 'Beepus Boopus',
+		level: 3,
+		isboss: false,
+		weakness: ['water'],
+		strength: ['machine'],
+		image: 'portrait/dark/robot.jpg'
+	},
+
 	{
 		key: 'kookaburra',
 		name: 'Kookaburra',
@@ -169,16 +172,7 @@ export const Opponents: Map<string, Opponent> = new Map([
 		strength: ['weather'],
 		image: 'portrait/dark/cloud.jpg'
 	},
-	{
-		key: 'plaguedoctor',
-		name: 'Plague Doctor',
-		desc: 'One Sick Bird',
-		level: 6,
-		isboss: true,
-		weakness: ['technology'],
-		strength: ['disease'],
-		image: 'portrait/dark/plaguedoctor.jpg'
-	},
+
 	{
 		key: 'dinosaur',
 		name: 'Tea Rex',
@@ -199,6 +193,18 @@ export const Opponents: Map<string, Opponent> = new Map([
 		strength: ['transport'],
 		image: 'portrait/dark/train.jpg'
 	},
+
+	{
+		key: 'plaguedoctor',
+		name: 'Plague Doctor',
+		desc: 'One Sick Bird',
+		level: 6,
+		isboss: true,
+		weakness: ['technology'],
+		strength: ['disease'],
+		image: 'portrait/dark/plaguedoctor.jpg'
+	},
+	
 	{
 		key: 'wombat',
 		name: 'Boss Wombat',

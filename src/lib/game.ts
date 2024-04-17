@@ -198,7 +198,6 @@ async function ApplyScore(b: Battle, kb: KnowledgeBase): Promise<void> {
 	if (b.player.checkScore) {
 		b.player.scoresheet = await ScoreWord(kb, b.player, b.opponent)
 		b.player.checkScore = false
-		b.player.scoresheet.score = 1337
 	} 
 
 	if (b.opponent.checkScore) {
