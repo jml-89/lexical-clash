@@ -26,7 +26,7 @@ import { BonusCard, BonusCards} from './bonus';
 import { AbilityCard, AbilityCards } from './ability';
 import { ScoreWord } from './score'
 
-import { KnowledgeBase, Shuffle, ShuffleMap, MapConcat } from './util'
+import { KnowledgeBase, Shuffle, ShuffleMap, MapConcat, CopyMap } from './util'
 
 import {
 	Preamble,
@@ -64,16 +64,17 @@ export interface GameState {
 
 	phase: Phase;
 
-	prestige: number
 	level: number
-	truelevel: number
 
 	handSize: number;
 	letters: Letter[]; 
 
+	postgame: boolean
+
 	banked: Map<string, boolean>
 	wordbank: Map<string, Letter[]>
 
+	opponents: Map<string, Opponent>
 	abilities: Map<string, AbilityCard>
 	bonuses: Map<string, BonusCard>
 }
@@ -99,15 +100,11 @@ function Upgrade(g: GameState, n: number): void {
 	}
 
 	g.handSize += 2
+	g.level += 1
 
 	if (g.phase.opponent.isboss) {
-		g.prestige += 1
-		g.level = 1
-	} else {
-		g.level += 1
+		g.postgame = true
 	}
-
-	g.truelevel = (g.prestige * 4) + g.level
 }
 
 export function EndOutcome(o: Outcome): void {
@@ -120,6 +117,12 @@ export function OutcomeToPreamble(g: GameState): void {
 	}
 	if (g.phase.victory) {
 		Upgrade(g, g.phase.letterUpgrades)
+	}
+
+	if (g.postgame) {
+		for (let [k,o] of g.opponents) {
+			o.level = g.level
+		}
 	}
 	g.phase = NewPreamble(g);
 }
@@ -151,7 +154,9 @@ export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<voi
 		return
 	}
 
-	opponent.level = (g.prestige * 3) + opponent.level
+	if (g.postgame) {
+		opponent.level = g.level
+	}
 	await FillWordbank(kb.hypos, opponent)
 	opponent.wordbank = ShuffleMap(g, opponent.wordbank)
 
@@ -171,15 +176,15 @@ export function NewGame(seed: number): GameState {
 	const base: PreambleSetup = {
 		prng: prand.xoroshiro128plus(seed),
 		level: 1,
-		prestige: 0
+		opponents: CopyMap(Opponents)
 	}
 
 	const preamble = NewPreamble(base)
 
 	return {
 		...base,
-		truelevel: base.level,
 		handSize: 9,
+		postgame: false,
 		abilities: new Map<string, AbilityCard>(),
 		bonuses: new Map<string, BonusCard>(),
 		phase: preamble,
@@ -193,6 +198,7 @@ async function ApplyScore(b: Battle, kb: KnowledgeBase): Promise<void> {
 	if (b.player.checkScore) {
 		b.player.scoresheet = await ScoreWord(kb, b.player, b.opponent)
 		b.player.checkScore = false
+		b.player.scoresheet.score = 1337
 	} 
 
 	if (b.opponent.checkScore) {
@@ -236,6 +242,13 @@ export async function Mutate(
 	setfn: (g: GameState) => void
 ) {
 	const gg = DoPhase(g, phasefn)
+
+	let req = false
+	if (!gg.phase.done && gg.phase.type === 'preamble' && gg.phase.reqwords) {
+		req = true
+		gg.phase.reqwords = false
+	}
+
 	setfn(gg)
 
 	const ng = Object.assign({}, gg)
@@ -244,12 +257,10 @@ export async function Mutate(
 		if (ng.phase.type === 'battle') {
 			await ApplyScore(ng.phase, kb)
 			setfn(ng)
-		} 
-
-		if (ng.phase.type === 'preamble' && ng.phase.reqwords) {
+		} else if (ng.phase.type === 'preamble' && req) {
 			const xs = await kb.candidates(
-				ng.truelevel * 50,
-				(ng.truelevel + 1) * 50,
+				ng.level * 50,
+				(ng.level + 1) * 50,
 				ng.handSize - 3,
 				5
 			)
@@ -263,12 +274,12 @@ export async function Mutate(
 					samples: words
 				})
 			}
-			ng.phase.reqwords = false
 			setfn(ng)
 		}
 
 		return
 	}
+
 
 	if (ng.phase.type === 'preamble') {
 		await FillPlayerBank(ng, kb.hypos, ng.phase.word.choice)

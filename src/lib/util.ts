@@ -90,7 +90,7 @@ export function distance(x: string, y: string): number {
 	return v0[v0.length-1];
 }
 
-export function copyMap<K, T>(m: Map<K, T>): Map<K, T> {
+export function CopyMap<K, T>(m: Map<K, T>): Map<K, T> {
 	let cp = new Map<K, T>()
 	for (const [k, v] of m) {
 		cp.set(k, Object.assign({}, v))

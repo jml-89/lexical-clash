@@ -66,7 +66,6 @@ export function ShowPreamble({ preamble, statefn }: {
 			</h1>
 
 			<div className="flex flex- items-center gap-2 text-amber-500 text-lg">
-				{preamble.prestige > 0 && (<div>Prestige {preamble.prestige}</div>)} 
 				<div>Level {preamble.level}</div>
 			</div>
 
@@ -121,14 +120,11 @@ function OpponentMugshot({ opponent }: {
 			</div>
 
 			<div className="flex flex-col justify-between items-baseline text-left">
-				<h1 className="text-amber-300 text-xl">{opponent.name} <span className="text-lg italic">(Level {opponent.level} {opponent.desc})</span></h1>
+				<h1 className="text-amber-300 text-xl">{opponent.name}</h1>
+				<div className="text-amber-300 italic">Level {opponent.level} {opponent.desc}</div>
 			
 				<div className="text-red-300"><span className="font-bold">Uses:</span> {opponent.strength.join(', ')}</div>
 				<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opponent.weakness.join(', ')}</div>
-
-				<div className="text-xl text-yellow-500">
-					Difficulty: <span className={`text-2xl font-light ${noteColor}`}>{note}</span>
-				</div>
 			</div>
 		</div>
 	);
@@ -210,3 +206,4 @@ function ShowWordBooster({ word }: {
 		</div>
 	);
 }
+

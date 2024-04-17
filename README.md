@@ -25,7 +25,7 @@ Browse into base directory (the one with this README.md)
 `npm install`   
 `npm run dev`   
 
-Go to `http://localhost:3000/init`
+Go to `http://localhost:3000/init`  
 Press the Initialise button to prepare database content   
 This step downloads a Wordnet XML file and parses it into the database   
 Please be patient, this can take a while; progress is logged to console   

@@ -54,14 +54,19 @@ export async function HypoForms(word: string): Promise<string[]> {
 	return res.rows.map((row) => row.hypo)
 }
 
+// Candidates
+// lo & hi, bounds on collection size
+// maxlen: maximum 
+// num: how many to return
 export async function Candidates(lo: number, hi: number, maxlen: number, num: number): Promise<string[]> {
 	const res = await pool.query({
 		text: `
 			select hyper
 			from simplerelations 
-			where length(hyper) <= $3
 			group by hyper
-			having count(*) > $1
+			having 
+			avg(length(hypo)) < $3
+			and count(*) > $1
 			and count(*) < $2
 			order by random()
 			limit $4;
@@ -71,59 +76,6 @@ export async function Candidates(lo: number, hi: number, maxlen: number, num: nu
 
 	return res.rows.map((row) => row.hyper)
 }
-
-/*
-export async function HypoForms(word: string): Promise<string[]> {
-	const res = await pool.query({
-		text: `
-			with recursive lexids as (
-				select lexid
-				from writtenform
-				where form ilike $1
-			), synids as (
-				select synid 
-				from synsetmember 
-				where memberid in (select lexid from lexids)
-			), relations as (
-				select 
-					target
-				from 
-					synsetrelation
-				where
-					synid in (select synid from synids)
-				and
-					reltype like $2
-					
-				union
-
-				select 
-					a.target
-				from 
-					synsetrelation a
-				inner join
-					relations b
-				on
-					a.reltype like $2
-				and
-					a.synid = b.target
-			), members as (
-				select *
-				from synsetmember 
-				where synid in (
-					select target 
-					from relations
-				)
-			)
-			select form 
-			from writtenform 
-			where lexid in (select memberid from members)
-		`,
-		values: [word, 'hyponym']
-	})
-
-	return res.rows.map((row) => row.form)
-}
-*/
 
 // For the purposes of this simple game, return all matching synids
 // Normally you would query by written form /and/ part of speech

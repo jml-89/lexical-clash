@@ -34,25 +34,24 @@ export async function FillWordbank(lookup: (s: string) => Promise<string[]>, o: 
 		}
 	}
 
+	const minScore = 3 + (4 * (o.level-1))
+	const maxScore = 8 + (5 * (o.level-1))
 	const scoreInRange = (xs: Letter[]): boolean => {
 		const xn = simpleScore(xs)
 		return (minScore <= xn) && (xn <= maxScore)
 	}
 
-	//const step = 5 * (o.level-1)
-	const minScore = 3 * o.level
-	const maxScore = 7 * o.level
+	let ys = xs.filter(scoreInRange)
 
-	let ys = xs.filter((a) => {
-		const n = simpleScore(a)
-		return (minScore <= n) && (n <= maxScore)
-	})
+	console.log(`Found ${ys.length} words for ${o.name} to use`)
 
+	// This happens when the level gets too high
+	// This is a signal to just go huge, use best words
 	if (ys.length < 10) {
-		ys = xs
+		ys = xs.toSorted(
+			(a, b) => simpleScore(b) - simpleScore(a)
+		).slice(0, 20)
 	}
-
-	ys.sort((a, b) => simpleScore(a) - simpleScore(b))
 
 	for (const y of ys) {
 		o.wordbank.set(lettersToString(y), y)
@@ -84,7 +83,7 @@ export const Opponents: Map<string, Opponent> = new Map([
 		key: "philosopher",
 		name: "Philosopher",
 		desc: "Nerdus Wordus",
-		level: 2,
+		level: 3,
 		isboss: false,
 		weakness: ['color'],
 		strength: ['time'],
@@ -114,7 +113,7 @@ export const Opponents: Map<string, Opponent> = new Map([
 		key: 'fish',
 		name: 'Fish',
 		desc: 'Splishus Splashus',
-		level: 1,
+		level: 2,
 		isboss: false,
 		weakness: ['tool'],
 		strength: ['malacopterygian'],
@@ -154,7 +153,7 @@ export const Opponents: Map<string, Opponent> = new Map([
 		key: 'kookaburra',
 		name: 'Kookaburra',
 		desc: 'Laughus Laughus',
-		level: 3,
+		level: 4,
 		isboss: false,
 		weakness: ['herb'],
 		strength: ['bird'],
@@ -164,7 +163,7 @@ export const Opponents: Map<string, Opponent> = new Map([
 		key: 'cloud',
 		name: 'Cloud',
 		desc: 'Fluffus Fluffy',
-		level: 3,
+		level: 4,
 		isboss: false,
 		weakness: ['measure'],
 		strength: ['weather'],
@@ -174,7 +173,7 @@ export const Opponents: Map<string, Opponent> = new Map([
 		key: 'plaguedoctor',
 		name: 'Plague Doctor',
 		desc: 'One Sick Bird',
-		level: 4,
+		level: 6,
 		isboss: true,
 		weakness: ['technology'],
 		strength: ['disease'],
@@ -184,7 +183,7 @@ export const Opponents: Map<string, Opponent> = new Map([
 		key: 'dinosaur',
 		name: 'Tea Rex',
 		desc: 'Herbus Sippus',
-		level: 3,
+		level: 5,
 		isboss: false,
 		weakness: ['kindle'],
 		strength: ['herb'],
@@ -194,7 +193,7 @@ export const Opponents: Map<string, Opponent> = new Map([
 		key: 'train',
 		name: 'Locomotive',
 		desc: 'Steamus Pistonus',
-		level: 3,
+		level: 5,
 		isboss: false,
 		weakness: ['nature'],
 		strength: ['transport'],
@@ -204,7 +203,7 @@ export const Opponents: Map<string, Opponent> = new Map([
 		key: 'wombat',
 		name: 'Boss Wombat',
 		desc: 'The End',
-		level: 4,
+		level: 7,
 		isboss: true,
 		weakness: [''],
 		strength: ['noesis'],

@@ -1,7 +1,6 @@
 
 import  {
 	Opponent,
-	Opponents
 } from './opponent'
 
 import  {
@@ -48,7 +47,6 @@ export interface Preamble {
 	type: 'preamble';
 	done: boolean
 
-	prestige: number
 	level: number
 
 	opponent: PreambleStage<OpponentPreamble>
@@ -63,8 +61,8 @@ export interface Preamble {
 
 export interface PreambleSetup {
 	prng: prand.RandomGenerator
-	prestige: number
 	level: number
+	opponents: Map<string, Opponent>
 }
 
 export function NewPreamble(g: PreambleSetup): Preamble {
@@ -72,13 +70,11 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 
 	let lim = 0
 	while (opts.size < 3) {
-		for (const [k, o] of ShuffleMap(g, Opponents)) {
+		for (const [k, o] of ShuffleMap(g, g.opponents)) {
 			const rel = o.level - g.level
 			if (Math.abs(rel) > lim) {
 				continue
 			}
-
-			o.level = (g.prestige * 3) + o.level
 
 			opts.set(k, {
 				...o,
@@ -96,7 +92,6 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 	return {
 		type: 'preamble',
 		done: false,
-		prestige: g.prestige,
 		level: g.level,
 		opponent: {
 			title: 'Select Your Opponent',

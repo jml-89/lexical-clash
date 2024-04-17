@@ -45,7 +45,7 @@ import {
 } from './score'
 
 import {
-	copyMap
+	CopyMap
 } from './util'
 
 export interface Battler extends PlayArea, Opponent {
@@ -77,8 +77,8 @@ function NewBattler(bs: BattlerSetup): Battler {
 		hand: [],
 		placed: [],
 
-		abilities: copyMap(bs.abilities),
-		bonuses: copyMap(bs.bonuses),
+		abilities: CopyMap(bs.abilities),
+		bonuses: CopyMap(bs.bonuses),
 
 		scoresheet: ZeroScore(),
 		checkScore: false,
