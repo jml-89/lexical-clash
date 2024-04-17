@@ -92,6 +92,24 @@ const base: BonusBase[] = [
 			const related = await rf('hypernym', 'number', lettersToString(word))
 			return related ? level * 3 : 0
 		}
+	},
+	{
+		key: "fauna",
+		name: "Animal Knower",
+		desc: "Word is an animal e.g. wombat",
+		fn: async (rf: relationFunc, level: number, word: Letter[]): Promise<number> => {
+			const related = await rf('hypernym', 'fauna', lettersToString(word))
+			return related ? level * 3 : 0
+		}
+	},
+	{
+		key: "flora",
+		name: "Green Thumb",
+		desc: "Word is a plant e.g. ivy",
+		fn: async (rf: relationFunc, level: number, word: Letter[]): Promise<number> => {
+			const related = await rf('hypernym', 'flora', lettersToString(word))
+			return related ? level * 3 : 0
+		}
 	}
 ];
 

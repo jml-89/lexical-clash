@@ -192,7 +192,7 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 
 	const somebutton = (alias: string, key: string): React.ReactNode => (
 		<button 
-			className="p-6 bg-lime-600 rounded-3xl"
+			className="p-4 text-amber-200 bg-lime-700 rounded-lg"
 			onClick={() => setView(key)}
 		>
 			{alias}
@@ -204,7 +204,7 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 			<div className="flex flex-row gap-4 justify-center">
 				{somebutton('Bonuses', 'bonuses')}
 				{somebutton('Abilities', 'abilities')}
-				{somebutton('Wordbank', 'wordbank')}
+				{player.wordMatches.length > 0 && somebutton('Wordbank', 'wordbank')}
 			</div>
 		),
 
@@ -222,7 +222,7 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 	}
 
 	return (
-		<motion.div className="flex-1 flex flex-col gap-4"
+		<motion.div className="flex-1 flex flex-col gap-2 px-1"
 			layout 
 			transition={{ type: 'spring' }}
 		>
