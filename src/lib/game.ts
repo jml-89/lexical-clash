@@ -26,7 +26,15 @@ import { BonusCard, BonusCards} from './bonus';
 import { AbilityCard, AbilityCards } from './ability';
 import { ScoreWord } from './score'
 
-import { KnowledgeBase, Shuffle, ShuffleMap, MapConcat, CopyMap } from './util'
+import { 
+	KnowledgeBase, 
+	ScoredWord,
+
+	Shuffle, 
+	ShuffleMap, 
+	MapConcat, 
+	CopyMap 
+} from './util'
 
 import {
 	Preamble,
@@ -72,7 +80,7 @@ export interface GameState {
 	postgame: boolean
 
 	banked: Map<string, boolean>
-	wordbank: Map<string, Letter[]>
+	wordbank: Map<string, ScoredWord>
 
 	opponents: Map<string, Opponent>
 	abilities: Map<string, AbilityCard>
@@ -190,7 +198,7 @@ export function NewGame(seed: number): GameState {
 		phase: preamble,
 		letters: ScrabbleDistribution(),
 		banked: new Map<string, boolean>,
-		wordbank: new Map<string, Letter[]>,
+		wordbank: new Map<string, ScoredWord>,
 	}
 }
 
@@ -222,14 +230,13 @@ function DoPhase(g: GameState, phasefn: PhaseFn): GameState {
 
 async function FillPlayerBank(
 	g: GameState, 
-	lookup: (s: string) => Promise<string[]>, 
+	lookup: (s: string) => Promise<ScoredWord[]>, 
 	s: string
 ): Promise<void> {
 	let xs = []
 	for (const word of await lookup(s)) {
-		const up = word.toUpperCase()
-		if (!g.wordbank.has(up)) {
-			g.wordbank.set(up, stringToLetters(up, up))
+		if (!g.wordbank.has(word.word)) {
+			g.wordbank.set(word.word, word)
 		}
 	}
 }
@@ -258,14 +265,14 @@ export async function Mutate(
 			setfn(ng)
 		} else if (ng.phase.type === 'preamble' && req) {
 			const xs = await kb.candidates(
-				ng.level * 50,
-				(ng.level + 1) * 50,
+				ng.level * 200,
+				(ng.level + 1) * 200,
 				ng.handSize - 3,
 				5
 			)
 
 			for (const x of xs) {
-				let words = await kb.hypos(x)
+				let words = (await kb.hypos(x)).map((a) => a.word)
 				words.sort((a, b) => a.length - b.length)
 				ng.phase.word.options.set(x, {
 					word: x,

@@ -6,7 +6,8 @@ import {
 	Letter, 
 	ScrabbleDistribution,
 	lettersToString,
-	stringToLetters
+	stringToLetters,
+	simpleScore
 } from './letter';
 
 import {
@@ -45,7 +46,8 @@ import {
 } from './score'
 
 import {
-	CopyMap
+	CopyMap,
+	ScoredWord
 } from './util'
 
 export interface Battler extends PlayArea, Opponent {
@@ -105,7 +107,7 @@ export interface BattleSetup {
 	handSize: number
 	letters: Letter[]
 
-	wordbank: Map<string, Letter[]>
+	wordbank: Map<string, ScoredWord>
 
  	bonuses: Map<string, BonusCard>
 	abilities: Map<string, AbilityCard>
@@ -179,19 +181,21 @@ export function UseAbility(g: Battle, key: string): void {
 }
 
 function WordbankCheck(g: Battler): void {
-	g.wordMatches = []
+
+	const found: ScoredWord[] = []
 
 	let pm = new Map<string, number>()
 	for (const letter of g.hand) {
-		const n = pm.get(letter.char)
-		pm.set(letter.char, n === undefined ? 0 : n+1)
+		const c = letter.char.toLowerCase()
+		const n = pm.get(c)
+		pm.set(c, n === undefined ? 1 : n+1)
 	}
 
-	for (const [str, word] of g.wordbank) {
+	for (const [str, scoredword] of g.wordbank) {
 		let wm = new Map<string, number>()
-		for (const letter of word) {
-			const n = wm.get(letter.char)
-			wm.set(letter.char, n === undefined ? 0 : n+1)
+		for (const c of scoredword.word) {
+			const n = wm.get(c)
+			wm.set(c, n === undefined ? 1 : n+1)
 		}
 
 		let good = true
@@ -204,11 +208,12 @@ function WordbankCheck(g: Battler): void {
 		}
 
 		if (good) {
-			g.wordMatches.push(str)
+			found.push(scoredword)
 		}
 	}
 
-	g.wordMatches.sort((a, b) => a.length - b.length)
+	found.sort((a, b) => b.score - a.score)
+	g.wordMatches = found.map((a) => a.word).slice(0, 20)
 }
 
 function NextRound(g: Battle): void {
@@ -233,19 +238,8 @@ export function NextWord(g: Battler, round: number): void {
 	const keys = [ ...g.wordbank.keys() ]
 	const choice = g.wordbank.get(keys[round % keys.length])
 	if (choice !== undefined) {
-		g.placed = choice
+		g.placed = stringToLetters(g.name, choice.word)
 	}
-
-	/*
-	const step = Math.floor(g.wordbank.length / g.healthMax)
-	const off = g.healthMax - g.health
-	const idx = Math.floor(step * off + round)
-	console.log(`${g.wordbank.length} words, stride of ${step}, idx of ${idx}`)
-	if (idx < g.wordbank.length) {
-		g.placed = g.wordbank[idx]
-	} else {
-	}
-	*/
 }
 
 export function Submit(g: Battle): void {
@@ -258,7 +252,12 @@ export function Submit(g: Battle): void {
 
 	const str = lettersToString(g.player.placed)
 	if (!g.player.wordbank.has(str)) {
-		g.player.wordbank.set(str, g.player.placed)
+		// This is a little goofy, but the player may have used enhanced letters
+		// To get a "true" score, have to do this
+		g.player.wordbank.set(str, { 
+			word: str,
+			score: simpleScore(stringToLetters('tmp', str))
+		})
 	}
 
 	if (g.player.health <= 0) {

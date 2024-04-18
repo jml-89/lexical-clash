@@ -5,8 +5,13 @@ import prand from 'pure-rand'
 export interface KnowledgeBase {
 	valid: (word: string) => Promise<boolean>
 	related: (relation: string, left: string, right: string) => Promise<boolean>
-	hypos: (word: string) => Promise<string[]>
+	hypos: (word: string) => Promise<ScoredWord[]>
 	candidates: (lo: number, hi: number, maxlen: number, num: number) => Promise<string[]>
+}
+
+export interface ScoredWord {
+	word: string
+	score: number
 }
 
 interface HasPRNG {

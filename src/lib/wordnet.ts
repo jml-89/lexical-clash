@@ -5,6 +5,9 @@ import zlib from 'node:zlib'
 import { pipeline } from 'node:stream/promises'
 import fetch from 'node-fetch'
 
+import { ScoredWord } from './util'
+import { Letter, stringToLetters, simpleScore } from './letter'
+
 import { Pool } from 'pg'
 const pool = new Pool()
 
@@ -45,13 +48,19 @@ export async function AreWordsRelated(relation: string, left: string, right: str
 }
 
 // For opponent words
-export async function HypoForms(word: string): Promise<string[]> {
+export async function HypoForms(word: string): Promise<ScoredWord[]> {
 	const res = await pool.query({
-		text: "select hypo from simplerelations where hyper = $1",
+		text: `
+			select a.hypo, b.score
+			from simplerelations a
+			inner join wordscore b
+			on a.hyper = $1
+			and a.hypo = b.word;
+		`,
 		values: [word]
 	})
 
-	return res.rows.map((row) => row.hypo)
+	return res.rows.map((row) => ({ word: row.hypo, score: row.score }))
 }
 
 // Candidates
@@ -202,7 +211,18 @@ export async function InitialiseDatabase(): Promise<void> {
 					on conflict do nothing;`,
 					[ 
 						tagStack[tagStack.length-1].attrs.id,
-						attrs.writtenForm
+						attrs.writtenForm,
+					]
+				)
+
+				addQuery('WordScore',
+					 `insert into
+					 WordScore (word, score)
+					 values ($1, $2)
+					 on conflict do nothing;`,
+					[
+						attrs.writtenForm,
+						simpleScore(stringToLetters('tmp', attrs.writtenForm))
 					]
 				)
 			}
@@ -310,7 +330,7 @@ export async function InitialiseDatabase(): Promise<void> {
 			const q = { 
 				name: query,
 				text: queries.get(query) as string,
-				values: [] as string[]
+				values: [] as any[]
 			}
 			for (const entry of entries) {
 				q.values = entry
@@ -346,6 +366,7 @@ async function init(): Promise<void> {
 		DROP TABLE IF EXISTS Synset;
 		DROP TABLE IF EXISTS LexicalEntry;
 		drop table if exists simplerelations; 
+		drop table if exists wordscore; 
 
 		COMMIT;
 	`)
@@ -389,6 +410,12 @@ async function init(): Promise<void> {
 			synid TEXT,
 			target TEXT,
 			relType TEXT
+		);
+
+		CREATE TABLE WordScore (
+			word TEXT,
+			score INTEGER,
+			PRIMARY KEY (word)
 		);
 
 		COMMIT;

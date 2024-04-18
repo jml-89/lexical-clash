@@ -93,7 +93,7 @@ export function UnplaceAll(g: PlayArea): void {
 export function PlaceByChar(g: PlayArea, c: string): void {
 	const matches = g.hand
 		.filter((letter) => letter.available)
-		.filter((letter) => letter.char === c)
+		.filter((letter) => letter.char === c.toUpperCase())
 		.sort((a, b) => a.score - b.score)
 	if (matches.length === 0) {
 		return

@@ -97,6 +97,6 @@ export function stringToLetters(pref: string, word: string): Letter[] {
 }
 
 export function lettersToString(letters: Letter[]): string {
-	return letters.map((letter) => letter.char).join('');
+	return letters.map((letter) => letter.char).join('').toLowerCase();
 }
 
