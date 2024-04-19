@@ -9,6 +9,7 @@ import {
 	Outcome,
 
 	NewGame, 
+	LoadGame,
 
 	PhaseFn,
 	Mutate	
@@ -22,16 +23,22 @@ import { PlayBattle } from './battle';
 import { ShowPreamble } from './preamble';
 import { ShowOutcome } from './outcome';
 
-export function Game({ seed, knowledge }: { 
+export function Game({ sid, seed, save, knowledge }: { 
+	sid: string,
 	seed: number,
+	save: Object | undefined,
 	knowledge: KnowledgeBase
 }) {
-	const [game, setGame] = useState(NewGame(seed))
+	const [game, setGame] = useState(
+		save === undefined ? 
+		NewGame(sid, seed, knowledge) :
+		LoadGame(save, knowledge)
+	)
 
 	const mutator = useCallback(
 		async function(fn: PhaseFn): Promise<void> {
-			await Mutate(game, knowledge, fn, setGame)
-	}, [game, setGame, knowledge])
+			await Mutate(game, fn, setGame)
+	}, [game, setGame])
 
 	if (game.phase.type === 'preamble') {
 		return (<ShowPreamble preamble={game.phase} statefn={mutator} />);

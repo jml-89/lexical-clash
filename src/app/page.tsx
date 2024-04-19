@@ -67,6 +67,12 @@ function processBody(s: string): React.ReactNode[] {
 }
 
 export default async function Intro() {
+	let sesh = ''
+	for (let i = 0; i < 10; i++) {
+		const abc = 'qwerasdfzxcvtyuighjkbnmopl1234567890'
+		sesh += abc[Math.floor(Math.random() * abc.length)]
+	}
+
 	return (
 		<main className="text-amber-400 text-sm flex flex-col justify-between items-center gap-2 p-1">
 			<div className="flex flex-col items-baseline gap-2">
@@ -84,7 +90,7 @@ export default async function Intro() {
 				</div>
 			</div>
 
-			<Link className="m-4 text-6xl font-light tracking-tighter ring-4 ring-amber-300 bg-red-800 rounded-lg p-4" href="/play">
+			<Link className="m-4 text-6xl font-light tracking-tighter ring-4 ring-amber-300 bg-red-800 rounded-lg p-4" href={`/${sesh}`}>
 				Play!
 			</Link>
 

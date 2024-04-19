@@ -13,7 +13,8 @@ import { Battler,
 	Place, 
 	PlaceWordbank,
 	UseAbility, 
-	UpdateScores 
+	UpdateScores,
+	Checking
 } from '@/lib/battle';
 import { Scoresheet } from '@/lib/score'
 
@@ -93,7 +94,7 @@ function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT 
 		<AnimatePresence>
 			{ player.placed.length === 0 ? (
 				<></>
-			) : player.checkScore ? (
+			) : player.checking ? (
 				<motion.button 
 					key="checkbutton"
 					className="p-2 rounded-lg bg-lime-300 text-2xl" 
@@ -107,7 +108,11 @@ function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT 
 				<motion.button 
 					key="checkbutton"
 					className="p-2 rounded-lg bg-lime-300 text-2xl" 
-					onClick={async () => await statefn(UpdateScores)}
+					onClick={async () => {
+							await statefn(Checking)
+							await statefn(UpdateScores)
+						}
+					}
 					animate={{ scale: 1 }}
 					initial={{ scale: 0 }}
 					exit={{ scale: 0 }}
@@ -243,10 +248,9 @@ function ListWords({ words, statefn, closefn }: {
 }) {
 	const placefn = (id: string): ()=>Promise<void> => {
 		return async () => {
-			return await statefn((g: Battle) => {
-				PlaceWordbank(g, id)
-				UpdateScores(g)
-			})
+			await statefn((g: Battle) => PlaceWordbank(g, id))
+			await statefn(Checking)
+			await statefn(UpdateScores)
 		}
 	}
 

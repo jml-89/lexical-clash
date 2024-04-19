@@ -11,7 +11,11 @@ export function ShowOutcome({ outcome, statefn }: {
 	};
 
 	const [title, body, reward, ] = outcome.victory ?
-		outcome.opponent.isboss ? [
+		outcome.opponent.key === 'player' ? [
+			"Your Journey Begins",
+			"Pick your opponents and abilities wisely",
+			"You have been given some upgraded letters"
+		] : outcome.opponent.isboss ? [
 			"You Win!", 
 			`You defeated the final boss, ${outcome.opponent.name}`,
 			`You can keep playing if you wish, all opponents will now be scaled to your level`

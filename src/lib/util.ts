@@ -7,6 +7,7 @@ export interface KnowledgeBase {
 	related: (relation: string, left: string, right: string) => Promise<boolean>
 	hypos: (word: string) => Promise<ScoredWord[]>
 	candidates: (lo: number, hi: number, maxlen: number, num: number) => Promise<string[]>
+	save: (id: string, o: string) => Promise<void>
 }
 
 export interface ScoredWord {
@@ -16,6 +17,7 @@ export interface ScoredWord {
 
 interface HasPRNG {
 	prng: prand.RandomGenerator
+	iter: number
 }
 
 // saves on managing the prng mutations, a little bit
@@ -33,17 +35,17 @@ export function PickRandom<T>(g: HasPRNG, m: Map<string, T>, n: number): Map<str
 export function Shuffle<T>(g: HasPRNG, xs: T[]): T[] {
 	let ys = new Array(xs.length);
 
-	let curr = g.prng
 	for (const [i, x] of xs.entries()) {
-		const [j, next] = prand.uniformIntDistribution(0, i, curr)
+		const [j, next] = prand.uniformIntDistribution(0, i, g.prng)
 		if (j !== i) {
 			ys[i] = ys[j];
 		}
 		ys[j] = x;
-		curr = next
+
+		g.prng = next
+		g.iter += 1
 	}
 
-	g.prng = curr
 	return ys
 }
 

@@ -15,7 +15,8 @@ import  {
 
 import {
 	ShuffleMap,
-	PickRandom
+	PickRandom,
+	KnowledgeBase
 } from './util'
 
 import prand from 'pure-rand'
@@ -46,6 +47,7 @@ export interface PreambleStage<T> {
 export interface Preamble {
 	type: 'preamble';
 	done: boolean
+	kb: KnowledgeBase
 
 	level: number
 
@@ -53,7 +55,6 @@ export interface Preamble {
 	ability: PreambleStage<AbilityCard>
 	bonus: PreambleStage<BonusCard>
 
-	reqwords: boolean
 	word: PreambleStage<WordBooster>
 
 	stagekey: string
@@ -61,11 +62,32 @@ export interface Preamble {
 
 export interface PreambleSetup {
 	prng: prand.RandomGenerator
+	iter: number
+
 	level: number
+	kb: KnowledgeBase
 	opponents: Map<string, Opponent>
 }
 
-export function NewPreamble(g: PreambleSetup): Preamble {
+export async function NewPreamble(g: PreambleSetup): Promise<Preamble> {
+	const xs = await g.kb.candidates(
+		g.level * 200,
+		(g.level + 1) * 300,
+		10,
+		5
+	)
+
+	let wordboosters = new Map<string, WordBooster>()
+	for (const x of xs) {
+		let words = (await g.kb.hypos(x)).map((a) => a.word)
+		words.sort((a, b) => a.length - b.length)
+		wordboosters.set(x, {
+			word: x,
+			len: words.length,
+			samples: words
+		})
+	}
+
 	let opts = new Map<string, OpponentPreamble>()
 
 	let lim = 0
@@ -93,6 +115,7 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 		type: 'preamble',
 		done: false,
 		level: g.level,
+		kb: g.kb,
 		opponent: {
 			title: 'Select Your Opponent',
 			field: 'opponent',
@@ -111,11 +134,10 @@ export function NewPreamble(g: PreambleSetup): Preamble {
 			options: PickRandom(g, BonusCards, 3),
 			choice: ''
 		},
-		reqwords: true,
 		word: {
 			title: 'Select A Wordbank',
 			field: 'word',
-			options: new Map<string, WordBooster>(),
+			options: wordboosters,
 			choice: ''
 		},
 		stagekey: 'opponent'

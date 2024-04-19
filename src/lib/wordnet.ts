@@ -152,6 +152,27 @@ export async function isRelatedSynid(relation: string, leftsynid: string, rights
 	return res.rows.length > 0 
 }
 
+export async function SetSession(id: string, doc: string): Promise<void> {
+	console.log(`Saving ${id}`, doc)
+	await pool.query({
+		text:`
+			insert into 
+			session (id, doc) 
+			values ($1, $2) 
+			on conflict (id) do update
+			set doc = $2;
+		`, values: [id, doc]
+	})
+}
+
+export async function GetSession(id: string): Promise<Object | undefined> {
+	const res = await pool.query({
+		text: `select doc from session where id = $1;`,
+		values: [id]
+	})
+	return res.rows.length > 0 ? res.rows[0].doc : undefined
+}
+
 export async function InitialiseDatabase(): Promise<void> {
 	console.log("Initialising Database")
 
@@ -367,6 +388,7 @@ async function init(): Promise<void> {
 		DROP TABLE IF EXISTS LexicalEntry;
 		drop table if exists simplerelations; 
 		drop table if exists wordscore; 
+		drop table if exists session;
 
 		COMMIT;
 	`)
@@ -374,6 +396,12 @@ async function init(): Promise<void> {
 	console.log("Creating tables without indices or foreign keys")
 	await pool.query(`
 		begin;
+
+		create table session (
+			id text,
+			doc json,
+			primary key (id)
+		);
 
 		CREATE TABLE Synset (
 			id TEXT,

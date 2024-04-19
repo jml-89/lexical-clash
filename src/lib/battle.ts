@@ -1,5 +1,3 @@
-// With a bit of luck, everytihng in this file is purely sychronous client code
-
 'use client';
 
 import { 
@@ -43,17 +41,19 @@ import {
 
 import { 
 	Scoresheet, 
+	ScoreWord
 } from './score'
 
 import {
 	CopyMap,
-	ScoredWord
+	ScoredWord,
+	KnowledgeBase
 } from './util'
 
 export interface Battler extends PlayArea, Opponent {
 	health: number
 
-	checkScore: boolean
+	checking: boolean
 	scoresheet: Scoresheet;
 
 	abilities: Map<string, AbilityCard>
@@ -82,8 +82,8 @@ function NewBattler(bs: BattlerSetup): Battler {
 		abilities: CopyMap(bs.abilities),
 		bonuses: CopyMap(bs.bonuses),
 
+		checking: false,
 		scoresheet: ZeroScore(),
-		checkScore: false,
 		wordMatches: [],
 
 		...bs.profile
@@ -94,6 +94,7 @@ function NewBattler(bs: BattlerSetup): Battler {
 export interface Battle {
 	type: 'battle'
 
+	kb: KnowledgeBase
 	done: boolean
 	victory: boolean
 
@@ -106,6 +107,7 @@ export interface Battle {
 export interface BattleSetup {
 	handSize: number
 	letters: Letter[]
+	kb: KnowledgeBase
 
 	wordbank: Map<string, ScoredWord>
 
@@ -115,9 +117,11 @@ export interface BattleSetup {
 	opponent: Opponent
 }
 
-export function NewBattle(bs: BattleSetup): Battle {
+export async function NewBattle(bs: BattleSetup): Promise<Battle> {
 	const battle: Battle = {
 		type: 'battle',
+
+		kb: bs.kb,
 
 		done: false,
 		victory: false,
@@ -126,7 +130,7 @@ export function NewBattle(bs: BattleSetup): Battle {
 
 		player: NewBattler({
 			...bs,
-			profile: PlayerProfile
+			profile: PlayerProfile,
 		}),
 
 		opponent: NewBattler({
@@ -134,13 +138,13 @@ export function NewBattle(bs: BattleSetup): Battle {
 			letters: bs.letters,
 			bonuses: new Map<string, BonusCard>(),
 			abilities: new Map<string, AbilityCard>(),
-			profile: bs.opponent
+			profile: bs.opponent,
 		})
 	}
 
 	battle.player.wordbank = bs.wordbank
 
-	NextRound(battle);
+	await NextRound(battle);
 	return battle;
 }
 
@@ -216,7 +220,7 @@ function WordbankCheck(g: Battler): void {
 	g.wordMatches = found.map((a) => a.word).slice(0, 20)
 }
 
-function NextRound(g: Battle): void {
+async function NextRound(g: Battle): Promise<void> {
 	g.round = g.round + 1;
 	DiscardAll(g.player)
 	Draw(g.player);
@@ -230,8 +234,8 @@ function NextRound(g: Battle): void {
 
 	AbilityChecks(g.player)
 
-	UpdateScore(g.player)
-	UpdateScore(g.opponent)
+	await UpdateScore(g.player, g.opponent, g.kb)
+	await UpdateScore(g.opponent, g.player, g.kb)
 }
 
 export function NextWord(g: Battler, round: number): void {
@@ -242,7 +246,7 @@ export function NextWord(g: Battler, round: number): void {
 	}
 }
 
-export function Submit(g: Battle): void {
+export async function Submit(g: Battle): Promise<void> {
 	const diff = g.player.scoresheet.score - g.opponent.scoresheet.score
 	if (diff > 0) {
 		g.opponent.health -= diff
@@ -272,7 +276,7 @@ export function Submit(g: Battle): void {
 		return
 	}
 
-	NextRound(g);
+	await NextRound(g);
 }
 
 export function Backspace(g: Battle): void {
@@ -300,19 +304,24 @@ export function Place(g: Battle, id: string): void {
 	AbilityChecks(g.player)
 }
 
-export function PlaceWordbank(g: Battle, id: string): void {
+export async function PlaceWordbank(g: Battle, id: string): Promise<void> {
 	UnplaceAll(g.player)
 	PlaceWord(g.player, id)
 	g.player.scoresheet = ZeroScore()
 	AbilityChecks(g.player)
 }
 
-function UpdateScore(g: Battler): void {
-	g.checkScore = true
+async function UpdateScore(g: Battler, o: Battler, kb: KnowledgeBase): Promise<void> {
+	g.scoresheet = await ScoreWord(kb, g, o)
 }
 
-export function UpdateScores(g: Battle): void {
-	g.player.checkScore = true
+export async function UpdateScores(g: Battle): Promise<void> {
+	await UpdateScore(g.player, g.opponent, g.kb)
+	g.player.checking = false
+}
+
+export function Checking(g: Battle): void {
+	g.player.checking = true
 }
 
 function ZeroScore(): Scoresheet {

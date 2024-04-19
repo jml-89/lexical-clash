@@ -1,5 +1,21 @@
 'use client';
 
+// The main structure, and most all function calls, used in the game
+// It's a doozy, all the architectural failings are hacked around in this file
+//
+// The biggest misread in developing this was how to structure client/server calls
+// Due to the database being on server, there are times where the server needs to be called
+// This can be done with asynchronous functions, but they have to be provided by server components
+// And attaching them to an object caused some issues, function proxying I think?
+// Then there's the React State, that's the one I've puzzled over how best to use
+// Again it comes down to some object changes being simple and synchronous
+// but others are unpredictable asynchronous operations, like grabbing words for a word bank
+// Don't want to freeze while waiting for that to complete, right?
+// So there's an early state set for the synchronous operation, and a later state set for the async operation
+// Oh and multiple sync operations can happen while async chugs along...
+// It's really not that difficult with the right structure
+// But a real pain with the wrong structure
+
 import { 
 	Letter, 
 	lettersToString,
@@ -7,7 +23,7 @@ import {
 	ScrabbleDistribution
 } from './letter';
 
-import { Opponent, Opponents, FillWordbank } from './opponent';
+import { Opponent, Opponents, FillWordbank, PlayerProfile } from './opponent';
 
 import prand from 'pure-rand'
 
@@ -50,6 +66,7 @@ export type Phase
 	| Battle 
 	| Outcome
 
+// This becomes relevant a little later, see the DoPhase function
 type BattleFn = (x: Battle) => void
 type OutcomeFn = (x: Outcome) => void
 type PreambleFn = (x: Preamble) => void
@@ -67,8 +84,26 @@ export interface Outcome {
 	letterUpgrades: number
 }
 
+// This is the primary data structure used throughout the entire game
+// Nothing higher than this in the tree
+//
+// Phase system
+// The game is divided into three phases
+// - Preamble, pick opponent, ability, bonus, wordbank
+// - Battle, battle
+// - Outcome, battle rewards
+// Each of these phases is a different type
+// They can modify themselves but the can't turn into other phases themselves
+// So they have to signal that they're done, then get turned to the next phase
+// Not super clean
 export interface GameState {
+	sessionid: string
+
 	prng: prand.RandomGenerator
+	seed: number
+	iter: number
+
+	kb: KnowledgeBase
 
 	phase: Phase;
 
@@ -119,7 +154,7 @@ export function EndOutcome(o: Outcome): void {
 	o.done = true
 }
 
-export function OutcomeToPreamble(g: GameState): void {
+export async function OutcomeToPreamble(g: GameState): Promise<void> {
 	if (g.phase.type !== 'outcome') {
 		return
 	}
@@ -132,13 +167,14 @@ export function OutcomeToPreamble(g: GameState): void {
 			o.level = g.level
 		}
 	}
-	g.phase = NewPreamble(g);
+	g.phase = await NewPreamble(g);
 }
 
 export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<void> {
 	if (g.phase.type !== 'preamble') {
 		return
 	}
+
 
 	for (const k of [g.phase.ability.choice]) {
 		if (g.abilities.has(k)) {
@@ -168,61 +204,88 @@ export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<voi
 	await FillWordbank(kb.hypos, opponent)
 	opponent.wordbank = ShuffleMap(g, opponent.wordbank)
 
-	g.phase = NewBattle({
+	g.phase = await NewBattle({
 		handSize: g.handSize, 
+		kb: g.kb,
 		bonuses: g.bonuses,
 		abilities: g.abilities,
 		opponent: opponent,
 		letters: Shuffle(g, g.letters),
 		wordbank: g.wordbank
 	});
-
-	await ApplyScore(g.phase, kb)
 }
 
-export function NewGame(seed: number): GameState {
-	const base: PreambleSetup = {
-		prng: prand.xoroshiro128plus(seed),
-		level: 1,
-		opponents: CopyMap(Opponents)
+export function LoadGame(o: Object, kb: KnowledgeBase): GameState {
+	const tupmap = (o: Object): Object => {
+		for (const [field, value] of Object.entries(o)) {
+			if (field === 'maptuples') {
+				return new Map<any, any>(value)
+			}
+		}
+
+		const isObj = (v: any): boolean => 
+			v instanceof Object 
+			&& !(v instanceof Array) 
+
+		return Object.fromEntries(Object.entries(o).map(
+			([field, value]) => [field, 
+				field === 'prng' ? prand.xoroshiro128plus(1337) 
+				: field === 'kb' ? kb
+				: isObj(value) ? tupmap(value) 
+				: value
+			]
+		))
 	}
 
-	const preamble = NewPreamble(base)
+	let ox = tupmap(o) as GameState
 
+	ox.prng = prand.xoroshiro128plus(ox.seed)
+	for (let i = 0; i < ox.iter; i++) {
+		const [j, n] = prand.uniformIntDistribution(0, i, ox.prng)
+		ox.prng = n
+	}
+
+	return ox
+}
+
+export function NewGame(sessionid: string, seed: number, kb: KnowledgeBase): GameState {
 	return {
-		...base,
+		kb: kb,
+		prng: prand.xoroshiro128plus(seed),
+		iter: 0,
+		level: 0,
+		opponents: CopyMap(Opponents),
+		sessionid: sessionid,
+		seed: seed,
 		handSize: 9,
 		postgame: false,
 		abilities: new Map<string, AbilityCard>(),
 		bonuses: new Map<string, BonusCard>(),
-		phase: preamble,
+		phase: {
+			type: 'outcome',
+			done: false,
+			victory: true,
+			opponent: PlayerProfile,
+			letterUpgrades: 10
+		},
 		letters: ScrabbleDistribution(),
 		banked: new Map<string, boolean>,
 		wordbank: new Map<string, ScoredWord>,
 	}
 }
 
-async function ApplyScore(b: Battle, kb: KnowledgeBase): Promise<void> {
-	if (b.player.checkScore) {
-		b.player.scoresheet = await ScoreWord(kb, b.player, b.opponent)
-		b.player.checkScore = false
-	} 
-
-	if (b.opponent.checkScore) {
-		b.opponent.scoresheet = await ScoreWord(kb, b.opponent, b.player)
-		b.opponent.checkScore = false
-	}
-}
-
-function DoPhase(g: GameState, phasefn: PhaseFn): GameState {
+// The inevitable "sharp end" of the type union
+// Has to happen because no other way to know that e.g. battle phase only sends battlefns
+// Still awkward and more of an indictment on my structure than I'd like to admit
+async function DoPhase(g: GameState, phasefn: PhaseFn): Promise<GameState> {
 	const ng = Object.assign({}, g)
 
 	if (ng.phase.type === 'battle') {
-		(<BattleFn>phasefn)(ng.phase)
+		await (<BattleFn>phasefn)(ng.phase)
 	} else if (ng.phase.type === 'preamble') {
-		(<PreambleFn>phasefn)(ng.phase)
+		await (<PreambleFn>phasefn)(ng.phase)
 	} else if (ng.phase.type === 'outcome') {
-		(<OutcomeFn>phasefn)(ng.phase)
+		await (<OutcomeFn>phasefn)(ng.phase)
 	}
 
 	return ng
@@ -241,57 +304,25 @@ async function FillPlayerBank(
 	}
 }
 
+// This really shouldn't have so much phase-specific log
+// But here we are
 export async function Mutate(
 	g: GameState, 
-	kb: KnowledgeBase,
 	phasefn: PhaseFn,
 	setfn: (g: GameState) => void
 ) {
-	const gg = DoPhase(g, phasefn)
-
-	let req = false
-	if (!gg.phase.done && gg.phase.type === 'preamble' && gg.phase.reqwords) {
-		req = true
-		gg.phase.reqwords = false
-	}
-
+	const gg = await DoPhase(g, phasefn)
 	setfn(gg)
 
-	const ng = Object.assign({}, gg)
-
-	if (!ng.phase.done) {
-		if (ng.phase.type === 'battle') {
-			await ApplyScore(ng.phase, kb)
-			setfn(ng)
-		} else if (ng.phase.type === 'preamble' && req) {
-			const xs = await kb.candidates(
-				ng.level * 200,
-				(ng.level + 1) * 200,
-				ng.handSize - 3,
-				5
-			)
-
-			for (const x of xs) {
-				let words = (await kb.hypos(x)).map((a) => a.word)
-				words.sort((a, b) => a.length - b.length)
-				ng.phase.word.options.set(x, {
-					word: x,
-					len: words.length,
-					samples: words
-				})
-			}
-			setfn(ng)
-		}
-
+	if (!gg.phase.done) {
 		return
 	}
 
-
+	const ng = Object.assign({}, gg)
 	if (ng.phase.type === 'preamble') {
-		await FillPlayerBank(ng, kb.hypos, ng.phase.word.choice)
-		await LaunchBattle(ng, kb)
+		await FillPlayerBank(ng, ng.kb.hypos, ng.phase.word.choice)
+		await LaunchBattle(ng, ng.kb)
 		setfn(ng)
-		return
 	} else if (ng.phase.type === 'battle') {
 		MapConcat(ng.wordbank, ng.phase.player.wordbank)
 		if (ng.phase.victory) {
@@ -305,11 +336,18 @@ export async function Mutate(
 			letterUpgrades: ng.phase.victory ? ng.phase.opponent.level * 5  : 0
 		}
 		setfn(ng)
-		return
+
+		function maptup(k: any, v: any) {
+			return (v instanceof Map) ? {
+				maptuples: [...v]
+			} : v
+		}
+		const s = JSON.stringify(ng, maptup)
+		await ng.kb.save(ng.sessionid, s)
 	} else if (ng.phase.type === 'outcome') {
-		OutcomeToPreamble(ng)
+		await OutcomeToPreamble(ng)
 		setfn(ng)
-		return
 	}
+
 }
 
