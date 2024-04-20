@@ -11,8 +11,9 @@ import {
 	NewGame, 
 	LoadGame,
 
+	Phase,
 	PhaseFn,
-	Mutate	
+	Finalise
 } from '@/lib/game';
 
 import { KnowledgeBase } from '@/lib/util'
@@ -35,21 +36,21 @@ export function Game({ sid, seed, save, knowledge }: {
 		LoadGame(save, knowledge)
 	)
 
-	const mutator = useCallback(
-		async function(fn: PhaseFn): Promise<void> {
-			await Mutate(game, fn, setGame)
+	const finaliser = useCallback(
+		async function(p: Phase): Promise<void> {
+			await Finalise(game, setGame, p)
 	}, [game, setGame])
 
 	if (game.phase.type === 'preamble') {
-		return (<ShowPreamble preamble={game.phase} statefn={mutator} />);
+		return (<ShowPreamble preamble={game.phase} endfn={finaliser} />);
 	}
 
 	if (game.phase.type === 'battle') {
-		return (<PlayBattle game={game.phase} statefn={mutator} />);
+		return (<PlayBattle game={game.phase} endfn={finaliser} />);
 	}
 
 	if (game.phase.type === 'outcome') {
-		return (<ShowOutcome outcome={game.phase} statefn={mutator} />);
+		return (<ShowOutcome outcome={game.phase} endfn={finaliser} />);
 	}
 
 	return (<></>);

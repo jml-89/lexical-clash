@@ -179,7 +179,7 @@ function UseAbilityReal(g: Battler, key: string): void {
 	AbilityChecks(g)
 }
 
-export function UseAbility(g: Battle, key: string): void { 
+export async function UseAbility(g: Battle, key: string): Promise<void> { 
 	UseAbilityReal(g.player, key)
 	WordbankCheck(g.player)
 }
@@ -238,7 +238,7 @@ async function NextRound(g: Battle): Promise<void> {
 	await UpdateScore(g.opponent, g.player, g.kb)
 }
 
-export function NextWord(g: Battler, round: number): void {
+export async function NextWord(g: Battler, round: number): Promise<void> {
 	const keys = [ ...g.wordbank.keys() ]
 	const choice = g.wordbank.get(keys[round % keys.length])
 	if (choice !== undefined) {
@@ -279,26 +279,26 @@ export async function Submit(g: Battle): Promise<void> {
 	await NextRound(g);
 }
 
-export function Backspace(g: Battle): void {
+export async function Backspace(g: Battle): Promise<void> {
 	UnplaceLast(g.player)
 	g.player.scoresheet = ZeroScore()
 	AbilityChecks(g.player)
 }
 
-export function BackspaceId(g: Battle, id: string): void {
+export async function BackspaceId(g: Battle, id: string): Promise<void> {
 	UnplaceById(g.player, id)
 	g.player.scoresheet = ZeroScore()
 	AbilityChecks(g.player)
 }
 
 
-export function Wipe(g: Battle): void {
+export async function Wipe(g: Battle): Promise<void> {
 	UnplaceAll(g.player)
 	g.player.scoresheet = ZeroScore()
 	AbilityChecks(g.player)
 }
 
-export function Place(g: Battle, id: string): void {
+export async function Place(g: Battle, id: string): Promise<void> {
 	PlaceById(g.player, id)
 	g.player.scoresheet = ZeroScore()
 	AbilityChecks(g.player)
@@ -320,7 +320,7 @@ export async function UpdateScores(g: Battle): Promise<void> {
 	g.player.checking = false
 }
 
-export function Checking(g: Battle): void {
+export async function Checking(g: Battle): Promise<void> {
 	g.player.checking = true
 }
 

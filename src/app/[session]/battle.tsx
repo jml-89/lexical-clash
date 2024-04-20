@@ -14,24 +14,36 @@ import { Battler,
 	PlaceWordbank,
 	UseAbility, 
 	UpdateScores,
-	Checking
+	Checking,
 } from '@/lib/battle';
 import { Scoresheet } from '@/lib/score'
 
 import { Letter } from '@/lib/letter'
 import { DrawLetter } from './letter'
 
+import { Mutator } from '@/lib/util'
+
 import { BonusCard } from '@/lib/bonus'
 import { AbilityCard } from '@/lib/ability'
 
-type statefnT = (fn: (a: Battle) => void) => Promise<void>
+type battlefn = (a: Battle) => Promise<void>
+type statefnT = (fn: battlefn) => Promise<void>
 
-export function PlayBattle({ game, statefn }: { game: Battle, statefn: statefnT }) {
+export function PlayBattle({ game, endfn }: { 
+	game: Battle, 
+	endfn: (b: Battle) => Promise<void> 
+}) {
+	const [myGame, setMyGame] = useState(game)
+	const mutator = useCallback(
+		async function(fn: battlefn): Promise<void> {
+			await Mutator(myGame, fn, setMyGame, endfn)
+	}, [myGame, setMyGame, endfn])
+
 	return (
 		<main className="flex-1 flex flex-col items-center p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
-			<DrawOpponent opp={game.opponent} />
-			<Contest game={game} statefn={statefn} />
-			<Player player={game.player} statefn={statefn} />
+			<DrawOpponent opp={myGame.opponent} />
+			<Contest game={myGame} statefn={mutator} />
+			<Player player={myGame.player} statefn={mutator} />
 		</main>
 	);
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Image from 'next/image';
 
 import { 
@@ -15,7 +15,10 @@ import {
 import { AbilityCard } from '@/lib/ability'
 import { BonusCard } from '@/lib/bonus'
 
-type statefnT = (fn: (p: Preamble) => void) => Promise<void>
+import { Mutator } from '@/lib/util'
+
+type preamblefn = (p: Preamble) => Promise<void>
+type statefnT = (fn: preamblefn) => Promise<void>
 
 type renderT = (ps: any) => React.ReactNode
 
@@ -36,15 +39,21 @@ function chooseRenderFn(stage: any): renderT {
 		ShowWordBooster({ word: word })
 }
 
-export function ShowPreamble({ preamble, statefn }: {
+export function ShowPreamble({ preamble, endfn }: {
 	preamble: Preamble,
-	statefn: statefnT
+	endfn: (p: Preamble) => Promise<void>
 }) {
+	const [myPreamble, setMyPreamble] = useState(preamble)
+	const statefn = useCallback(
+		async function(fn: preamblefn): Promise<void> {
+			await Mutator(myPreamble, fn, setMyPreamble, endfn)
+	}, [myPreamble, setMyPreamble, endfn])
+
 	const stage = 
-		preamble.stagekey === 'opponent' ? preamble.opponent :
-		preamble.stagekey === 'ability' ? preamble.ability :
-		preamble.stagekey === 'bonus' ? preamble.bonus :
-		preamble.word
+		myPreamble.stagekey === 'opponent' ? myPreamble.opponent :
+		myPreamble.stagekey === 'ability' ? myPreamble.ability :
+		myPreamble.stagekey === 'bonus' ? myPreamble.bonus :
+		myPreamble.word
 
 	const renderFn = chooseRenderFn(stage)
 
@@ -54,7 +63,7 @@ export function ShowPreamble({ preamble, statefn }: {
 		const tile = OptionTile({
 			key: k,
 			children: art,
-			handler: async () => await statefn((p: Preamble) => PreambleChoice(p, k))
+			handler: async () => await statefn(async (p: Preamble) => await PreambleChoice(p, k))
 		})
 		options.push(tile)
 	}
@@ -66,7 +75,7 @@ export function ShowPreamble({ preamble, statefn }: {
 			</h1>
 
 			<div className="flex flex- items-center gap-2 text-amber-500 text-lg">
-				<div>Level {preamble.level}</div>
+				<div>Level {myPreamble.level}</div>
 			</div>
 
 			<div className="flex-1 flex flex-col gap-2 justify-start">

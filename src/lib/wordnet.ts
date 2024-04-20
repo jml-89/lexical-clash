@@ -153,7 +153,6 @@ export async function isRelatedSynid(relation: string, leftsynid: string, rights
 }
 
 export async function SetSession(id: string, doc: string): Promise<void> {
-	console.log(`Saving ${id}`, doc)
 	await pool.query({
 		text:`
 			insert into 

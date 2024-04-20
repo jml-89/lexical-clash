@@ -1,5 +1,18 @@
 import prand from 'pure-rand'
 
+// Just trust me bro
+export async function Mutator<T>(
+	g: T, 
+	fn: (t: T) => Promise<void>,
+	setfn: (t: T) => void,
+	endfn: (t: T) => Promise<void>
+) {
+	const c = { ...g }
+	await fn(c)
+	setfn(c)
+	await endfn(c)
+}
+
 // This was dumped here just so it's safe to import anywhere
 // Really, belongs in wordnet.ts
 export interface KnowledgeBase {

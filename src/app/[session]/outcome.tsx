@@ -1,15 +1,30 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import { Outcome, EndOutcome } from '@/lib/game'
+import { Mutator } from '@/lib/util'
 
-export function ShowOutcome({ outcome, statefn }: {
+export function ShowOutcome({ outcome, endfn }: {
 	outcome: Outcome,
-	statefn: (fn: (p: Outcome) => void) => Promise<void> 
+	endfn: (o: Outcome) => Promise<void> 
 }) {
+	const [myOutcome, setMyOutcome] = useState(outcome)
+	const statefn = useCallback(
+		async function(fn: (o: Outcome) => Promise<void>): Promise<void> {
+			await Mutator(myOutcome, fn, setMyOutcome, endfn)
+	}, [myOutcome, setMyOutcome, endfn])
+
 	async function endOutcome() {
-		await statefn((g: Outcome) => EndOutcome(g))
+		await statefn(async (g: Outcome) => await EndOutcome(g))
 	};
 
+	return (<ShowBasicOutcome outcome={myOutcome} endOutcome={endOutcome} />)
+}
+
+function ShowBasicOutcome({ outcome, endOutcome }: {
+	outcome: Outcome,
+	endOutcome: () => Promise<void>
+}) {
 	const [title, body, reward, ] = outcome.victory ?
 		outcome.opponent.key === 'player' ? [
 			"Your Journey Begins",

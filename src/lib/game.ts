@@ -304,36 +304,32 @@ async function FillPlayerBank(
 	}
 }
 
-// This really shouldn't have so much phase-specific log
-// But here we are
-export async function Mutate(
+export async function Finalise(
 	g: GameState, 
-	phasefn: PhaseFn,
-	setfn: (g: GameState) => void
-) {
-	const gg = await DoPhase(g, phasefn)
-	setfn(gg)
-
-	if (!gg.phase.done) {
+	setfn: (g: GameState) => void,
+	phase: Phase
+): Promise<void> {
+	if (!phase.done) {
 		return
 	}
 
-	const ng = Object.assign({}, gg)
-	if (ng.phase.type === 'preamble') {
-		await FillPlayerBank(ng, ng.kb.hypos, ng.phase.word.choice)
+	const ng = Object.assign({}, g)
+
+	if (phase.type === 'preamble') {
+		await FillPlayerBank(ng, ng.kb.hypos, phase.word.choice)
 		await LaunchBattle(ng, ng.kb)
 		setfn(ng)
-	} else if (ng.phase.type === 'battle') {
-		MapConcat(ng.wordbank, ng.phase.player.wordbank)
-		if (ng.phase.victory) {
-			MapConcat(ng.wordbank, ng.phase.opponent.wordbank)
+	} else if (phase.type === 'battle') {
+		MapConcat(ng.wordbank, phase.player.wordbank)
+		if (phase.victory) {
+			MapConcat(ng.wordbank, phase.opponent.wordbank)
 		}
 		ng.phase = { 
 			type: 'outcome', 
 			done: false,
-			victory: ng.phase.victory,
-			opponent: ng.phase.opponent,
-			letterUpgrades: ng.phase.victory ? ng.phase.opponent.level * 5  : 0
+			victory: phase.victory,
+			opponent: phase.opponent,
+			letterUpgrades: phase.victory ? phase.opponent.level * 5  : 0
 		}
 		setfn(ng)
 
@@ -344,10 +340,9 @@ export async function Mutate(
 		}
 		const s = JSON.stringify(ng, maptup)
 		await ng.kb.save(ng.sessionid, s)
-	} else if (ng.phase.type === 'outcome') {
+	} else if (phase.type === 'outcome') {
 		await OutcomeToPreamble(ng)
 		setfn(ng)
 	}
-
 }
 
