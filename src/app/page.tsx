@@ -1,5 +1,9 @@
 import Link from 'next/link';
 
+// Need this to be dynamic for the random session id generation
+// (really should be done somewhere else... in time)
+export const dynamic = 'force-dynamic'
+
 interface Ramble {
 	title: string
 	body: string
