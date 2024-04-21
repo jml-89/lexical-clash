@@ -3,7 +3,17 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+
+import { 
+	motion, 
+	AnimatePresence,
+	useMotionValue,
+	useMotionValueEvent,
+	useTransform,
+	useAnimate,
+	animate
+} from 'framer-motion';
+
 import { Battler, 
 	Battle, 
 	Submit, 
@@ -49,19 +59,33 @@ export function PlayBattle({ game, endfn }: {
 }
 
 function DrawOpponent({ opp }: { opp: Battler }) {
+	const hd = opp.healthMax - opp.health 
 	return (
 		<motion.div className="flex flex-col gap-2">
 			<HealthBar badguy={true} health={opp.health} healthMax={opp.healthMax} />
 
 			<div className="flex flex-row gap-4">
-				<div className="flex-none">
+				<motion.div className="flex-none"
+					initial={{ 
+						rotate: 0, 
+						scale: 0
+					}}
+					animate={{ 
+						rotate: [0, -hd, hd, 0],
+						scale: [1, 0.9, 1.1, 1]
+					}}
+					transition={{ 
+						duration: 0.2,
+						repeat: hd
+					}}
+				>
 					<Image 
 						src={`/${opp.image}`} 
 						width={120}
 						height={120}
 						alt={`Mugshot of ${opp.name}`}
 					/>
-				</div>
+				</motion.div>
 
 				<div className="flex flex-col">
 					<div className="text-amber-300"><span className="text-lg font-bold">{opp.name}</span> <span className="italic">(Level {opp.level} {opp.desc})</span></div>
@@ -94,6 +118,7 @@ function HealthBar({ badguy, health, healthMax }: { badguy: boolean, health: num
 			<motion.div 
 				initial={{width:"0%"}} 
 				animate={{width:`${healthpct}%`}} 
+				transition={{ duration: 0.6 }}
 				className={color}
 			/>
 			}
@@ -173,28 +198,43 @@ function ScoreTable({ sheet }: { sheet: Scoresheet}) {
 	)
 }
 
+function AnimatedNumber({ n }: { n: number }) {
+	const [scope, animate] = useAnimate()
+	const bigScore = useMotionValue(0)
+	const rounded = useTransform(bigScore, (x) => Math.round(x))
+	useEffect(() => {
+		animate(bigScore, n, { duration: (1/30)*n })
+	}, [animate, bigScore, n])
+
+	return (
+		<motion.div>{rounded}</motion.div>
+	)
+}
 
 function Contest({ game, statefn }: { game: Battle, statefn: statefnT }) {
 	const playerZone = game.player.scoresheet.ok ? (
 		<div className="flex flex-row-reverse justify-between text-lime-500">
 			<div className="text-6xl text-lime-400">
-				{game.player.scoresheet.score}
+				<AnimatedNumber n={game.player.scoresheet.score} />
 			</div>
 			<ScoreTable sheet={game.player.scoresheet} />
 		</div>
 	) : (
 		<ActionButton player={game.player} statefn={statefn} />
 	)
+
+	const opponentZone = game.opponent.scoresheet.ok ? (
+		<div className="flex flex-row-reverse justify-between text-red-300">
+			<div className="self-end text-6xl text-red-300">
+				<AnimatedNumber n={game.opponent.scoresheet.score} />
+			</div>
+			<ScoreTable sheet={game.opponent.scoresheet} />
+		</div>
+	) : ( <></> )
 	return (
 		<div className="flex flex-row gap-2">
 			<div className="flex flex-col justify-center text-sm font-light">
-				<div className="flex flex-row-reverse justify-between text-red-300">
-					<div className="self-end text-6xl text-red-300">
-						{game.opponent.scoresheet.score}
-					</div>
-					<ScoreTable sheet={game.opponent.scoresheet} />
-				</div>
-
+				{opponentZone}
 				{playerZone}
 			</div>
 			{game.player.scoresheet.ok &&

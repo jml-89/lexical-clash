@@ -4,6 +4,10 @@ import { useState, useCallback } from 'react'
 import { Outcome, EndOutcome } from '@/lib/game'
 import { Mutator } from '@/lib/util'
 
+import { 
+	motion 
+} from 'framer-motion';
+
 export function ShowOutcome({ outcome, endfn }: {
 	outcome: Outcome,
 	endfn: (o: Outcome) => Promise<void> 
@@ -28,8 +32,8 @@ function ShowBasicOutcome({ outcome, endOutcome }: {
 	const [title, body, reward, ] = outcome.victory ?
 		outcome.opponent.key === 'player' ? [
 			"Your Journey Begins",
-			"Pick your opponents and abilities wisely",
-			"You have been given some upgraded letters"
+			"Pick your opponents, abilities, bonuses, and words wisely",
+			`You have been granted ${outcome.letterUpgrades} upgraded letters to start with`
 		] : outcome.opponent.isboss ? [
 			"You Win!", 
 			`You defeated the final boss, ${outcome.opponent.name}`,
@@ -46,13 +50,17 @@ function ShowBasicOutcome({ outcome, endOutcome }: {
 
 	return (
 		<main className="flex flex-col justify-center items-center">
-			<div className={
-				[ "rounded-lg"
+			<motion.div className={
+				[ "rounded-lg shadow-2xl"
 				, "bg-slate-700"
 				, "text-amber-300"
 				, "flex flex-col items-center gap-2"
 				, "p-4 m-4"
 				].join(' ')}
+
+				initial={{ rotate: -5, x: -30, y: -30 }}
+				animate={{ rotate: 0, x: 0, y: 0 }}
+				transition={{ duration: 0.6 }}
 			>
 				<h1 className="text-4xl font-light tracking-tighter">
 					{title}
@@ -62,10 +70,25 @@ function ShowBasicOutcome({ outcome, endOutcome }: {
 
 				<div>{reward}</div>
 
-				<button className="p-2 rounded-lg text-2xl bg-lime-600 text-amber-100" onClick={endOutcome}>
-					Continue
-				</button>
-			</div>
+				{outcome.done ? 
+					<div className="p-2 rounded-lg text-2xl bg-lime-600 text-amber-100">
+						Loading...
+					</div>
+				: (
+					<motion.button 
+						className="p-2 rounded-lg text-2xl bg-lime-600 text-amber-100" 
+						whileHover={{
+							scale: 1.2
+						}}
+						whileTap={{
+							scale: 0.9
+						}}
+						onClick={endOutcome}
+					>
+						Continue
+					</motion.button>
+				)}
+			</motion.div>
 		</main>
 	);
 }

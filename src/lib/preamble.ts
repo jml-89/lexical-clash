@@ -144,19 +144,19 @@ export async function NewPreamble(g: PreambleSetup): Promise<Preamble> {
 	}
 }
 
-export function PreambleChoice(p: Preamble, s: string): void {
+export function PreambleChoice(p: Preamble, k: string, s: string): void {
 	// This conditional ladder isn't pretty
 	// but get type clarity and key existence
-	if (p.stagekey === 'opponent') {
+	if (k === 'opponent') {
 		p.opponent.choice = s
 		p.stagekey = 'ability'
-	} else if (p.stagekey === 'ability') {
+	} else if (k === 'ability') {
 		p.ability.choice = s
 		p.stagekey = 'bonus'
-	} else if (p.stagekey === 'bonus') {
+	} else if (k === 'bonus') {
 		p.bonus.choice = s
 		p.stagekey = 'word'
-	} else if (p.stagekey === 'word') {
+	} else if (k === 'word') {
 		p.word.choice = s
 		p.done = true
 	}
