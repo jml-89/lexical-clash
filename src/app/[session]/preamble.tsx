@@ -6,17 +6,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 import { 
 	Preamble, 
-	WordBooster,
-	OpponentPreamble,
 	PreambleStage,
 	PreambleStageType,
-	PreambleChoice 
+
+	ChooseOpponent,
+	ChooseAbility,
+	ChooseBonus,
+	ChooseWord
 } from '@/lib/preamble';
 
+import { Opponent } from '@/lib/opponent'
 import { AbilityCard } from '@/lib/ability'
 import { BonusCard } from '@/lib/bonus'
 
-import { Mutator } from '@/lib/util'
+import { Mutator, ScoredWord, HyperSet } from '@/lib/util'
 
 type preamblefn = (p: Preamble) => Promise<void>
 type statefnT = (fn: preamblefn) => Promise<void>
@@ -25,7 +28,7 @@ type renderT = (ps: any) => React.ReactNode
 
 function chooseRenderFn(stage: any): renderT {
 	if (stage.field === 'opponent') {
-		return (opponent: OpponentPreamble): React.ReactNode => 
+		return (opponent: Opponent): React.ReactNode => 
 			OpponentMugshot({ opponent: opponent })
 	} 
 	if (stage.field === 'ability') {
@@ -36,8 +39,67 @@ function chooseRenderFn(stage: any): renderT {
 		return (bonus: BonusCard): React.ReactNode =>
 			BonusTicket({ bonus: bonus })
 	}
-	return (word: WordBooster): React.ReactNode =>
-		ShowWordBooster({ word: word })
+	return (hs: HyperSet): React.ReactNode =>
+		ShowWordBooster({ hs: hs })
+}
+
+function ShowStageOptions({ preamble, statefn }: {
+	preamble: Preamble,
+	statefn: statefnT
+}): React.ReactNode {
+	if (preamble.stagekey === 'opponent') {
+		const opts = [ ...preamble.opponent.options.values() ]
+		return opts.map((o) => 
+			OptionTile({
+				key: o.key,
+				children: OpponentMugshot({ opponent: o }),
+				handler: () => statefn(async (p: Preamble) =>
+					ChooseOpponent(p, o)
+				)
+			})
+		)
+	}
+
+	if (preamble.stagekey === 'ability') {
+		const opts = [ ...preamble.ability.options.values() ]
+		return opts.map((o) =>
+			OptionTile({
+				key: o.key,
+				children: AbilityTicket({ ability: o }),
+				handler: () => statefn(async (p: Preamble) =>
+					ChooseAbility(p, o)
+				)
+			})
+		)
+	}
+
+	if (preamble.stagekey === 'bonus') {
+		const opts = [ ...preamble.bonus.options.values() ]
+		return opts.map((o) =>
+			OptionTile({
+				key: o.key,
+				children: BonusTicket({ bonus: o }),
+				handler: () => statefn(async (p: Preamble) =>
+					ChooseBonus(p, o)
+				)
+			})
+		)
+	}
+
+	if (preamble.stagekey === 'word') {
+		const opts = [ ...preamble.word.options.values() ]
+		return opts.map((o) =>
+			OptionTile({
+				key: o.hypernym,
+				children: ShowWordBooster({ hs: o }),
+				handler: () => statefn(async (p: Preamble) =>
+					ChooseWord(p, o)
+				)
+			})
+		)
+	}
+
+	return (<></>)
 }
 
 export function ShowPreamble({ preamble, endfn }: {
@@ -50,25 +112,12 @@ export function ShowPreamble({ preamble, endfn }: {
 			await Mutator(myPreamble, fn, setMyPreamble, endfn)
 	}, [myPreamble, setMyPreamble, endfn])
 
-	const stage = 
-		myPreamble.stagekey === 'opponent' ? myPreamble.opponent :
-		myPreamble.stagekey === 'ability' ? myPreamble.ability :
-		myPreamble.stagekey === 'bonus' ? myPreamble.bonus :
-		myPreamble.word
+	const title = myPreamble.stagekey === 'opponent' ? 'Select Your Opponent'
+		: myPreamble.stagekey === 'ability' ? 'Select An Ability'
+		: myPreamble.stagekey === 'bonus' ? 'Select A Bonus'
+		: myPreamble.stagekey === 'word' ? 'Select A Word Booster'
+		: 'Un-Titled'
 
-	const renderFn = chooseRenderFn(stage)
-
-	let options: React.ReactNode[] = []
-	for (const [k, v] of stage.options) {
-		const art = renderFn(v)
-		const tile = OptionTile({
-			key: k,
-			children: art,
-			handler: async () => await statefn(async (p: Preamble) => await PreambleChoice(p, myPreamble.stagekey, k))
-		})
-		options.push(tile)
-	}
-	
 	return (
 		<main className="flex-1 flex flex-col gap-2 mx-2 items-center">
 			<div className="text-amber-500 text-lg">
@@ -77,7 +126,7 @@ export function ShowPreamble({ preamble, endfn }: {
 
 			<div className="grid">
 			<AnimatePresence>
-				<motion.div key={stage.title}
+				<motion.div key={title}
 					initial={{ x: 1200 }}
 					animate={{ x: 0 }}
 					exit={{ x: -1200 }}
@@ -85,11 +134,11 @@ export function ShowPreamble({ preamble, endfn }: {
 					className="row-start-1 col-start-1 flex flex-col gap-2 items-center"
 				>
 					<div className="text-amber-300 text-4xl font-light">
-						{stage.title}
+						{title}
 					</div>
 
 					<div className="flex-1 flex flex-col gap-2 justify-start">
-						{options}
+						<ShowStageOptions preamble={myPreamble} statefn={statefn} />
 					</div>
 				</motion.div>
 			</AnimatePresence>
@@ -120,7 +169,7 @@ function OptionTile({ key, children, handler }: {
 }
 
 function OpponentMugshot({ opponent }: {
-	opponent: OpponentPreamble
+	opponent: Opponent
 }) {
 	return (
 		<div key={opponent.name} className="flex flex-row gap-1" >
@@ -147,10 +196,14 @@ function OpponentMugshot({ opponent }: {
 function AbilityTicket({ ability }: {
 	ability: AbilityCard
 }) {
+	const comment = ability.uses > 1 ?
+		`Upgrade to ${ability.uses} uses` :
+		`New`
 	return (
 		<div key={ability.name} className="flex flex-col gap-1">
 			<h1 className="text-xl font-bold">{ability.name}</h1>
 			<div className="italic">{ability.desc}</div>
+			<div>{comment}</div>
 		</div>
 	);
 }
@@ -162,27 +215,30 @@ function BonusTicket({ bonus }: {
 		<div key={bonus.name} className="flex flex-col gap-1">
 			<h1 className="text-xl font-bold">{bonus.name}</h1>
 			<div className="italic">{bonus.desc}</div>
+			<div><span className="font-bold">Level {bonus.level}:</span> {bonus.weight * bonus.level} points</div>
 		</div>
 	);
 }
 
-function ShowWordBooster({ word }: {
-	word: WordBooster
+function ShowWordBooster({ hs }: {
+	hs: HyperSet
 }) {
-	const stride = 4
-	const midx = Math.floor((word.samples.length - stride) / 2)
+	const stride = 3
+	const midx = Math.floor((hs.hyponyms.length - stride) / 2)
 
-	const fli = (s: string): React.ReactNode => (<li key={s}>{s}</li>)
-	const lo = word.samples.slice(0, stride)
-	const md = word.samples.slice(midx, midx+stride)
-	const hi = word.samples.slice(word.samples.length - stride)
+	const fli = (s: ScoredWord): React.ReactNode => (<li key={s.word}>{s.word}</li>)
+	const lo = hs.hyponyms.slice(0, stride)
+	const md = hs.hyponyms.slice(midx, midx+stride)
+	const hi = hs.hyponyms.slice(hs.hyponyms.length - stride)
 
 	return (
-		<div key={word.word} className="flex flex-col gap-1 justify-start">
+		<div key={hs.hypernym} className="flex flex-col gap-1 justify-start">
 			<div className="flex flex-row justify-between">
-				<h1 className="text-xl font-bold">{word.word}</h1>
-				<div>{word.len} words</div>
+				<h1 className="text-xl font-bold">{hs.hypernym}</h1>
+				<div>({hs.definitions.length} definitions, {hs.hyponyms.length} words)</div>
 			</div>
+
+			<div className="self-baseline italic">{hs.definitions[0]}</div>
 
 			<ul className="flex flex-row flex-wrap place-content-around gap-1">
 				{lo.map(fli)}

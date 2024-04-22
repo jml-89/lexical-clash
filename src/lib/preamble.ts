@@ -16,32 +16,22 @@ import  {
 import {
 	ShuffleMap,
 	PickRandom,
-	KnowledgeBase
+	KnowledgeBase,
+	ScoredWord,
+	HyperSet
 } from './util'
 
 import prand from 'pure-rand'
 
-export interface OpponentPreamble extends Opponent {
-	relativeLevel: number
-}
-
-export interface WordBooster {
-	word: string
-	len: number
-	samples: string[]
-}	
-
 export type PreambleStageType 
-	= OpponentPreamble 
+	= Opponent
 	| AbilityCard 
 	| BonusCard
-	| WordBooster
+	| HyperSet
 
 export interface PreambleStage<T> {
-	title: string
-	field: string
 	options: Map<string, T>
-	choice: string
+	choice?: T
 }
 
 export interface Preamble {
@@ -51,11 +41,11 @@ export interface Preamble {
 
 	level: number
 
-	opponent: PreambleStage<OpponentPreamble>
+	opponent: PreambleStage<Opponent>
 	ability: PreambleStage<AbilityCard>
 	bonus: PreambleStage<BonusCard>
 
-	word: PreambleStage<WordBooster>
+	word: PreambleStage<HyperSet>
 
 	stagekey: string
 }
@@ -66,10 +56,15 @@ export interface PreambleSetup {
 
 	level: number
 	kb: KnowledgeBase
+
 	opponents: Map<string, Opponent>
+
+	// Abilities and bonuses the player already has
+	abilities: Map<string, AbilityCard>
+	bonuses: Map<string, BonusCard>
 }
 
-export async function NewPreamble(g: PreambleSetup): Promise<Preamble> {
+async function assembleWordBoosters(g: PreambleSetup): Promise<Map<string, HyperSet>> {
 	const xs = await g.kb.candidates(
 		g.level * 200,
 		(g.level + 1) * 300,
@@ -77,18 +72,17 @@ export async function NewPreamble(g: PreambleSetup): Promise<Preamble> {
 		5
 	)
 
-	let wordboosters = new Map<string, WordBooster>()
+	let wordboosters = new Map<string, HyperSet>()
 	for (const x of xs) {
-		let words = (await g.kb.hypos(x)).map((a) => a.word)
-		words.sort((a, b) => a.length - b.length)
-		wordboosters.set(x, {
-			word: x,
-			len: words.length,
-			samples: words
-		})
+		x.hyponyms.sort((a, b) => a.word.length - b.word.length)
+		wordboosters.set(x.hypernym, x)
 	}
 
-	let opts = new Map<string, OpponentPreamble>()
+	return wordboosters
+}
+
+function assembleOpponents(g: PreambleSetup): Map<string, Opponent> {
+	let opts = new Map<string, Opponent>()
 
 	let lim = 0
 	while (opts.size < 3) {
@@ -98,10 +92,7 @@ export async function NewPreamble(g: PreambleSetup): Promise<Preamble> {
 				continue
 			}
 
-			opts.set(k, {
-				...o,
-				relativeLevel: rel
-			})
+			opts.set(k, o)
 
 			if (!(opts.size < 3)) {
 				break
@@ -111,54 +102,80 @@ export async function NewPreamble(g: PreambleSetup): Promise<Preamble> {
 		lim += 1
 	}
 
+	return opts
+}
+
+function assembleAbilities(g: PreambleSetup): Map<string, AbilityCard> {
+	const picks = PickRandom(g, AbilityCards, 3)
+	let ticks = new Map<string, AbilityCard>()
+	for (const [key, pick] of picks) {
+		let upgrade = g.abilities.get(key)
+		if (upgrade) {
+			upgrade = { ...upgrade }
+			upgrade.uses += 1
+			ticks.set(key, upgrade)
+		} else {
+			ticks.set(key, pick)
+		}
+	}
+	return ticks
+}
+
+function assembleBonuses(g: PreambleSetup): Map<string, BonusCard> {
+	const picks = PickRandom(g, BonusCards, 3)
+	let ticks = new Map<string, BonusCard>()
+	for (const [key, pick] of picks) {
+		let upgrade = g.bonuses.get(key)
+		if (upgrade) {
+			upgrade = { ...upgrade }
+			upgrade.level += 1
+			ticks.set(key, upgrade)
+		} else {
+			ticks.set(key, pick)
+		}
+	}
+	return ticks
+}
+
+export async function NewPreamble(g: PreambleSetup): Promise<Preamble> {
 	return {
 		type: 'preamble',
 		done: false,
 		level: g.level,
 		kb: g.kb,
 		opponent: {
-			title: 'Select Your Opponent',
-			field: 'opponent',
-			options: opts,
-			choice: ''
+			options: assembleOpponents(g),
 		},
 		ability: {
-			title: 'Select An Ability',
-			field: 'ability',
-			options: PickRandom(g, AbilityCards, 3),
-			choice: ''
+			options: assembleAbilities(g), 
 		},
 		bonus: {
-			title: 'Select A Bonus',
-			field: 'bonus',
-			options: PickRandom(g, BonusCards, 3),
-			choice: ''
+			options: assembleBonuses(g), 
 		},
 		word: {
-			title: 'Select A Wordbank',
-			field: 'word',
-			options: wordboosters,
-			choice: ''
+			options: await assembleWordBoosters(g),
 		},
 		stagekey: 'opponent'
 	}
 }
 
-export function PreambleChoice(p: Preamble, k: string, s: string): void {
-	// This conditional ladder isn't pretty
-	// but get type clarity and key existence
-	if (k === 'opponent') {
-		p.opponent.choice = s
-		p.stagekey = 'ability'
-	} else if (k === 'ability') {
-		p.ability.choice = s
-		p.stagekey = 'bonus'
-	} else if (k === 'bonus') {
-		p.bonus.choice = s
-		p.stagekey = 'word'
-	} else if (k === 'word') {
-		p.word.choice = s
-		p.done = true
-	}
+export async function ChooseOpponent(p: Preamble, o: Opponent): Promise<void> {
+	p.opponent.choice = o
+	p.stagekey = 'ability'
+}
+
+export async function ChooseAbility(p: Preamble, a: AbilityCard): Promise<void> {
+	p.ability.choice = a
+	p.stagekey = 'bonus'
+}
+
+export async function ChooseBonus(p: Preamble, b: BonusCard): Promise<void> {
+	p.bonus.choice = b
+	p.stagekey = 'word'
+}
+
+export async function ChooseWord(p: Preamble, w: HyperSet): Promise<void> {
+	p.word.choice = w
+	p.done = true
 }
 

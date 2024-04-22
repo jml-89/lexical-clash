@@ -82,11 +82,11 @@ export async function ScoreWord(kb: KnowledgeBase, input: ScoreInput, opponent: 
 			continue
 		}
 
-		const val = await impl.fn(kb.related, v.level, input.placed)
+		const val = await impl.fn(kb.related, input.placed)
 		if (val !== 0) {
 			sheet.adds.push({ 
 				source: v.name,
-				value: val
+				value: v.weight * v.level * val
 			})
 		}
 	}

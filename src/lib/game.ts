@@ -45,17 +45,18 @@ import { ScoreWord } from './score'
 import { 
 	KnowledgeBase, 
 	ScoredWord,
+	HyperSet,
 
 	Shuffle, 
 	ShuffleMap, 
 	MapConcat, 
-	CopyMap 
+	CopyMap
 } from './util'
 
 import {
 	Preamble,
 	PreambleSetup,
-	NewPreamble
+	NewPreamble,
 } from './preamble'
 
 // Initially thought TS had ADTs & pattern matching on them
@@ -142,7 +143,7 @@ function Upgrade(g: GameState, n: number): void {
 		})
 	}
 
-	g.handSize += 2
+	g.handSize += 1
 	g.level += 1
 
 	if (g.phase.opponent.isboss) {
@@ -170,38 +171,34 @@ export async function OutcomeToPreamble(g: GameState): Promise<void> {
 	g.phase = await NewPreamble(g);
 }
 
-export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<void> {
+export async function LaunchBattle(g: GameState): Promise<void> {
 	if (g.phase.type !== 'preamble') {
 		return
 	}
 
-
-	for (const k of [g.phase.ability.choice]) {
-		if (g.abilities.has(k)) {
-			(g.abilities.get(k) as AbilityCard).uses += 1
-		} else {
-			g.abilities.set(k, AbilityCards.get(k) as AbilityCard)
-		}
+	if (g.phase.word.choice) {
+		FillPlayerBank(g, g.phase.word.choice)
 	}
 
-	for (const k of [g.phase.bonus.choice]) {
-		if (g.bonuses.has(k)) {
-			(g.bonuses.get(k) as BonusCard).level += 1
-		} else {
-			g.bonuses.set(k, BonusCards.get(k) as BonusCard)
-		}
+	if (g.phase.ability.choice) {
+		g.abilities.set(g.phase.ability.choice.key, { ...g.phase.ability.choice }) 
 	}
 
-	const opponent = Opponents.get(g.phase.opponent.choice)
-	if (opponent === undefined) {
-		console.log(`Could not find opponent: ${g.phase.opponent.choice}`)
+	if (g.phase.bonus.choice) {
+		g.bonuses.set(g.phase.bonus.choice.key, { ...g.phase.bonus.choice })
+	}
+
+	if (!g.phase.opponent.choice) {
+		console.log('No opponent choice')
 		return
 	}
 
+	const opponent = g.phase.opponent.choice
 	if (g.postgame) {
 		opponent.level = g.level
 	}
-	await FillWordbank(kb.hypos, opponent)
+
+	await FillWordbank(g.kb.hypos, opponent)
 	opponent.wordbank = ShuffleMap(g, opponent.wordbank)
 
 	g.phase = await NewBattle({
@@ -216,23 +213,29 @@ export async function LaunchBattle(g: GameState, kb: KnowledgeBase): Promise<voi
 }
 
 export function LoadGame(o: Object, kb: KnowledgeBase): GameState {
-	const tupmap = (o: Object): Object => {
-		for (const [field, value] of Object.entries(o)) {
-			if (field === 'maptuples') {
-				return new Map<any, any>(value)
-			}
+	console.log("Load Game")
+	const tupmap = (a: any): any => {
+		if (!(a instanceof Object)) {
+			return a
 		}
 
-		const isObj = (v: any): boolean => 
-			v instanceof Object 
-			&& !(v instanceof Array) 
+		if (a instanceof Array) {
+			return a.map((b: any) => tupmap(b))
+		}
+
+		const o = <Object>a
+
+		for (const [field, value] of Object.entries(o)) {
+			if (field === 'maptuples') {
+				return new Map<any, any>(tupmap(value))
+			}
+		}
 
 		return Object.fromEntries(Object.entries(o).map(
 			([field, value]) => [field, 
 				field === 'prng' ? prand.xoroshiro128plus(1337) 
 				: field === 'kb' ? kb
-				: isObj(value) ? tupmap(value) 
-				: value
+				: tupmap(value)
 			]
 		))
 	}
@@ -291,6 +294,7 @@ async function DoPhase(g: GameState, phasefn: PhaseFn): Promise<GameState> {
 	return ng
 }
 
+/*
 async function FillPlayerBank(
 	g: GameState, 
 	lookup: (s: string) => Promise<ScoredWord[]>, 
@@ -301,6 +305,16 @@ async function FillPlayerBank(
 		if (!g.wordbank.has(word.word)) {
 			g.wordbank.set(word.word, word)
 		}
+	}
+}
+*/
+
+function FillPlayerBank(
+	g: GameState,
+	w: HyperSet 
+): void {
+	for (const word of w.hyponyms) {
+		g.wordbank.set(word.word, word)
 	}
 }
 
@@ -316,8 +330,7 @@ export async function Finalise(
 	const ng = Object.assign({}, g)
 
 	if (phase.type === 'preamble') {
-		await FillPlayerBank(ng, ng.kb.hypos, phase.word.choice)
-		await LaunchBattle(ng, ng.kb)
+		await LaunchBattle(ng)
 		setfn(ng)
 	} else if (phase.type === 'battle') {
 		MapConcat(ng.wordbank, phase.player.wordbank)

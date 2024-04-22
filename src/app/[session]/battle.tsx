@@ -351,7 +351,7 @@ function BonusCarousel({ player, closefn }: {
 				<p className="">
 					{bonus.desc}
 				</p>
-				<div>Level {bonus.level} (+{bonus.level*2} points)</div>
+				<div>Level {bonus.level} (+{bonus.level * bonus.weight} points)</div>
 			</div>
 
 			<button 

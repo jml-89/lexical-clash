@@ -244,6 +244,14 @@ export async function NextWord(g: Battler, round: number): Promise<void> {
 	if (choice !== undefined) {
 		g.placed = stringToLetters(g.name, choice.word)
 	}
+
+	if (g.level > 7) {
+		const incr = Math.min(4, g.level - 7)
+		for (const c of g.placed) {
+			c.level += incr
+			c.score += incr
+		}
+	}
 }
 
 export async function Submit(g: Battle): Promise<void> {

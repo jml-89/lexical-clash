@@ -5,7 +5,7 @@ import zlib from 'node:zlib'
 import { pipeline } from 'node:stream/promises'
 import fetch from 'node-fetch'
 
-import { ScoredWord } from './util'
+import { ScoredWord, HyperSet } from './util'
 import { Letter, stringToLetters, simpleScore } from './letter'
 
 import { Pool } from 'pg'
@@ -63,11 +63,34 @@ export async function HypoForms(word: string): Promise<ScoredWord[]> {
 	return res.rows.map((row) => ({ word: row.hypo, score: row.score }))
 }
 
+export async function Definitions(s: string): Promise<string[]> {
+	const res = await pool.query({
+		text: `
+			with lexids as (
+				select lexid
+				from writtenform
+				where form ilike $1
+			), synids as (
+				select synid 
+				from synsetmember
+				where memberid in (select * from lexids)
+			), defs as (
+				select content
+				from synsettext
+				where synid in (select * from synids)
+			)
+			select * from defs;
+		`, values: [s]
+	})
+
+	return res.rows.map((row) => row.content)
+}
+
 // Candidates
 // lo & hi, bounds on collection size
 // maxlen: maximum 
 // num: how many to return
-export async function Candidates(lo: number, hi: number, maxlen: number, num: number): Promise<string[]> {
+export async function Candidates(lo: number, hi: number, maxlen: number, num: number): Promise<HyperSet[]> {
 	const res = await pool.query({
 		text: `
 			select hyper
@@ -83,7 +106,18 @@ export async function Candidates(lo: number, hi: number, maxlen: number, num: nu
 		values: [lo, hi, maxlen, num]
 	})
 
-	return res.rows.map((row) => row.hyper)
+	const hs: HyperSet[] = []
+	for (const row of res.rows) {
+		const defs = await Definitions(row.hyper)
+		const hypos = await HypoForms(row.hyper)
+		hs.push({
+			hypernym: row.hyper as string, 
+			definitions: defs,
+			hyponyms: hypos
+		})
+	}
+
+	return hs
 }
 
 // For the purposes of this simple game, return all matching synids

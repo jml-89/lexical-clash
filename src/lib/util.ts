@@ -19,13 +19,20 @@ export interface KnowledgeBase {
 	valid: (word: string) => Promise<boolean>
 	related: (relation: string, left: string, right: string) => Promise<boolean>
 	hypos: (word: string) => Promise<ScoredWord[]>
-	candidates: (lo: number, hi: number, maxlen: number, num: number) => Promise<string[]>
+	candidates: (lo: number, hi: number, maxlen: number, num: number) => Promise<HyperSet[]>
 	save: (id: string, o: string) => Promise<void>
 }
+
 
 export interface ScoredWord {
 	word: string
 	score: number
+}
+
+export interface HyperSet {
+	hypernym: string
+	definitions: string[]
+	hyponyms: ScoredWord[]
 }
 
 interface HasPRNG {
