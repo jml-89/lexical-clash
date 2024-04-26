@@ -1,5 +1,4 @@
-import { Letter, stringToLetters, lettersToString, simpleScore } from './letter'
-import { ScoredWord } from './util'
+// Simple profiles
 
 export interface Opponent {
 	key: string;
@@ -10,7 +9,6 @@ export interface Opponent {
 	healthMax: number;
 	weakness: string[];
 	strength: string[];
-	wordbank: Map<string, ScoredWord>
 	image: string
 }
 
@@ -23,37 +21,7 @@ export const PlayerProfile = {
 	healthMax: 10,
 	weakness: [],
 	strength: [],
-	wordbank: new Map<string, ScoredWord>(),
 	image: "portrait/dark/frog.jpg"
-}
-
-export async function FillWordbank(lookup: (s: string) => Promise<ScoredWord[]>, o: Opponent): Promise<void> {
-	let xs = []
-	for (const s of o.strength) {
-		for (const word of await lookup(s)) {
-			xs.push(word)
-		}
-	}
-
-	const minScore = 3 + (4 * (o.level-1))
-	const maxScore = 8 + (5 * (o.level-1))
-	const scoreInRange = (xs: ScoredWord): boolean => {
-		return (minScore <= xs.score) && (xs.score <= maxScore)
-	}
-
-	let ys = xs.filter(scoreInRange)
-
-	// This happens when the level gets too high
-	// This is a signal to just go huge, use best words
-	if (ys.length < 10) {
-		ys = xs.toSorted(
-			(a, b) => b.score - a.score
-		).slice(0, 20)
-	}
-
-	for (const y of ys) {
-		o.wordbank.set(y.word, y)
-	}
 }
 
 export const Opponents: Map<string, Opponent> = new Map([
@@ -215,6 +183,5 @@ export const Opponents: Map<string, Opponent> = new Map([
 	}].map((opp) => [opp.key, {
 		...opp,
 		healthMax: 10,
-		wordbank: new Map<string, ScoredWord>()
 	}]))
 

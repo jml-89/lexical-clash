@@ -19,7 +19,8 @@
     "react": "^18",
     "react-dom": "^18",
     "saxophone": "^0.8.0",
-    "sharp": "^0.33.3"
+    "sharp": "^0.33.3",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -24,7 +24,6 @@ import {
 // Hundreds of megabytes -- possibly eventually maybe
 
 export interface Scoresheet {
-	checked: boolean
 	ok: boolean
 
 	score: number
@@ -50,7 +49,6 @@ export interface ScoreInput {
 
 export async function ScoreWord(kb: KnowledgeBase, input: ScoreInput, opponent: Opponent): Promise<Scoresheet> {
 	let sheet: Scoresheet = {
-		checked: true, 
 		ok: false, 
 		score: 0,
 		totalAdd: 0,

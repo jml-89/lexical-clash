@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useCallback } from 'react';
+import { memo, useState, useRef, useEffect, useCallback } from 'react';
 
 import { 
 	motion, 
@@ -31,7 +31,8 @@ import { Scoresheet } from '@/lib/score'
 import { Letter } from '@/lib/letter'
 import { DrawLetter } from './letter'
 
-import { Mutator } from '@/lib/util'
+import { Mutator, Clutator } from '@/lib/util'
+import { Opponent } from '@/lib/opponent'
 
 import { BonusCard } from '@/lib/bonus'
 import { AbilityCard } from '@/lib/ability'
@@ -43,65 +44,74 @@ export function PlayBattle({ game, endfn }: {
 	game: Battle, 
 	endfn: (b: Battle) => Promise<void> 
 }) {
-	const [myGame, setMyGame] = useState(game)
-	const mutator = useCallback(
-		async function(fn: battlefn): Promise<void> {
-			await Mutator(myGame, fn, setMyGame, endfn)
-	}, [myGame, setMyGame, endfn])
+	const [myGameX, setMyGameX] = useState(game)
+        const clute = useRef(Clutator(myGameX, setMyGameX, endfn))
+        const myGame = clute.current.get()
+	const mutator = clute.current.set 
 
 	return (
 		<main className="flex-1 flex flex-col items-center p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
 			<DrawOpponent opp={myGame.opponent} />
-			<Contest game={myGame} statefn={mutator} />
+			<Contest ps={myGame.player.scoresheet} os={myGame.opponent.scoresheet} statefn={mutator} />
 			<Player player={myGame.player} statefn={mutator} />
 		</main>
 	);
 }
 
-function DrawOpponent({ opp }: { opp: Battler }) {
-	const hd = opp.healthMax - opp.health 
+const DrawProfile = memo(function DrawProfile({ opp, hd }: { opp: Opponent, hd: number }) {
+        return (
+                <div className="flex flex-row gap-4">
+                        <motion.div className="flex-none"
+                                initial={{ 
+                                        rotate: 0, 
+                                        scale: 0
+                                }}
+                                animate={{ 
+                                        rotate: [0, -hd, hd, 0],
+                                        scale: [1, 0.9, 1.1, 1]
+                                }}
+                                transition={{ 
+                                        duration: 0.2,
+                                        repeat: hd
+                                }}
+                        >
+                                <Image 
+                                        src={`/${opp.image}`} 
+                                        width={80}
+                                        height={80}
+                                        alt={`Mugshot of ${opp.name}`}
+                                />
+                        </motion.div>
+
+                        <div className="flex flex-col">
+                                <div className="text-amber-300"><span className="text-lg font-bold">{opp.name}</span> <span className="italic">(Level {opp.level})</span></div>
+                                <div className="text-red-300"><span className="font-bold">Uses:</span> {opp.strength.join(', ')}</div>
+                                <div className="text-lime-300"><span className="font-bold">Weak to:</span> {opp.weakness.join(', ')}</div>
+                        </div>
+                </div>
+        )
+})
+
+const DrawOpponent = memo(function DrawOpponent({ opp }: { opp: Battler }) {
+	const hd = opp.profile.healthMax - opp.health 
 	return (
 		<motion.div className="flex flex-col gap-2">
-			<HealthBar badguy={true} health={opp.health} healthMax={opp.healthMax} />
+			<HealthBar badguy={true} health={opp.health} healthMax={opp.profile.healthMax} />
 
-			<div className="flex flex-row gap-4">
-				<motion.div className="flex-none"
-					initial={{ 
-						rotate: 0, 
-						scale: 0
-					}}
-					animate={{ 
-						rotate: [0, -hd, hd, 0],
-						scale: [1, 0.9, 1.1, 1]
-					}}
-					transition={{ 
-						duration: 0.2,
-						repeat: hd
-					}}
-				>
-					<Image 
-						src={`/${opp.image}`} 
-						width={120}
-						height={120}
-						alt={`Mugshot of ${opp.name}`}
-					/>
-				</motion.div>
-
-				<div className="flex flex-col">
-					<div className="text-amber-300"><span className="text-lg font-bold">{opp.name}</span> <span className="italic">(Level {opp.level} {opp.desc})</span></div>
-					<div className="text-red-300"><span className="font-bold">Uses:</span> {opp.strength.join(', ')}</div>
-					<div className="text-lime-300"><span className="font-bold">Weak to:</span> {opp.weakness.join(', ')}</div>
-				</div>
-			</div>
+                        <DrawProfile opp={opp.profile} hd={hd} />
 
 			<motion.div initial={{y:-100}} animate={{y:0}} >
-				<Placed letters={opp.placed} />
+				<Placed letters={opp.playArea.placed} />
 			</motion.div>
 		</motion.div>
 	)
-}
+})
 
-function HealthBar({ badguy, health, healthMax }: { badguy: boolean, health: number, healthMax: number }) {
+const HealthBar = memo(function HealthBar({ badguy, health, healthMax }: { 
+        badguy: boolean,
+        health: number, 
+        healthMax: number 
+}) {
 	const color = badguy ? "bg-red-800" : "bg-lime-500";
 	const healthpct = Math.floor((health/healthMax) * 100.0)
 
@@ -124,12 +134,12 @@ function HealthBar({ badguy, health, healthMax }: { badguy: boolean, health: num
 			}
 		</div>
 	);
-}
+})
 
 function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT }) {
 	return (
-		<AnimatePresence>
-			{ player.placed.length === 0 ? (
+                <>
+			{ player.playArea.placed.length === 0 ? (
 				<></>
 			) : player.checking ? (
 				<motion.button 
@@ -137,11 +147,10 @@ function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT 
 					className="p-2 rounded-lg bg-lime-300 text-2xl" 
 					animate={{ scale: 1 }}
 					initial={{ scale: 0 }}
-					exit={{ scale: 0 }}
 				>
 					Checking...
 				</motion.button>
-			) : !player.scoresheet.checked ? (
+			) : !player.scoresheet ? (
 				<motion.button 
 					key="checkbutton"
 					className="p-2 rounded-lg bg-lime-300 text-2xl" 
@@ -152,7 +161,6 @@ function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT 
 					}
 					animate={{ scale: 1 }}
 					initial={{ scale: 0 }}
-					exit={{ scale: 0 }}
 				>
 					Check
 				</motion.button>
@@ -164,19 +172,25 @@ function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT 
 					Invalid
 				</motion.button>
 			) : (
-				<motion.button 
-					key="attackbutton"
-					className="p-4 m-4 rounded-lg bg-lime-500 text-2xl" 
-					onClick={async () => await statefn(Submit)}
-					animate={{ x: 0 }}
-					initial={{ x: 200 }}
-					exit={{ y: -100 }}
-				>
-					Attack
-				</motion.button>
+                                <></>
 			) }
-		</AnimatePresence>
+                </>
 	)
+}
+
+function AttackButton({ statefn }: { statefn: statefnT }) {
+        return (
+                <motion.button 
+                        key="attackbutton"
+                        className="p-4 m-4 rounded-lg bg-lime-500 text-2xl" 
+                        onClick={async () => await statefn(Submit)}
+                        animate={{ scale: 1 }}
+                        initial={{ scale: 0 }}
+                        exit={{ scale: 0 }}
+                >
+                        Attack
+                </motion.button>
+        )
 }
 
 function ScoreTable({ sheet }: { sheet: Scoresheet}) {
@@ -211,40 +225,39 @@ function AnimatedNumber({ n }: { n: number }) {
 	)
 }
 
-function Contest({ game, statefn }: { game: Battle, statefn: statefnT }) {
-	const playerZone = game.player.scoresheet.ok ? (
-		<div className="flex flex-row-reverse justify-between text-lime-500">
-			<div className="text-6xl text-lime-400">
-				<AnimatedNumber n={game.player.scoresheet.score} />
-			</div>
-			<ScoreTable sheet={game.player.scoresheet} />
-		</div>
-	) : (
-		<ActionButton player={game.player} statefn={statefn} />
-	)
+const ScoreDisplay = memo(function ScoreDisplay({ sheet, color }: { 
+        sheet: Scoresheet,
+        color: string
+}) {
+        return (
+                <div className={`flex flex-row-reverse justify-between ${color}`}>
+                        <div className={`text-6xl ${color}`}>
+                                <AnimatedNumber n={sheet.score} />
+                        </div>
+                        <ScoreTable sheet={sheet} />
+                </div>
+        )
+})
 
-	const opponentZone = game.opponent.scoresheet.ok ? (
-		<div className="flex flex-row-reverse justify-between text-red-300">
-			<div className="self-end text-6xl text-red-300">
-				<AnimatedNumber n={game.opponent.scoresheet.score} />
-			</div>
-			<ScoreTable sheet={game.opponent.scoresheet} />
-		</div>
-	) : ( <></> )
+const Contest = memo(function Contest({ ps, os, statefn }: { 
+        ps: Scoresheet | undefined,
+        os: Scoresheet | undefined,
+        statefn: statefnT 
+}) {
 	return (
-		<div className="flex flex-row gap-2">
+		<div className="flex flex-row justify-center gap-2">
 			<div className="flex flex-col justify-center text-sm font-light">
-				{opponentZone}
-				{playerZone}
+                                {os && os.ok && <ScoreDisplay sheet={os} color="text-red-300" />}
+                                {ps && ps.ok && <ScoreDisplay sheet={ps} color="text-lime-400" />}
 			</div>
-			{game.player.scoresheet.ok &&
-				<ActionButton player={game.player} statefn={statefn} />
-			}
+                        <AnimatePresence>
+			{ps && ps.ok && <AttackButton statefn={statefn} />}
+                        </AnimatePresence>
 		</div>
 	)
-}
+})
 
-function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
+const Player = memo(function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 	const [view, setView] = useState('buttons');
 
 	const somebutton = (alias: string, key: string): React.ReactNode => (
@@ -280,18 +293,18 @@ function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 
 	return (
 		<motion.div className="flex-1 flex flex-col gap-2 px-1"
-			layout 
 			transition={{ type: 'spring' }}
 		>
+		        <ActionButton player={player} statefn={statefn} />
 			<div className="flex-1">
-				<PlayerPlaced letters={player.placed} statefn={statefn} />
+				<PlayerPlaced letters={player.playArea.placed} statefn={statefn} />
 			</div>
-			<Hand letters={player.hand} statefn={statefn} />
+			<Hand letters={player.playArea.hand} statefn={statefn} />
 			{views[view]()}
-			<HealthBar badguy={false} health={player.health} healthMax={player.healthMax} />
+			<HealthBar badguy={false} health={player.health} healthMax={player.profile.healthMax} />
 		</motion.div>
 	)
-}
+})
 
 function ListWords({ words, statefn, closefn }: {
 	words: string[],
@@ -439,7 +452,7 @@ function AbilityCarousel({ player, statefn, closefn }: {
 	);
 }
 
-function Placed({ letters }: { letters: Letter[] }) {
+const Placed = memo(function Placed({ letters }: { letters: Letter[] }) {
 	return (
 		<ul className="flex flex-row flex-wrap justify-center gap-1" >
 			{letters.map((letter) => 
@@ -449,9 +462,9 @@ function Placed({ letters }: { letters: Letter[] }) {
 			)}
 		</ul>
 	);
-}
+})
 
-function PlayerPlaced({ letters, statefn }: { letters: Letter[], statefn: statefnT }) {
+const PlayerPlaced = memo(function PlayerPlaced({ letters, statefn }: { letters: Letter[], statefn: statefnT }) {
 	if (letters.length === 0) {
 		return (<></>)
 	}
@@ -465,15 +478,7 @@ function PlayerPlaced({ letters, statefn }: { letters: Letter[], statefn: statef
 			</button>
 
 			<ul className="flex flex-row flex-wrap gap-1" >
-				{letters.map((letter) => 
-					<motion.li layoutId={letter.id} key={letter.id} >
-						<button 
-							onClick={async () => await statefn((b: Battle) => BackspaceId(b, letter.id))}
-						>
-						<DrawLetter letter={letter} small={true} />
-						</button>
-					</motion.li>
-				)}
+				{letters.map((letter) => <PlacedLetter key={letter.id} letter={letter} statefn={statefn} />)}
 			</ul>
 
 			<button className="bg-red-500 p-1 rounded-lg text-lg font-black"
@@ -483,41 +488,61 @@ function PlayerPlaced({ letters, statefn }: { letters: Letter[], statefn: statef
 			</button>
 		</div>
 	);
-}
+})
 
-function Hand({ letters, statefn }: { letters: Letter[], statefn: statefnT }) {
-	const placefn = (id: string): ()=>Promise<void> => {
-		return async () => {
-			return await statefn((g: Battle) => Place(g, id))
-		}
-	}
+const PlacedLetter = memo(function PlacedLetter({ letter, statefn }: {
+        letter: Letter,
+        statefn: statefnT
+}) {
+        return (
+                <motion.li layoutId={letter.id} key={letter.id} >
+                        <button 
+                                onClick={async () => await statefn((b: Battle) => BackspaceId(b, letter.id))}
+                        >
+                                <DrawLetter letter={letter} small={true} />
+                        </button>
+        </motion.li>
+        )
+})
+
+const ListLetter = memo(function ListLetter({ letter, statefn }: {
+        letter: Letter,
+        statefn: statefnT
+}) {
+	const placefn = useCallback(
+                async () => await statefn((g: Battle) => Place(g, letter.id)), 
+                [letter, statefn]
+        )
+
+        if (letter.available) {
+                return (
+                        <motion.li layoutId={letter.id} key={letter.id} >
+                                <button onClick={placefn}>
+                                        <DrawLetter letter={letter} small={false} />
+                                </button>
+                        </motion.li>
+                )
+        } else {
+                const nid = `ghost-of-${letter.id}`;
+                return (
+                        <motion.li 
+                                initial={{opacity: 1.0}} 
+                                animate={{opacity: 0.1}} 
+                                exit={{opacity: 1.0}} 
+                                layoutId={nid} 
+                                key={nid} 
+                        >
+                                <DrawLetter letter={letter} small={false} />
+                        </motion.li>
+                )
+        }
+})
+
+const Hand = memo(function Hand({ letters, statefn }: { letters: Letter[], statefn: statefnT }) {
 	return (
 		<ul className="flex flex-row gap-1 flex-wrap place-content-center" >
-			{letters.map((letter) => { 
-				if (letter.available) {
-					return (
-						<motion.li layoutId={letter.id} key={letter.id} >
-							<button onClick={placefn(letter.id)}>
-								<DrawLetter letter={letter} small={false} />
-							</button>
-						</motion.li>
-					)
-				} else {
-					const nid = `ghost-of-${letter.id}`;
-					return (
-						<motion.li 
-							initial={{opacity: 1.0}} 
-							animate={{opacity: 0.1}} 
-							exit={{opacity: 1.0}} 
-							layoutId={nid} 
-							key={nid} 
-						>
-							<DrawLetter letter={letter} small={false} />
-						</motion.li>
-					)
-				}
-			})}
+			{letters.map((letter) => <ListLetter key={letter.id} letter={letter} statefn={statefn} />)}
 		</ul>
 	);
-}
+})
 

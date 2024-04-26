@@ -1,5 +1,28 @@
 import prand from 'pure-rand'
 
+interface Clute<T> {
+        get: () => T
+        set: (fn: (t: T) => Promise<void>) => Promise<void>
+}
+
+export function Clutator<T>(
+	g: T, 
+	setfn: (t: T) => void,
+	endfn: (t: T) => Promise<void>
+): Clute<T> {
+	let c = { ...g }
+
+        return {
+                get: () => c, 
+                set: async (fn: (t: T) => Promise<void>): Promise<void> => { 
+                        c = { ...c }
+                        await fn(c)
+                        setfn(c)
+                        await endfn(c)
+                }
+        }
+}
+
 // Just trust me bro
 export async function Mutator<T>(
 	g: T, 
@@ -35,7 +58,7 @@ export interface HyperSet {
 	hyponyms: ScoredWord[]
 }
 
-interface HasPRNG {
+export interface HasPRNG {
 	prng: prand.RandomGenerator
 	iter: number
 }

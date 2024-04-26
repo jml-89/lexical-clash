@@ -6,7 +6,8 @@ import {
 	PlayArea,
 	DiscardPlaced,
 	DrawByIndex,
-	Draw
+	Draw,
+	DrawN
 } from './playarea';
 
 export interface AbilityCard {
@@ -19,7 +20,7 @@ export interface AbilityCard {
 
 export interface AbilityImpl {
 	pred: (pr: PlayArea) => boolean;
-	func: (pr: PlayArea) => void;
+	func: (pr: PlayArea) => PlayArea;
 }
 
 interface AbilityBase {
@@ -27,7 +28,7 @@ interface AbilityBase {
 	name: string
 	desc: string
 	pred: (pr: PlayArea) => boolean;
-	func: (pr: PlayArea) => void;
+	func: (pr: PlayArea) => PlayArea;
 }
 
 const AbilitiesBase: AbilityBase[] = [
@@ -38,9 +39,10 @@ const AbilitiesBase: AbilityBase[] = [
 		pred: (pr: PlayArea): boolean => {
 			return true
 		},
-		func: (pr: PlayArea): void => {
+		func: (pr: PlayArea): PlayArea => {
+                        let xs: Letter[] = []
 			for (const c of 'AEIOU') {
-				pr.hand.push({
+                                xs.push({
 					id: `vowel-magic-${c}`,
 					char: c,
 					score: 1,
@@ -48,6 +50,10 @@ const AbilitiesBase: AbilityBase[] = [
 					available: true
 				})
 			}
+                        return {
+                                ...pr,
+                                hand: pr.hand.concat(xs)
+                        }
 		}
 	},
 
@@ -58,13 +64,12 @@ const AbilitiesBase: AbilityBase[] = [
 		pred: (pr: PlayArea): boolean => {
 			return pr.placed.length > 0;
 		},
-		func: (pr: PlayArea): void => {
+		func: (pr: PlayArea): PlayArea => {
 			if (pr.placed.length === 0) {
-				return
+				return pr
 			}
 
-			DiscardPlaced(pr)
-			Draw(pr)
+			return DrawN(DiscardPlaced(pr), pr.placed.length)
 		}
 	},
 
@@ -75,9 +80,9 @@ const AbilitiesBase: AbilityBase[] = [
 		pred: (pr: PlayArea): boolean => {
 			return pr.placed.length > 1;
 		},
-		func: (pr: PlayArea): void => {
+		func: (pr: PlayArea): PlayArea => {
 			if (pr.placed.length < 2) {
-				return
+				return pr
 			}
 
 			const len = pr.placed.length;
@@ -88,14 +93,15 @@ const AbilitiesBase: AbilityBase[] = [
 				clones.push(clone)
 			}
 
-			pr.hand = pr.hand.filter((left) => 
-				!pr.placed.slice(1).some((right) => 
-					left.id === right.id
-				)
-			)
-			pr.bag = pr.bag.concat(pr.placed.slice(1))
-			pr.placed = pr.placed.slice(0, 1).concat(clones)
-			pr.hand = pr.hand.concat(clones)
+                        const toDiscard = pr.placed.slice(1)
+                        const isDiscard = (letter: Letter) => toDiscard.some((disc) => letter.id === disc.id)
+
+                        return {
+                                ...pr,
+			        hand: pr.hand.filter((letter) => !isDiscard(letter)).concat(clones),
+                                bag: pr.bag.concat(toDiscard),
+                                placed: pr.placed.slice(0, 1).concat(clones)
+                        }
 		}
 	}
 ]

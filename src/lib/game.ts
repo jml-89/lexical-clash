@@ -23,19 +23,18 @@ import {
 	ScrabbleDistribution
 } from './letter';
 
-import { Opponent, Opponents, FillWordbank, PlayerProfile } from './opponent';
+import { Opponent, Opponents, PlayerProfile } from './opponent';
 
 import prand from 'pure-rand'
 
 import {
 	Battle,
-	NextWord,
 
 	NewBattle,
 	Submit,
 	Place,
 	Backspace,
-	Wipe
+	Wipe,
 } from './battle';
 
 import { BonusCard, BonusCards} from './bonus';
@@ -198,10 +197,9 @@ export async function LaunchBattle(g: GameState): Promise<void> {
 		opponent.level = g.level
 	}
 
-	await FillWordbank(g.kb.hypos, opponent)
-	opponent.wordbank = ShuffleMap(g, opponent.wordbank)
-
 	g.phase = await NewBattle({
+                prng: g.prng,
+                iter: g.iter,
 		handSize: g.handSize, 
 		kb: g.kb,
 		bonuses: g.bonuses,
@@ -341,8 +339,8 @@ export async function Finalise(
 			type: 'outcome', 
 			done: false,
 			victory: phase.victory,
-			opponent: phase.opponent,
-			letterUpgrades: phase.victory ? phase.opponent.level * 5  : 0
+			opponent: phase.opponent.profile,
+			letterUpgrades: phase.victory ? phase.opponent.profile.level * 5  : 0
 		}
 		setfn(ng)
 

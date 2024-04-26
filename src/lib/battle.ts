@@ -47,19 +47,54 @@ import {
 import {
 	CopyMap,
 	ScoredWord,
-	KnowledgeBase
+	KnowledgeBase,
+        HasPRNG,
+        ShuffleMap
 } from './util'
 
-export interface Battler extends PlayArea, Opponent {
+export interface Battler {
 	health: number
 
+        playArea: PlayArea
+        profile: Opponent
+
 	checking: boolean
-	scoresheet: Scoresheet;
+	scoresheet?: Scoresheet
+        wordbank: Map<string, ScoredWord>
 
 	abilities: Map<string, AbilityCard>
 	bonuses: Map<string, BonusCard>
 
 	wordMatches: string[]
+}
+
+export async function FillWordbank(lookup: (s: string) => Promise<ScoredWord[]>, o: Battler): Promise<void> {
+	let xs = []
+	for (const s of o.profile.strength) {
+		for (const word of await lookup(s)) {
+			xs.push(word)
+		}
+	}
+
+	const minScore = 3 + (4 * (o.profile.level-1))
+	const maxScore = 8 + (5 * (o.profile.level-1))
+	const scoreInRange = (xs: ScoredWord): boolean => {
+		return (minScore <= xs.score) && (xs.score <= maxScore)
+	}
+
+	let ys = xs.filter(scoreInRange)
+
+	// This happens when the level gets too high
+	// This is a signal to just go huge, use best words
+	if (ys.length < 10) {
+		ys = xs.toSorted(
+			(a, b) => b.score - a.score
+		).slice(0, 20)
+	}
+
+	for (const y of ys) {
+		o.wordbank.set(y.word, y)
+	}
 }
 
 interface BattlerSetup {
@@ -74,24 +109,27 @@ function NewBattler(bs: BattlerSetup): Battler {
 	return {
 		health: bs.profile.healthMax,
 
-		handSize: bs.handSize,
-		bag: bs.letters,
-		hand: [],
-		placed: [],
-
 		abilities: CopyMap(bs.abilities),
 		bonuses: CopyMap(bs.bonuses),
 
 		checking: false,
-		scoresheet: ZeroScore(),
+		scoresheet: undefined,
 		wordMatches: [],
 
-		...bs.profile
+                profile: bs.profile,
+                wordbank: new Map<string, ScoredWord>(),
+
+                playArea: {
+                        handSize: bs.handSize,
+                        bag: bs.letters,
+                        hand: [],
+                        placed: []
+                }
 	}
 
 }
 
-export interface Battle {
+export interface Battle extends HasPRNG {
 	type: 'battle'
 
 	kb: KnowledgeBase
@@ -104,7 +142,7 @@ export interface Battle {
 	opponent: Battler
 }
 
-export interface BattleSetup {
+export interface BattleSetup extends HasPRNG {
 	handSize: number
 	letters: Letter[]
 	kb: KnowledgeBase
@@ -119,6 +157,8 @@ export interface BattleSetup {
 
 export async function NewBattle(bs: BattleSetup): Promise<Battle> {
 	const battle: Battle = {
+                ...bs,
+
 		type: 'battle',
 
 		kb: bs.kb,
@@ -142,54 +182,77 @@ export async function NewBattle(bs: BattleSetup): Promise<Battle> {
 		})
 	}
 
-	battle.player.wordbank = bs.wordbank
+	await FillWordbank(battle.kb.hypos, battle.opponent)
+	battle.opponent.wordbank = ShuffleMap(battle, battle.opponent.wordbank)
+        battle.player.wordbank = bs.wordbank
 
 	await NextRound(battle);
 	return battle;
 }
 
-function AbilityChecks(b: Battler): void {
+function AbilityChecks(b: Battler): Battler {
+        let upd = new Map<string, AbilityCard>()
 	for (const [k, v] of b.abilities) {
 		const impl = AbilityImpls.get(k)
 		if (impl === undefined) {
 			console.log(`No implementation found for bonus ${k}`)
 			continue
 		}
-		v.ok =  v.uses > 0 && impl.pred(b)
+                upd.set(k, {
+                        ...v,
+                        ok: v.uses > 0 && impl.pred(b.playArea)
+                })
 	}
+
+        return {
+                ...b,
+                abilities: upd
+        }
 }
 
-function UseAbilityReal(g: Battler, key: string): void {
+function UseAbilityReal(g: Battler, key: string): Battler {
 	const impl = AbilityImpls.get(key)
 	if (impl === undefined) {
 		console.log(`No implementation found for ability ${key}`)
-		return
+		return g
 	}
 
 	const ability = g.abilities.get(key)
 	if (ability === undefined) {
 		console.log(`No card found for ability ${key}`)
-		return
+		return g
 	}
 
-	impl.func(g)
-	ability.uses -= 1
+        let nextAbilities = new Map<string, AbilityCard>();
+        for (const [k, v] of g.abilities) {
+                if (k === key) {
+                        let x = { ...v }
+                        x.uses -= 1
+                        nextAbilities.set(k, x)
+                } else {
+                        nextAbilities.set(k, v)
+                }
+        }
 
-	g.scoresheet = ZeroScore()
-	AbilityChecks(g)
+        return AbilityChecks({
+                ...g,
+                playArea: impl.func(g.playArea),
+                scoresheet: undefined,
+                abilities: nextAbilities
+        })
+
 }
 
 export async function UseAbility(g: Battle, key: string): Promise<void> { 
-	UseAbilityReal(g.player, key)
-	WordbankCheck(g.player)
+	g.player = UseAbilityReal(g.player, key)
+        g.player.wordMatches = WordbankCheck(g.player)
 }
 
-function WordbankCheck(g: Battler): void {
-
+function WordbankCheck(g: Battler): string[] {
 	const found: ScoredWord[] = []
 
 	let pm = new Map<string, number>()
-	for (const letter of g.hand) {
+	for (const letter of g.playArea.hand) {
 		const c = letter.char.toLowerCase()
 		const n = pm.get(c)
 		pm.set(c, n === undefined ? 1 : n+1)
@@ -217,52 +280,57 @@ function WordbankCheck(g: Battler): void {
 	}
 
 	found.sort((a, b) => b.score - a.score)
-	g.wordMatches = found.map((a) => a.word).slice(0, 20)
+        return found.map((a) => a.word).slice(0, 10)
 }
 
 async function NextRound(g: Battle): Promise<void> {
 	g.round = g.round + 1;
-	DiscardAll(g.player)
-	Draw(g.player);
-	WordbankCheck(g.player)
 
-	DiscardAll(g.opponent)
-	Draw(g.opponent)
+        g.player = { ...g.player }
+	g.player.playArea = Draw(DiscardAll(g.player.playArea))
+        g.player.wordMatches = WordbankCheck(g.player)
+	g.player = AbilityChecks(g.player)
+	g.player.scoresheet = await UpdateScore(g.player, g.opponent, g.kb)
 
-
-	NextWord(g.opponent, g.round)
-
-	AbilityChecks(g.player)
-
-	await UpdateScore(g.player, g.opponent, g.kb)
-	await UpdateScore(g.opponent, g.player, g.kb)
+        g.opponent = { ...g.opponent }
+	g.opponent.playArea = Draw(DiscardAll(g.opponent.playArea))
+        g.opponent.playArea.placed = await NextWord(g.opponent, g.round)
+	g.opponent.scoresheet = await UpdateScore(g.opponent, g.player, g.kb)
 }
 
-export async function NextWord(g: Battler, round: number): Promise<void> {
+async function NextWord(g: Battler, round: number): Promise<Letter[]> {
+        let res: Letter[] = []
+
 	const keys = [ ...g.wordbank.keys() ]
 	const choice = g.wordbank.get(keys[round % keys.length])
 	if (choice !== undefined) {
-		g.placed = stringToLetters(g.name, choice.word)
+                res = stringToLetters(choice.word, choice.word)
 	}
 
-	if (g.level > 7) {
-		const incr = Math.min(4, g.level - 7)
-		for (const c of g.placed) {
+	if (g.profile.level > 7) {
+		const incr = Math.min(4, g.profile.level - 7)
+		for (const c of res) {
 			c.level += incr
 			c.score += incr
 		}
 	}
+
+        return res
 }
 
 export async function Submit(g: Battle): Promise<void> {
+        if (!(g.player.scoresheet && g.opponent.scoresheet)) {
+                return
+        }
+
 	const diff = g.player.scoresheet.score - g.opponent.scoresheet.score
 	if (diff > 0) {
-		g.opponent.health -= diff
+		g.opponent = { ...g.opponent, health: g.opponent.health - diff }
 	} else if (diff < 0) {
-		g.player.health += diff
+		g.player = { ...g.player, health: g.player.health + diff }
 	}
 
-	const str = lettersToString(g.player.placed)
+	const str = lettersToString(g.player.playArea.placed)
 	if (!g.player.wordbank.has(str)) {
 		// This is a little goofy, but the player may have used enhanced letters
 		// To get a "true" score, have to do this
@@ -288,59 +356,59 @@ export async function Submit(g: Battle): Promise<void> {
 }
 
 export async function Backspace(g: Battle): Promise<void> {
-	UnplaceLast(g.player)
-	g.player.scoresheet = ZeroScore()
-	AbilityChecks(g.player)
+        g.player = AbilityChecks({
+                ...g.player,
+                playArea: UnplaceLast(g.player.playArea),
+                scoresheet: undefined
+        })
 }
 
 export async function BackspaceId(g: Battle, id: string): Promise<void> {
-	UnplaceById(g.player, id)
-	g.player.scoresheet = ZeroScore()
-	AbilityChecks(g.player)
+        g.player = AbilityChecks({
+                ...g.player,
+                playArea: UnplaceById(g.player.playArea, id),
+                scoresheet: undefined
+        })
 }
 
 
 export async function Wipe(g: Battle): Promise<void> {
-	UnplaceAll(g.player)
-	g.player.scoresheet = ZeroScore()
-	AbilityChecks(g.player)
+        g.player = AbilityChecks({
+                ...g.player,
+                playArea: UnplaceAll(g.player.playArea),
+                scoresheet: undefined
+        })
 }
 
 export async function Place(g: Battle, id: string): Promise<void> {
-	PlaceById(g.player, id)
-	g.player.scoresheet = ZeroScore()
-	AbilityChecks(g.player)
+        g.player = AbilityChecks({
+                ...g.player,
+                playArea: PlaceById(g.player.playArea, id),
+                scoresheet: undefined
+        })
 }
 
 export async function PlaceWordbank(g: Battle, id: string): Promise<void> {
-	UnplaceAll(g.player)
-	PlaceWord(g.player, id)
-	g.player.scoresheet = ZeroScore()
-	AbilityChecks(g.player)
+        g.player = AbilityChecks({
+                ...g.player,
+                playArea: PlaceWord(UnplaceAll(g.player.playArea), id),
+                scoresheet: undefined
+        })
 }
 
-async function UpdateScore(g: Battler, o: Battler, kb: KnowledgeBase): Promise<void> {
-	g.scoresheet = await ScoreWord(kb, g, o)
+async function UpdateScore(g: Battler, o: Battler, kb: KnowledgeBase): Promise<Scoresheet> {
+	return await ScoreWord(kb, { placed: g.playArea.placed, bonuses: g.bonuses }, o.profile)
 }
 
 export async function UpdateScores(g: Battle): Promise<void> {
-	await UpdateScore(g.player, g.opponent, g.kb)
-	g.player.checking = false
+        g.player = { 
+                ...g.player, 
+                scoresheet: await UpdateScore(g.player, g.opponent, g.kb),
+                checking: false 
+        }
 }
 
 export async function Checking(g: Battle): Promise<void> {
-	g.player.checking = true
-}
-
-function ZeroScore(): Scoresheet {
-	return {
-		checked: false,
-		ok: false,
-		score: 0,
-		adds: [],
-		muls: [],
-		totalAdd: 0,
-		totalMul: 0
-	}
+        g.player = { ...g.player, checking: true }
 }
 

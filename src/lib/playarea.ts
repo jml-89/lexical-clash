@@ -12,117 +12,164 @@ export interface PlayArea {
 	placed: Letter[]
 	hand: Letter[]
 	bag: Letter[]
-	//discard: Letter[]
 }
 
-export function DiscardPlaced(g: PlayArea): void {
-	//g.discard = g.discard.concat(g.hand.filter((letter) => isPlaced(g, letter)))
-	g.bag = g.bag.concat(g.hand.filter((letter) => isPlaced(g, letter)))
-	g.hand = g.hand.filter((letter) => !isPlaced(g, letter))
-	g.placed = []
+export function DiscardPlaced(g: PlayArea): PlayArea {
+        return {
+                ...g,
+                bag: g.bag.concat(g.hand.filter((letter) => isPlaced(g, letter))),
+                hand: g.hand.filter((letter) => !isPlaced(g, letter)),
+                placed: []
+        }
 }
 
 // Throw away all letters held in hand
-export function DiscardAll(g: PlayArea): void {
-	g.placed = []
-	g.hand = g.hand.map((letter) => {letter.available = true; return letter})
-	//g.discard = g.discard.concat(g.hand)
-	g.bag = g.bag.concat(g.hand)
-	g.hand = []
+export function DiscardAll(g: PlayArea): PlayArea {
+        return {
+                ...g,
+                placed: [],
+                hand: [],
+                bag: g.bag.concat(g.hand)
+        }
 }
 
 // Draw enough to fill up hand, keeping existing hand
-export function Draw(g: PlayArea): void {
+export function Draw(g: PlayArea): PlayArea {
 	const num = g.handSize - g.hand.length
 	if (num < 1) {
-		return
+		return g
 	}
 
-	const more = g.bag.slice(0, num).map(makeAvail)
-	g.hand = g.hand.concat(more)
-	g.bag = g.bag.slice(num)
+        return DrawN(g, num)
+}
+
+export function DrawN(g: PlayArea, n: number): PlayArea {
+        return {
+                ...g,
+                hand: g.hand.concat(g.bag.slice(0, n)).map(makeAvail),
+                bag: g.bag.slice(n)
+        }
 }
 
 // Draw a specific id out of the bag
-export function DrawById(g: PlayArea, id: string): void {
+export function DrawById(g: PlayArea, id: string): PlayArea {
 	const idx = g.bag.findIndex((x) => x.id === id)
 	if (idx < 0) {
-		return
+		return g
 	}
 
-	DrawByIndex(g, idx)
+	return DrawByIndex(g, idx)
 }
 
-export function DrawByIndex(g: PlayArea, idx: number): void {
-	g.hand = g.hand.concat([g.bag[idx]]);
-	g.bag = g.bag.slice(0, idx).concat(g.bag.slice(idx+1));
+export function DrawByIndex(g: PlayArea, idx: number): PlayArea {
+        return {
+                ...g,
+                hand: g.hand.concat([g.bag[idx]]),
+                bag: g.bag.slice(0, idx).concat(g.bag.slice(idx+1))
+        }
 }
 
 // Remove letter with id=${id} from placed letters
-export function UnplaceById(g: PlayArea, id: string): void {
+export function UnplaceById(g: PlayArea, id: string): PlayArea {
 	const pi = g.placed.findIndex((letter) => letter.id === id)
-	g.placed = g.placed.slice(0, pi).concat(g.placed.slice(pi+1))
-
 	const hi = g.hand.findIndex((letter) => letter.id === id)
-	g.hand[hi].available = true;
+
+        let nextHand = [ ...g.hand ]
+        nextHand[hi] = {
+                ...g.hand[hi],
+                available: true
+        }
+
+        return {
+                ...g,
+                placed: g.placed.slice(0, pi).concat(g.placed.slice(pi+1)),
+                hand: nextHand
+        }
 }
 
-export function UnplaceLast(g: PlayArea): void {
+export function UnplaceLast(g: PlayArea): PlayArea {
 	if (g.placed.length === 0) {
-		return
+		return g
 	}
 
 	const li = g.placed.length - 1;
 	const idx = g.hand.findIndex((letter) => letter.id === g.placed[li].id);
 
-	g.hand[idx].available = true;
-	g.placed = g.placed.slice(0, li);
+        let nextHand = [ ...g.hand ]
+	nextHand[idx] = {
+                ...g.hand[idx],
+                available: true
+        }
+
+        return {
+                ...g,
+                hand: nextHand,
+                placed: g.placed.slice(0, li)
+        }
 }
 
-export function UnplaceAll(g: PlayArea): void {
+export function UnplaceAll(g: PlayArea): PlayArea {
 	if (g.placed.length === 0) {
-		return
+		return g
 	}
 
-	g.placed = []
-	for (const h of g.hand) {
-		h.available = true
-	}
+        return {
+                ...g,
+                placed: [],
+                hand: g.hand.map(makeAvail)
+        }
 }
 
-export function PlaceByChar(g: PlayArea, c: string): void {
+export function PlaceByChar(g: PlayArea, c: string): PlayArea {
 	const matches = g.hand
 		.filter((letter) => letter.available)
 		.filter((letter) => letter.char === c.toUpperCase())
 		.sort((a, b) => a.score - b.score)
 	if (matches.length === 0) {
-		return
+		return g
 	}
 
-	PlaceById(g, matches[matches.length-1].id)
+	return PlaceById(g, matches[matches.length-1].id)
 }
 
-export function PlaceWord(g: PlayArea, word: string): void {
+export function PlaceWord(g: PlayArea, word: string): PlayArea {
+        let res = g
 	for (const c of word) {
-		PlaceByChar(g, c)
+		res = PlaceByChar(res, c)
 	}
+        return res
 }
 
-export function PlaceById(g: PlayArea, id: string): void {
+export function PlaceById(g: PlayArea, id: string): PlayArea {
 	const idx = g.hand.findIndex((letter) => 
 		letter.available && letter.id === id
 	);
 	if (idx === -1) {
-		return;
+		return g
 	}
+	
+        let nextHand = [ ...g.hand ]
+        nextHand[idx] = { 
+                ...nextHand[idx],
+                available: false
+        }
 
-	g.placed = g.placed.concat([g.hand[idx]]);
-	g.hand[idx].available = false;
+        return {
+                ...g,
+                placed: g.placed.concat([g.hand[idx]]),
+                hand: nextHand
+        }
 }
 
 function makeAvail(letter: Letter): Letter {
-	letter.available = true
-	return letter
+        if (letter.available) {
+                return letter
+        }
+
+        return {
+                ...letter,
+                available: true
+        }
 }
 
 function isPlaced(g: PlayArea, letter: Letter): boolean {
