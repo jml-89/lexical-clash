@@ -136,47 +136,45 @@ const HealthBar = memo(function HealthBar({ badguy, health, healthMax }: {
 	);
 })
 
-function ActionButton({ player, statefn }: { player: Battler, statefn: statefnT }) {
-	return (
-                <>
-			{ player.playArea.placed.length === 0 ? (
-				<></>
-			) : player.checking ? (
-				<motion.button 
-					key="checkbutton"
-					className="p-2 rounded-lg bg-lime-300 text-2xl" 
-					animate={{ scale: 1 }}
-					initial={{ scale: 0 }}
-				>
-					Checking...
-				</motion.button>
-			) : !player.scoresheet ? (
-				<motion.button 
-					key="checkbutton"
-					className="p-2 rounded-lg bg-lime-300 text-2xl" 
-					onClick={async () => {
-							await statefn(Checking)
-							await statefn(UpdateScores)
-						}
-					}
-					animate={{ scale: 1 }}
-					initial={{ scale: 0 }}
-				>
-					Check
-				</motion.button>
-			) : !player.scoresheet.ok ? (
-				<motion.button 
-					key="checkbutton"
-					className="p-2 rounded-lg bg-red-200 text-2xl" 
-				>
-					Invalid
-				</motion.button>
-			) : (
-                                <></>
-			) }
-                </>
-	)
-}
+const ActionButton = memo(function ActionButton({ checking, scoresheet, statefn }: { 
+        checking: boolean,
+        scoresheet: Scoresheet | undefined,
+        statefn: statefnT 
+}) {
+        return checking ? (
+                <motion.button 
+                        key="checkbutton"
+                        className="p-2 rounded-lg bg-lime-300 text-2xl" 
+                        animate={{ scale: 1 }}
+                        initial={{ scale: 0 }}
+                >
+                        Checking...
+                </motion.button>
+        ) : !scoresheet ? (
+                <motion.button 
+                        key="checkbutton"
+                        className="p-2 rounded-lg bg-lime-300 text-2xl" 
+                        onClick={async () => {
+                                        await statefn(Checking)
+                                        await statefn(UpdateScores)
+                                }
+                        }
+                        animate={{ scale: 1 }}
+                        initial={{ scale: 0 }}
+                >
+                        Check
+                </motion.button>
+        ) : !scoresheet.ok ? (
+                <motion.button 
+                        key="checkbutton"
+                        className="p-2 rounded-lg bg-red-200 text-2xl" 
+                >
+                        Invalid
+                </motion.button>
+        ) : (
+                <></>
+        )
+})
 
 function AttackButton({ statefn }: { statefn: statefnT }) {
         return (
@@ -295,7 +293,7 @@ const Player = memo(function Player({ player, statefn }: { player: Battler, stat
 		<motion.div className="flex-1 flex flex-col gap-2 px-1"
 			transition={{ type: 'spring' }}
 		>
-		        <ActionButton player={player} statefn={statefn} />
+		        {player.playArea.placed.length > 0 && <ActionButton checking={player.checking} scoresheet={player.scoresheet} statefn={statefn} />}
 			<div className="flex-1">
 				<PlayerPlaced letters={player.playArea.placed} statefn={statefn} />
 			</div>
