@@ -6,9 +6,9 @@ import {
 	HypoForms, 
 	Candidates, 
 	GetSession, 
-	SetSession
+	SetSession,
+	ServerSeed
 } from '@/lib/wordnet'
-import { serverSeed } from '@/lib/serveronly';
 import { KnowledgeBase } from '@/lib/util'
 
 import { Game } from './game';
@@ -28,6 +28,6 @@ export default async function Home({ params }: {
 	}
 
 	return (
-		<Game sid={params.session} seed={await serverSeed()} save={session} knowledge={wordnet} />
+		<Game sid={params.session} seed={await ServerSeed()} save={session} knowledge={wordnet} />
 	);
 }

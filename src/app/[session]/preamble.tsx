@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -19,7 +19,7 @@ import { Opponent } from '@/lib/opponent'
 import { AbilityCard } from '@/lib/ability'
 import { BonusCard } from '@/lib/bonus'
 
-import { Mutator, ScoredWord, HyperSet } from '@/lib/util'
+import { CreateMutator, ScoredWord, HyperSet } from '@/lib/util'
 
 type preamblefn = (p: Preamble) => Promise<void>
 type statefnT = (fn: preamblefn) => Promise<void>
@@ -106,11 +106,10 @@ export function ShowPreamble({ preamble, endfn }: {
 	preamble: Preamble,
 	endfn: (p: Preamble) => Promise<void>
 }) {
-	const [myPreamble, setMyPreamble] = useState(preamble)
-	const statefn = useCallback(
-		async function(fn: preamblefn): Promise<void> {
-			await Mutator(myPreamble, fn, setMyPreamble, endfn)
-	}, [myPreamble, setMyPreamble, endfn])
+	const [myPreambleX, setMyPreambleX] = useState(preamble)
+        const mutator = useRef(CreateMutator(myPreambleX, setMyPreambleX, endfn))
+	const myPreamble = mutator.current.get()
+	const statefn = mutator.current.set
 
 	const title = myPreamble.stagekey === 'opponent' ? 'Select Your Opponent'
 		: myPreamble.stagekey === 'ability' ? 'Select An Ability'

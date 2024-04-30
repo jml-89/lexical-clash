@@ -31,7 +31,7 @@ import { Scoresheet } from '@/lib/score'
 import { Letter } from '@/lib/letter'
 import { DrawLetter } from './letter'
 
-import { Mutator, Clutator } from '@/lib/util'
+import { CreateMutator } from '@/lib/util'
 import { Opponent } from '@/lib/opponent'
 
 import { BonusCard } from '@/lib/bonus'
@@ -45,15 +45,15 @@ export function PlayBattle({ game, endfn }: {
 	endfn: (b: Battle) => Promise<void> 
 }) {
 	const [myGameX, setMyGameX] = useState(game)
-        const clute = useRef(Clutator(myGameX, setMyGameX, endfn))
-        const myGame = clute.current.get()
-	const mutator = clute.current.set 
+        const mutator = useRef(CreateMutator(myGameX, setMyGameX, endfn))
+        const myGame = mutator.current.get()
+	const statefn = mutator.current.set 
 
 	return (
 		<main className="flex-1 flex flex-col items-center p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
 			<DrawOpponent opp={myGame.opponent} />
-			<Contest ps={myGame.player.scoresheet} os={myGame.opponent.scoresheet} statefn={mutator} />
-			<Player player={myGame.player} statefn={mutator} />
+			<Contest ps={myGame.player.scoresheet} os={myGame.opponent.scoresheet} statefn={statefn} />
+			<Player player={myGame.player} statefn={statefn} />
 		</main>
 	);
 }

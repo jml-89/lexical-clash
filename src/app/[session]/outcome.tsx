@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { Outcome, EndOutcome } from '@/lib/game'
-import { Mutator } from '@/lib/util'
+import { CreateMutator } from '@/lib/util'
 
 import { 
 	motion 
@@ -12,11 +12,10 @@ export function ShowOutcome({ outcome, endfn }: {
 	outcome: Outcome,
 	endfn: (o: Outcome) => Promise<void> 
 }) {
-	const [myOutcome, setMyOutcome] = useState(outcome)
-	const statefn = useCallback(
-		async function(fn: (o: Outcome) => Promise<void>): Promise<void> {
-			await Mutator(myOutcome, fn, setMyOutcome, endfn)
-	}, [myOutcome, setMyOutcome, endfn])
+	const [myOutcomeX, setMyOutcomeX] = useState(outcome)
+        const mutator = useRef(CreateMutator(myOutcomeX, setMyOutcomeX, endfn))
+	const myOutcome = mutator.current.get()
+	const statefn = mutator.current.set
 
 	async function endOutcome() {
 		await statefn(async (g: Outcome) => await EndOutcome(g))

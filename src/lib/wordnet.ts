@@ -1,3 +1,7 @@
+//wordnet
+//The server-side database of words and their relations
+//Also includes a few other server-side operations; database initialisation, game saves, prng seed, etc.
+
 'use server'
 
 import Saxophone from 'saxophone'
@@ -32,7 +36,6 @@ export async function IsWordValid(word: string): Promise<boolean> {
 // Check if $left is $relation of $right
 // So for a hypernym, is left the hypernym of right? 
 // and so on
-//export type RelationFunc = (relation: string, left: string, right: string) => Promise<boolean>
 export async function AreWordsRelated(relation: string, left: string, right: string): Promise<boolean> {
 	const leftsynids = await getSynids(left)
 	const rightsynids = await getSynids(right)
@@ -623,5 +626,9 @@ async function cleanup(): Promise<void> {
 		analyze;
 		`
 	)
+}
+
+export async function ServerSeed(): Promise<number> {
+	return Date.now()
 }
 

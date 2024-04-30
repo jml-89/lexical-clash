@@ -1,6 +1,3 @@
-import { Letter, lettersToString } from './letter';
-
-// Bonuses are modifiers to the score produced by a given word
 // If I can get a good set of data going, it can proc off cool things like
 // - Etymology
 // - Synonyms
@@ -11,6 +8,10 @@ import { Letter, lettersToString } from './letter';
 //
 // Bonuses may rely on information that only resides server side
 // As such they need to be asynchronous
+
+import { Letter, lettersToString } from './letter';
+
+// Bonuses are modifiers to the score produced by a given word
 
 // Presentation / simple representation of a bonus
 // Having the function as part of this can cause issues with server/client proxying
@@ -59,15 +60,16 @@ const base: BonusBase[] = [
 		key: "thth",
 		name: "No Lisp",
 		desc: "Word contains the sequence [th]",
-		weight: 3,
+		weight: 5,
 		fn: async (rf: relationFunc, word: Letter[]): Promise<number> => {
 			let n = 0;
 			let bc = '';
 			for (const c of word) {
-				if (bc === 't' && c.char === 'h') {
+				const nc = c.char.toLowerCase()
+				if (bc === 't' && nc === 'h') {
 					n += 1
 				}
-				bc = c.char
+				bc = nc
 			}
 			return n;
 		}

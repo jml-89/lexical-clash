@@ -1,6 +1,11 @@
+//playarea
 // Simple abstraction for the basest component of a letter-based game
-// The player's bag of letters, letters on hand, discarded letters,
-// and letters placed ready to be checked and allowed to be played
+// The player's 
+// - bag of letters
+// - letters on hand
+// - letters placed for play
+// There was also discarded letters previously but I've left that off now
+// Letters just get recycled into the letter bag
 
 import {
 	Letter

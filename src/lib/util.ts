@@ -1,15 +1,25 @@
+// util
+// Mandatory potpourri of functions that I can't find a more suitable home for
 import prand from 'pure-rand'
 
-interface Clute<T> {
+// Mutator is just the interface created by CreateMutator's return
+// CreateMutator is the interesting one
+interface Mutator<T> {
         get: () => T
         set: (fn: (t: T) => Promise<void>) => Promise<void>
 }
 
-export function Clutator<T>(
+// World's simplest closure implementation
+// This closes over the parameter $g and returns a getter/setter
+// The reason this is useful is the get/set function objects do not change with g
+// So when the setter is passed in props, React sees the same function object ever render -- good for memoisation
+// This is only intended to be used for the Preamble/Battle/Outcome phases
+// That's what the less obvious $endfn parameter is for, the function called from GameState to change phase
+export function CreateMutator<T>(
 	g: T, 
 	setfn: (t: T) => void,
 	endfn: (t: T) => Promise<void>
-): Clute<T> {
+): Mutator<T> {
 	let c = { ...g }
 
         return {
@@ -23,21 +33,8 @@ export function Clutator<T>(
         }
 }
 
-// Just trust me bro
-export async function Mutator<T>(
-	g: T, 
-	fn: (t: T) => Promise<void>,
-	setfn: (t: T) => void,
-	endfn: (t: T) => Promise<void>
-) {
-	const c = { ...g }
-	await fn(c)
-	setfn(c)
-	await endfn(c)
-}
-
 // This was dumped here just so it's safe to import anywhere
-// Really, belongs in wordnet.ts
+// Really, belongs in wordnet.ts, but that's server-only
 export interface KnowledgeBase {
 	valid: (word: string) => Promise<boolean>
 	related: (relation: string, left: string, right: string) => Promise<boolean>
@@ -45,7 +42,6 @@ export interface KnowledgeBase {
 	candidates: (lo: number, hi: number, maxlen: number, num: number) => Promise<HyperSet[]>
 	save: (id: string, o: string) => Promise<void>
 }
-
 
 export interface ScoredWord {
 	word: string
@@ -58,12 +54,14 @@ export interface HyperSet {
 	hyponyms: ScoredWord[]
 }
 
+// Most of the rest of this file is wrappers for functions that use prand
+// We need to use prand so we have same random numbers generated on server and client
+// But the prand call convention can be a little unwieldly, so we cheat a little
 export interface HasPRNG {
 	prng: prand.RandomGenerator
 	iter: number
 }
 
-// saves on managing the prng mutations, a little bit
 export function PickRandom<T>(g: HasPRNG, m: Map<string, T>, n: number): Map<string, T> {
 	const res = new Map<string, T>
 	const keys = Shuffle(g, [...m.keys()])

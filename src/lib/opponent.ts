@@ -1,4 +1,6 @@
-// Simple profiles
+//opponent
+// Really should be called profile at this point
+// Not a whole lot to say other than it's hardcoded and shouldn't be
 
 export interface Opponent {
 	key: string;

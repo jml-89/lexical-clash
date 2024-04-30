@@ -1,3 +1,19 @@
+//score
+// Scoring takes place on the client but relies on calls to server functions
+// Why?
+// Server has the dictionary
+// Feasible to load dictionary on client if small
+// But eventually dictionary can grow to be large
+// Hundreds of megabytes -- possibly eventually maybe
+// 
+// Scoring has a few dimension
+// - Letter score
+// - Bonuses
+// - Enemy weaknesses
+// Letter score can be done client side
+// Bonuses can rely on word relations, requires server functions
+// And enemy weaknesses are always word relations, another server function there
+
 import { 
 	Letter, 
 	lettersToString,
@@ -16,13 +32,8 @@ import {
 	KnowledgeBase
 } from './util'
 
-// Scoring has to take place on the server
-// Why?
-// Server has the dictionary
-// Feasible to load dictionary on client if small
-// But eventually dictionary can grow to be large
-// Hundreds of megabytes -- possibly eventually maybe
-
+// score = totalAdd+totalMul = sum(adds) + sum(muls)
+// Redundant, yes; convenient, very yes
 export interface Scoresheet {
 	ok: boolean
 

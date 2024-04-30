@@ -1,8 +1,8 @@
 {
-  "name": "word-game",
-  "version": "0.1.0",
+  "name": "lexical-clash",
+  "version": "0.4.0",
   "private": true,
-  "author": "jml89",
+  "author": "jml-89",
   "description": "Lexical Clash - a word game",
   "scripts": {
     "dev": "next dev",

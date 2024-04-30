@@ -18,7 +18,7 @@ If you used different values when setting up your database, use those
 `PGHOST=localhost`  
 `PGPORT=5432`  
 `PGUSER=lexicalclash`   
-`PGPASS=secretpassword`   
+`PGPASSWORD=secretpassword`   
 `PGDATABASE=lexicalclashgame`   
 
 Browse into base directory (the one with this README.md)   

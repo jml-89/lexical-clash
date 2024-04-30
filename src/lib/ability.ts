@@ -1,3 +1,9 @@
+//ability
+// This one's a bit of a miss, not gonna lie
+// The idea was to have them only work on a player's own playarea
+// But that really limits what they can do too
+// They're super useful in play, but limited in variety severely
+
 import { 
 	Letter,
 } from './letter';
@@ -18,6 +24,7 @@ export interface AbilityCard {
 	ok: boolean
 }
 
+// pred -> predicate, I just wanted it to be four letters like func
 export interface AbilityImpl {
 	pred: (pr: PlayArea) => boolean;
 	func: (pr: PlayArea) => PlayArea;

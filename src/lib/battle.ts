@@ -1,3 +1,6 @@
+//battle
+// The actual game!
+
 'use client';
 
 import { 
@@ -68,7 +71,7 @@ export interface Battler {
 	wordMatches: string[]
 }
 
-export async function FillWordbank(lookup: (s: string) => Promise<ScoredWord[]>, o: Battler): Promise<void> {
+export async function FillWordbank(lookup: (s: string) => Promise<ScoredWord[]>, o: Battler): Promise<ScoredWord[]> {
 	let xs = []
 	for (const s of o.profile.strength) {
 		for (const word of await lookup(s)) {
@@ -76,8 +79,8 @@ export async function FillWordbank(lookup: (s: string) => Promise<ScoredWord[]>,
 		}
 	}
 
-	const minScore = 3 + (4 * (o.profile.level-1))
-	const maxScore = 8 + (5 * (o.profile.level-1))
+	const minScore = 4 + (4 * (o.profile.level-1))
+	const maxScore = 9 + (5 * (o.profile.level-1))
 	const scoreInRange = (xs: ScoredWord): boolean => {
 		return (minScore <= xs.score) && (xs.score <= maxScore)
 	}
@@ -92,9 +95,7 @@ export async function FillWordbank(lookup: (s: string) => Promise<ScoredWord[]>,
 		).slice(0, 20)
 	}
 
-	for (const y of ys) {
-		o.wordbank.set(y.word, y)
-	}
+	return ys
 }
 
 interface BattlerSetup {
@@ -182,7 +183,11 @@ export async function NewBattle(bs: BattleSetup): Promise<Battle> {
 		})
 	}
 
-	await FillWordbank(battle.kb.hypos, battle.opponent)
+	const words = await FillWordbank(battle.kb.hypos, battle.opponent)
+	for (const word of words) {
+		battle.opponent.wordbank.set(word.word, word)
+	}
+
 	battle.opponent.wordbank = ShuffleMap(battle, battle.opponent.wordbank)
         battle.player.wordbank = bs.wordbank
 
@@ -248,6 +253,11 @@ export async function UseAbility(g: Battle, key: string): Promise<void> {
         g.player.wordMatches = WordbankCheck(g.player)
 }
 
+// This function only uses the simple score of a word
+// That is, its letter score
+// No bonuses / weaknesses are included
+// Doing the full server round trip for every word, no way
+// There could be a server-side solution...
 function WordbankCheck(g: Battler): string[] {
 	const found: ScoredWord[] = []
 

@@ -1,3 +1,11 @@
+//preamble
+// The steps before battle, where the player selects
+// - Opponent
+// - Ability (new or upgrade)
+// - Bonus (new or upgrade)
+// - Wordbank Booster (new)
+// Originally more generically written
+// Found it easier to lean on the type system by writing more specific function calls
 
 import  {
 	Opponent,
