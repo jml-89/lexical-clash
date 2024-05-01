@@ -1,33 +1,40 @@
-import Link from 'next/link';
+import Link from "next/link";
 
-import { 
-	IsWordValid, 
-	AreWordsRelated, 
-	HypoForms, 
-	Candidates, 
-	GetSession, 
-	SetSession,
-	ServerSeed
-} from '@/lib/wordnet'
-import { KnowledgeBase } from '@/lib/util'
+import {
+  IsWordValid,
+  AreWordsRelated,
+  HypoForms,
+  Candidates,
+  GetSession,
+  SetSession,
+  ServerSeed,
+} from "@/lib/wordnet";
+import { KnowledgeBase } from "@/lib/util";
 
-import { Game } from './game';
+import { Game } from "./game";
 
-export default async function Home({ params }: { 
-	params: { 
-		session: string 
-	}
+export default async function Home({
+  params,
+}: {
+  params: {
+    session: string;
+  };
 }) {
-	const session = await GetSession(params.session)
-	const wordnet: KnowledgeBase = {
-		valid: IsWordValid,
-		related: AreWordsRelated,
-		hypos: HypoForms,
-		candidates: Candidates,
-		save: SetSession
-	}
+  const session = await GetSession(params.session);
+  const wordnet: KnowledgeBase = {
+    valid: IsWordValid,
+    related: AreWordsRelated,
+    hypos: HypoForms,
+    candidates: Candidates,
+    save: SetSession,
+  };
 
-	return (
-		<Game sid={params.session} seed={await ServerSeed()} save={session} knowledge={wordnet} />
-	);
+  return (
+    <Game
+      sid={params.session}
+      seed={await ServerSeed()}
+      save={session}
+      knowledge={wordnet}
+    />
+  );
 }

@@ -1,12 +1,11 @@
-declare module 'saxophone'
+declare module "saxophone";
 
 interface SaxTag {
-	name: string
-	attrs: string
-	isSelfClosing: boolean
+  name: string;
+  attrs: string;
+  isSelfClosing: boolean;
 }
 
 interface SaxText {
-	contents: string
+  contents: string;
 }
-

@@ -2,73 +2,77 @@
 //The server-side database of words and their relations
 //Also includes a few other server-side operations; database initialisation, game saves, prng seed, etc.
 
-'use server'
+"use server";
 
-import Saxophone from 'saxophone'
-import zlib from 'node:zlib'
-import { pipeline } from 'node:stream/promises'
-import fetch from 'node-fetch'
+import Saxophone from "saxophone";
+import zlib from "node:zlib";
+import { pipeline } from "node:stream/promises";
+import fetch from "node-fetch";
 
-import { ScoredWord, HyperSet } from './util'
-import { Letter, stringToLetters, simpleScore } from './letter'
+import { ScoredWord, HyperSet } from "./util";
+import { Letter, stringToLetters, simpleScore } from "./letter";
 
-import { Pool } from 'pg'
-const pool = new Pool()
+import { Pool } from "pg";
+const pool = new Pool();
 
 export async function IsWordValid(word: string): Promise<boolean> {
-	try { 
-		const res = await pool.query({
-			text: `
+  try {
+    const res = await pool.query({
+      text: `
 				select *
 				from writtenform
 				where form ilike $1;
-			`, 
-			values: [word]
-		})
-		return res.rowCount !== null && res.rowCount > 0
-	} catch (e) {
-		console.log("Database whoopsie uh oh")
-		console.log(e)
-		throw e
-	}
+			`,
+      values: [word],
+    });
+    return res.rowCount !== null && res.rowCount > 0;
+  } catch (e) {
+    console.log("Database whoopsie uh oh");
+    console.log(e);
+    throw e;
+  }
 }
 
 // Check if $left is $relation of $right
-// So for a hypernym, is left the hypernym of right? 
+// So for a hypernym, is left the hypernym of right?
 // and so on
-export async function AreWordsRelated(relation: string, left: string, right: string): Promise<boolean> {
-	const leftsynids = await getSynids(left)
-	const rightsynids = await getSynids(right)
-	for (const ls of leftsynids) {
-		for (const rs of rightsynids) {
-			if (await isRelatedSynid(relation, ls, rs)) {
-				return true
-			}
-		}
-	}
-	
-	return false
+export async function AreWordsRelated(
+  relation: string,
+  left: string,
+  right: string,
+): Promise<boolean> {
+  const leftsynids = await getSynids(left);
+  const rightsynids = await getSynids(right);
+  for (const ls of leftsynids) {
+    for (const rs of rightsynids) {
+      if (await isRelatedSynid(relation, ls, rs)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 // For opponent words
 export async function HypoForms(word: string): Promise<ScoredWord[]> {
-	const res = await pool.query({
-		text: `
+  const res = await pool.query({
+    text: `
 			select a.hypo, b.score
 			from simplerelations a
 			inner join wordscore b
 			on a.hyper = $1
 			and a.hypo = b.word;
 		`,
-		values: [word]
-	})
+    values: [word],
+  });
 
-	return res.rows.map((row) => ({ word: row.hypo, score: row.score }))
+  return res.rows.map((row) => ({ word: row.hypo, score: row.score }));
 }
 
 export async function Definitions(s: string): Promise<string[]> {
-	const res = await pool.query({
-		text: `
+  const res = await pool.query({
+    text: `
 			with lexids as (
 				select lexid
 				from writtenform
@@ -83,19 +87,25 @@ export async function Definitions(s: string): Promise<string[]> {
 				where synid in (select * from synids)
 			)
 			select * from defs;
-		`, values: [s]
-	})
+		`,
+    values: [s],
+  });
 
-	return res.rows.map((row) => row.content)
+  return res.rows.map((row) => row.content);
 }
 
 // Candidates
 // lo & hi, bounds on collection size
-// maxlen: maximum 
+// maxlen: maximum
 // num: how many to return
-export async function Candidates(lo: number, hi: number, maxlen: number, num: number): Promise<HyperSet[]> {
-	const res = await pool.query({
-		text: `
+export async function Candidates(
+  lo: number,
+  hi: number,
+  maxlen: number,
+  num: number,
+): Promise<HyperSet[]> {
+  const res = await pool.query({
+    text: `
 			select hyper
 			from simplerelations 
 			group by hyper
@@ -106,21 +116,21 @@ export async function Candidates(lo: number, hi: number, maxlen: number, num: nu
 			order by random()
 			limit $4;
 		`,
-		values: [lo, hi, maxlen, num]
-	})
+    values: [lo, hi, maxlen, num],
+  });
 
-	const hs: HyperSet[] = []
-	for (const row of res.rows) {
-		const defs = await Definitions(row.hyper)
-		const hypos = await HypoForms(row.hyper)
-		hs.push({
-			hypernym: row.hyper as string, 
-			definitions: defs,
-			hyponyms: hypos
-		})
-	}
+  const hs: HyperSet[] = [];
+  for (const row of res.rows) {
+    const defs = await Definitions(row.hyper);
+    const hypos = await HypoForms(row.hyper);
+    hs.push({
+      hypernym: row.hyper as string,
+      definitions: defs,
+      hyponyms: hypos,
+    });
+  }
 
-	return hs
+  return hs;
 }
 
 // For the purposes of this simple game, return all matching synids
@@ -129,8 +139,8 @@ export async function Candidates(lo: number, hi: number, maxlen: number, num: nu
 // Just return everything
 // Verb, noun, what have you -- better to cover more than less
 async function getSynids(writtenform: string): Promise<string[]> {
-	const res = await pool.query({
-		text: `
+  const res = await pool.query({
+    text: `
 			select synid 
 			from synsetmember 
 			where memberid in (
@@ -142,20 +152,23 @@ async function getSynids(writtenform: string): Promise<string[]> {
 					where form ilike $1
 				)
 			);`,
-		values: [writtenform]
-	})
-	
-	return res.rows.map((row) => row.synid)
+    values: [writtenform],
+  });
+
+  return res.rows.map((row) => row.synid);
 }
 
-
 // Check if $leftsynid is $relation of $rightsynid
-// So for a hypernym, is left the hypernym of right? 
+// So for a hypernym, is left the hypernym of right?
 // and so on
-export async function isRelatedSynid(relation: string, leftsynid: string, rightsynid: string): Promise<boolean> {
-	const res = await pool.query({
-		name: 'synrec',
-		text: `
+export async function isRelatedSynid(
+  relation: string,
+  leftsynid: string,
+  rightsynid: string,
+): Promise<boolean> {
+  const res = await pool.query({
+    name: "synrec",
+    text: `
 			with recursive relations as (
 				select 
 					target
@@ -183,237 +196,227 @@ export async function isRelatedSynid(relation: string, leftsynid: string, rights
 			from relations
 			where target = $3;
 		`,
-		values: [rightsynid, relation, leftsynid]
-	})
+    values: [rightsynid, relation, leftsynid],
+  });
 
-	return res.rows.length > 0 
+  return res.rows.length > 0;
 }
 
 export async function SetSession(id: string, doc: string): Promise<void> {
-	await pool.query({
-		text:`
+  await pool.query({
+    text: `
 			insert into 
 			session (id, doc) 
 			values ($1, $2) 
 			on conflict (id) do update
 			set doc = $2;
-		`, values: [id, doc]
-	})
+		`,
+    values: [id, doc],
+  });
 }
 
 export async function GetSession(id: string): Promise<Object | undefined> {
-	const res = await pool.query({
-		text: `select doc from session where id = $1;`,
-		values: [id]
-	})
-	return res.rows.length > 0 ? res.rows[0].doc : undefined
+  const res = await pool.query({
+    text: `select doc from session where id = $1;`,
+    values: [id],
+  });
+  return res.rows.length > 0 ? res.rows[0].doc : undefined;
 }
 
 export async function InitialiseDatabase(): Promise<void> {
-	console.log("Initialising Database")
+  console.log("Initialising Database");
 
-	interface SaxTagParsed {
-		name: string
-		attrs: Record<string, string>
-	}
+  interface SaxTagParsed {
+    name: string;
+    attrs: Record<string, string>;
+  }
 
-	let queries = new Map<string, string>()
-	let queryArgs = new Map<string, string[][]>()
+  let queries = new Map<string, string>();
+  let queryArgs = new Map<string, string[][]>();
 
-	function addQuery(name: string, text: string, values: string[]): void {
-		if (!queries.has(name)) {
-			queries.set(name, text)
-		}
+  function addQuery(name: string, text: string, values: string[]): void {
+    if (!queries.has(name)) {
+      queries.set(name, text);
+    }
 
-		if (!queryArgs.has(name)) {
-			queryArgs.set(name, [])
-		}
-		let args = queryArgs.get(name) as string[][]
-		args.push(values)
-	}
+    if (!queryArgs.has(name)) {
+      queryArgs.set(name, []);
+    }
+    let args = queryArgs.get(name) as string[][];
+    args.push(values);
+  }
 
-	function wordIsGood(word: string): boolean {
-		for (const c of word) {
-			if (c < 'a' || c > 'z') {
-				return false
-			}
-		}
-		return true
-	}
+  function wordIsGood(word: string): boolean {
+    for (const c of word) {
+      if (c < "a" || c > "z") {
+        return false;
+      }
+    }
+    return true;
+  }
 
-	let tagStack: SaxTagParsed[] = []
-	const sax = new Saxophone();
-	sax.on('tagopen', (tag: SaxTag): void => {
-		const attrs = Saxophone.parseAttrs(tag.attrs)
+  let tagStack: SaxTagParsed[] = [];
+  const sax = new Saxophone();
+  sax.on("tagopen", (tag: SaxTag): void => {
+    const attrs = Saxophone.parseAttrs(tag.attrs);
 
-		if (tag.name === 'Lemma') {
-			addQuery('LexicalEntry',
-				`insert into 
+    if (tag.name === "Lemma") {
+      addQuery(
+        "LexicalEntry",
+        `insert into 
 				LexicalEntry (id, partOfSpeech) 
 				values ($1, $2) 
 				on conflict do nothing;`,
-				[ 
-					tagStack[tagStack.length-1].attrs.id,
-				 	attrs.partOfSpeech
-				]
-			)
-		}
+        [tagStack[tagStack.length - 1].attrs.id, attrs.partOfSpeech],
+      );
+    }
 
-		if (tag.name === 'Form' || tag.name === 'Lemma') {
-			if (wordIsGood(attrs.writtenForm)) {
-				addQuery('WrittenForm',
-					`insert into
+    if (tag.name === "Form" || tag.name === "Lemma") {
+      if (wordIsGood(attrs.writtenForm)) {
+        addQuery(
+          "WrittenForm",
+          `insert into
 					WrittenForm (lexid, form)
 					values ($1, $2) 
 					on conflict do nothing;`,
-					[ 
-						tagStack[tagStack.length-1].attrs.id,
-						attrs.writtenForm,
-					]
-				)
+          [tagStack[tagStack.length - 1].attrs.id, attrs.writtenForm],
+        );
 
-				addQuery('WordScore',
-					 `insert into
+        addQuery(
+          "WordScore",
+          `insert into
 					 WordScore (word, score)
 					 values ($1, $2)
 					 on conflict do nothing;`,
-					[
-						attrs.writtenForm,
-						simpleScore(stringToLetters('tmp', attrs.writtenForm))
-					]
-				)
-			}
-		}
+          [
+            attrs.writtenForm,
+            simpleScore(stringToLetters("tmp", attrs.writtenForm)),
+          ],
+        );
+      }
+    }
 
-		if (tag.name === 'Synset') {
-			addQuery('Synset',
-				`insert into 
+    if (tag.name === "Synset") {
+      addQuery(
+        "Synset",
+        `insert into 
 				Synset (id, ili, partOfSpeech) 
 				values ($1, $2, $3) 
 				on conflict do nothing;`,
-				[
-					attrs.id,
-					attrs.ili,
-					attrs.partOfSpeech
-				]
-			)
+        [attrs.id, attrs.ili, attrs.partOfSpeech],
+      );
 
-			for (const member of attrs.members.split(' ')) {
-				addQuery('SynsetMember',
-					`insert into 
+      for (const member of attrs.members.split(" ")) {
+        addQuery(
+          "SynsetMember",
+          `insert into 
 					SynsetMember (synid, memberid) 
 					values ($1, $2) 
 					on conflict do nothing;`,
-					[attrs.id, member]
-				)
-			}
-		}
+          [attrs.id, member],
+        );
+      }
+    }
 
-		if (tag.name === 'SynsetRelation') {
-			addQuery('SynsetRelation',
-				`insert into 
+    if (tag.name === "SynsetRelation") {
+      addQuery(
+        "SynsetRelation",
+        `insert into 
 				SynsetRelation (synid, target, relType) 
 				values ($1, $2, $3) 
 				on conflict do nothing;`,
-				[
-					tagStack[tagStack.length-1].attrs.id,
-					attrs.target, 
-					attrs.relType
-				]
-			)
-		}
+        [tagStack[tagStack.length - 1].attrs.id, attrs.target, attrs.relType],
+      );
+    }
 
+    if (!tag.isSelfClosing) {
+      tagStack.push({ name: tag.name, attrs: attrs });
+    }
+  });
 
-		if (!tag.isSelfClosing) {
-			tagStack.push({ name: tag.name, attrs: attrs})
-		}
-	})
+  sax.on("text", (text: SaxText): void => {
+    if (tagStack.length < 1) {
+      return;
+    }
 
-	sax.on('text', (text: SaxText): void => {
-		if (tagStack.length < 1) {
-			return
-		}
-
-		const tag = tagStack[tagStack.length-1]
-		const isText = tag.name === 'Definition'
-			|| tag.name === 'Example'
-			|| tag.name === 'ILIDefinition'
-		if (isText) {
-			addQuery('SynsetText',
-				 `insert into
+    const tag = tagStack[tagStack.length - 1];
+    const isText =
+      tag.name === "Definition" ||
+      tag.name === "Example" ||
+      tag.name === "ILIDefinition";
+    if (isText) {
+      addQuery(
+        "SynsetText",
+        `insert into
 				 SynsetText (synid, nodename, content)
 				 values ($1, $2, $3)
 				 on conflict do nothing;`,
-				 [
-					tagStack[tagStack.length-2].attrs.id,
-					tagStack[tagStack.length-1].name,
-					text.contents
-				 ]
-			)
-		}
-	})
+        [
+          tagStack[tagStack.length - 2].attrs.id,
+          tagStack[tagStack.length - 1].name,
+          text.contents,
+        ],
+      );
+    }
+  });
 
-	sax.on('tagclose', (tag: SaxTag): void => {
-		tagStack.pop()
-	})
+  sax.on("tagclose", (tag: SaxTag): void => {
+    tagStack.pop();
+  });
 
-	console.log("Fetching Wordnet file")
-	const resp = await fetch('https://storage.googleapis.com/lexical-clash-resources/wordnet.xml.gz')
-	if (!resp.ok) {
-		throw new Error(`Failed to fetch wordnet data ${resp.statusText}`)
-	}
-	if (resp.body === null) {
-		throw new Error("Wordnet body is null")
-	}
+  console.log("Fetching Wordnet file");
+  const resp = await fetch(
+    "https://storage.googleapis.com/lexical-clash-resources/wordnet.xml.gz",
+  );
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch wordnet data ${resp.statusText}`);
+  }
+  if (resp.body === null) {
+    throw new Error("Wordnet body is null");
+  }
 
-	console.log("Processing Wordnet file")
-	await pipeline(
-		resp.body, 
-		zlib.createGunzip(), 
-		sax
-	)
+  console.log("Processing Wordnet file");
+  await pipeline(resp.body, zlib.createGunzip(), sax);
 
-	console.log("Initialisating database")
-	await init()
+  console.log("Initialisating database");
+  await init();
 
-	console.log("Adding data to database")
-	const client = await pool.connect()
-	try {
+  console.log("Adding data to database");
+  const client = await pool.connect();
+  try {
+    for (const [query, entries] of queryArgs) {
+      await client.query("BEGIN");
 
-		for (const [query, entries] of queryArgs) {
-			await client.query('BEGIN')
+      console.log(`Running ${query} inserts`);
+      const q = {
+        name: query,
+        text: queries.get(query) as string,
+        values: [] as any[],
+      };
+      for (const entry of entries) {
+        q.values = entry;
+        await client.query(q);
+      }
 
-			console.log(`Running ${query} inserts`)
-			const q = { 
-				name: query,
-				text: queries.get(query) as string,
-				values: [] as any[]
-			}
-			for (const entry of entries) {
-				q.values = entry
-				await client.query(q)
-			}
+      await client.query("COMMIT");
+    }
+  } catch (e) {
+    console.log("Something went wrong :(");
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
 
-			await client.query('COMMIT')
-		}
+  console.log("Cleaning up database");
+  await cleanup();
 
-	} catch (e) {
-		console.log('Something went wrong :(')
-		await client.query('ROLLBACK')
-		throw e
-	} finally {
-		client.release()
-	}
-
-	console.log("Cleaning up database")
-	await cleanup()
-
-	console.log("All done")
+  console.log("All done");
 }
 
 async function init(): Promise<void> {
-	console.log("Dropping tables")
-	await pool.query(`
+  console.log("Dropping tables");
+  await pool.query(`
 		BEGIN;
 
 		DROP TABLE IF EXISTS SynsetRelation;
@@ -427,10 +430,10 @@ async function init(): Promise<void> {
 		drop table if exists session;
 
 		COMMIT;
-	`)
+	`);
 
-	console.log("Creating tables without indices or foreign keys")
-	await pool.query(`
+  console.log("Creating tables without indices or foreign keys");
+  await pool.query(`
 		begin;
 
 		create table session (
@@ -485,12 +488,12 @@ async function init(): Promise<void> {
 		COMMIT;
 
 		ANALYZE;
-	`)
+	`);
 }
 
 async function cleanup(): Promise<void> {
-	console.log("Creating indices")
-	await pool.query(`
+  console.log("Creating indices");
+  await pool.query(`
 		begin; 
 
 		CREATE INDEX writtenform_lexid ON WrittenForm(lexid);
@@ -503,10 +506,10 @@ async function cleanup(): Promise<void> {
 		commit;
 
 		ANALYZE;
-	`)
+	`);
 
-	console.log("Trimming unsuitable words")
-	await pool.query(`
+  console.log("Trimming unsuitable words");
+  await pool.query(`
 		begin;
 
 		create temporary table junk as (
@@ -525,10 +528,10 @@ async function cleanup(): Promise<void> {
 		commit;
 
 		analyze;
-	`)
+	`);
 
-	console.log("Adding foreign key constraints")
-	await pool.query(`
+  console.log("Adding foreign key constraints");
+  await pool.query(`
 		begin;
 
 		ALTER TABLE WrittenForm
@@ -564,10 +567,10 @@ async function cleanup(): Promise<void> {
 		commit;
 
 		ANALYZE;
-	`)
+	`);
 
-	console.log("Creating simplerelations Table")
-	await pool.query(`
+  console.log("Creating simplerelations Table");
+  await pool.query(`
 		create table simplerelations as 
 			with recursive lexids as (
 				select form, lexid
@@ -624,11 +627,9 @@ async function cleanup(): Promise<void> {
 		create index simplerelations_hyper on simplerelations(hyper);
 
 		analyze;
-		`
-	)
+		`);
 }
 
 export async function ServerSeed(): Promise<number> {
-	return Date.now()
+  return Date.now();
 }
-
