@@ -1,11 +1,17 @@
 import { Letter } from '@/lib/letter'
 
 export function DrawLetter({ letter, small = false }: {
-	letter: Letter,
+	letter: Letter | undefined,
 	small: boolean
 }) {
-	// to satisfy tailwindcss
+	// to satisfy tailwindcss, need full classNames
 	const dimensions = small ? 'w-8 h-8 border-2' : 'w-12 h-12 border-4'
+
+	// in a hand, present an empty slot of appropriate size
+	if (!letter) {
+		return <div className={`${dimensions} border-none`} />
+	}
+
 	const textSize = small ? 'text-xl' : 'text-3xl'
 	const [bg, bo] = 
 		letter.level === 5 ? 

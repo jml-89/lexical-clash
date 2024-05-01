@@ -52,7 +52,8 @@ import {
 	ScoredWord,
 	KnowledgeBase,
         HasPRNG,
-        ShuffleMap
+        ShuffleMap,
+	Shuffle
 } from './util'
 
 export interface Battler {
@@ -263,6 +264,10 @@ function WordbankCheck(g: Battler): string[] {
 
 	let pm = new Map<string, number>()
 	for (const letter of g.playArea.hand) {
+		if (!letter) {
+			continue
+		}
+
 		const c = letter.char.toLowerCase()
 		const n = pm.get(c)
 		pm.set(c, n === undefined ? 1 : n+1)

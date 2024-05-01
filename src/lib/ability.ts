@@ -13,7 +13,8 @@ import {
 	DiscardPlaced,
 	DrawByIndex,
 	Draw,
-	DrawN
+	DrawN,
+	UnplaceLast
 } from './playarea';
 
 export interface AbilityCard {
@@ -54,7 +55,7 @@ const AbilitiesBase: AbilityBase[] = [
 					char: c,
 					score: 1,
 					level: 2,
-					available: true
+					temporary: true
 				})
 			}
                         return {
@@ -95,19 +96,22 @@ const AbilitiesBase: AbilityBase[] = [
 			const len = pr.placed.length;
 			let clones: Letter[] = []
 			for (const letter of pr.placed.slice(1)) {
-				const clone = Object.assign({}, pr.placed[0])
-				clone.id = `${letter.id}-clone-of-${pr.placed[0].id}`
+				const clone = { 
+					...pr.placed[0],
+					id: `${letter.id}-clone-of-${pr.placed[0].id}`,
+					temporary: true
+				}
 				clones.push(clone)
 			}
 
-                        const toDiscard = pr.placed.slice(1)
-                        const isDiscard = (letter: Letter) => toDiscard.some((disc) => letter.id === disc.id)
+			let ret = { ...pr }
+			while (ret.placed.length > 1) {
+				ret = UnplaceLast(ret)
+			}
 
-                        return {
-                                ...pr,
-			        hand: pr.hand.filter((letter) => !isDiscard(letter)).concat(clones),
-                                bag: pr.bag.concat(toDiscard),
-                                placed: pr.placed.slice(0, 1).concat(clones)
+			return {
+				...ret,
+                                placed: ret.placed.concat(clones)
                         }
 		}
 	}

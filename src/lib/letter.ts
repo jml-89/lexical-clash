@@ -1,11 +1,19 @@
 // Representation of a scrabble-like tile with some extra bits
-// id of a letter needs to be unique amongst other letters in bag/hand/placed
+// id of a letter is mostly for React's sake
+// React likes keys on list-like structures
+// Best to provide an easy consistent key by id
+// Also nice for tracking letter origin in debugging
 export interface Letter {
 	id: string
 	char: string
 	score: number
 	level: number
-	available: boolean
+
+	temporary: boolean
+}
+
+export function isPerm(letter: Letter): boolean {
+	return !letter.temporary
 }
 
 export function simpleScore(word: Letter[]): number {
@@ -61,7 +69,7 @@ export function ScrabbleDistribution(): Letter[] {
 				char: tile.letter,
 				score: tile.score,
 				level: 1,
-				available: true
+				temporary: false
 			};
 		}
 		return ys;
@@ -89,7 +97,7 @@ export function stringToLetters(pref: string, word: string): Letter[] {
 			char: mat.letter,
 			score: mat.score,
 			level: 1,
-			available: true
+			temporary: false
 		});
 		i++;
 	}

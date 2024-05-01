@@ -29,13 +29,13 @@ import { Battler,
 import { Scoresheet } from '@/lib/score'
 
 import { Letter } from '@/lib/letter'
-import { DrawLetter } from './letter'
-
-import { CreateMutator } from '@/lib/util'
+import { LetterSlot } from '@/lib/playarea'
 import { Opponent } from '@/lib/opponent'
-
 import { BonusCard } from '@/lib/bonus'
 import { AbilityCard } from '@/lib/ability'
+import { CreateMutator } from '@/lib/util'
+
+import { DrawLetter } from './letter'
 
 type battlefn = (a: Battle) => Promise<void>
 type statefnT = (fn: battlefn) => Promise<void>
@@ -258,36 +258,41 @@ const Contest = memo(function Contest({ ps, os, statefn }: {
 const Player = memo(function Player({ player, statefn }: { player: Battler, statefn: statefnT }) {
 	const [view, setView] = useState('buttons');
 
-	const somebutton = (alias: string, key: string): React.ReactNode => (
+	const somebutton = useCallback((alias: string, key: string): React.ReactNode => (
 		<button 
 			className="p-4 text-amber-200 bg-lime-700 rounded-lg"
 			onClick={() => setView(key)}
 		>
 			{alias}
 		</button>
-	)
+	), [setView])
 
-	const views: Record<string, () => React.ReactNode> = {
-		buttons: (): React.ReactNode => (
+	const closefn = useCallback(() => setView('buttons'), [setView])
+
+	const actionArea = view === 'buttons' ? (
 			<div className="flex flex-row gap-4 justify-center">
 				{somebutton('Bonuses', 'bonuses')}
 				{somebutton('Abilities', 'abilities')}
 				{player.wordMatches.length > 0 && somebutton('Wordbank', 'wordbank')}
 			</div>
-		),
-
-		abilities: (): React.ReactNode => (
-			<AbilityCarousel player={player} statefn={statefn} closefn={() => setView('buttons')}/>
-		),
-
-		bonuses: (): React.ReactNode => (
-			<BonusCarousel player={player} closefn={() => setView('buttons')}/>
-		),
-
-		wordbank: (): React.ReactNode => (
-			<ListWords words={player.wordMatches} statefn={statefn} closefn={() => setView('buttons')}/>
-		)
-	}
+		) : view === 'abilities' ? (
+			<AbilityCarousel 
+				player={player} 
+				statefn={statefn} 
+				closefn={closefn}
+			/>
+		) : view === 'bonuses' ? (
+			<BonusCarousel 
+				player={player} 
+				closefn={closefn}
+			/>
+		) : view === 'words' ? (
+			<ListWords 
+				words={player.wordMatches} 
+				statefn={statefn} 
+				closefn={closefn}
+			/>
+		) : (<></>)
 
 	return (
 		<motion.div className="flex-1 flex flex-col gap-2 px-1"
@@ -298,7 +303,7 @@ const Player = memo(function Player({ player, statefn }: { player: Battler, stat
 				<PlayerPlaced letters={player.playArea.placed} statefn={statefn} />
 			</div>
 			<Hand letters={player.playArea.hand} statefn={statefn} />
-			{views[view]()}
+			{actionArea}
 			<HealthBar badguy={false} health={player.health} healthMax={player.profile.healthMax} />
 		</motion.div>
 	)
@@ -499,47 +504,42 @@ const PlacedLetter = memo(function PlacedLetter({ letter, statefn }: {
                         >
                                 <DrawLetter letter={letter} small={true} />
                         </button>
-        </motion.li>
+		</motion.li>
         )
 })
 
-const ListLetter = memo(function ListLetter({ letter, statefn }: {
-        letter: Letter,
+const HandLetter = memo(function HandLetter({ letter, statefn }: {
+        letter: Letter | undefined,
         statefn: statefnT
 }) {
-	const placefn = useCallback(
-                async () => await statefn((g: Battle) => Place(g, letter.id)), 
-                [letter, statefn]
-        )
+	if (!letter) {
+		return <DrawLetter letter={letter} small={false} />
+	}
 
-        if (letter.available) {
-                return (
-                        <motion.li layoutId={letter.id} key={letter.id} >
-                                <button onClick={placefn}>
-                                        <DrawLetter letter={letter} small={false} />
-                                </button>
-                        </motion.li>
-                )
-        } else {
-                const nid = `ghost-of-${letter.id}`;
-                return (
-                        <motion.li 
-                                initial={{opacity: 1.0}} 
-                                animate={{opacity: 0.1}} 
-                                exit={{opacity: 1.0}} 
-                                layoutId={nid} 
-                                key={nid} 
-                        >
-                                <DrawLetter letter={letter} small={false} />
-                        </motion.li>
-                )
-        }
+	const placefn = async () => await statefn((g: Battle) => Place(g, letter.id))
+
+	return (
+		<motion.li layoutId={letter.id} key={letter.id} >
+			<button onClick={placefn}>
+				<DrawLetter letter={letter} small={false} />
+			</button>
+		</motion.li>
+	)
 })
 
-const Hand = memo(function Hand({ letters, statefn }: { letters: Letter[], statefn: statefnT }) {
+const Hand = memo(function Hand({ letters, statefn }: { 
+	letters: LetterSlot[], 
+	statefn: statefnT 
+}) {
 	return (
 		<ul className="flex flex-row gap-1 flex-wrap place-content-center" >
-			{letters.map((letter) => <ListLetter key={letter.id} letter={letter} statefn={statefn} />)}
+			{letters.map((letter, idx) => 
+				<HandLetter 
+					key={letter ? letter.id : `empty-${idx}`} 
+					letter={letter} 
+					statefn={statefn}
+				/>
+			)}
 		</ul>
 	);
 })
