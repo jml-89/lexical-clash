@@ -26,7 +26,8 @@ import {
 	PickRandom,
 	KnowledgeBase,
 	ScoredWord,
-	HyperSet
+	HyperSet,
+	PRNG
 } from './util'
 
 import prand from 'pure-rand'
@@ -59,8 +60,7 @@ export interface Preamble {
 }
 
 export interface PreambleSetup {
-	prng: prand.RandomGenerator
-	iter: number
+	prng: PRNG
 
 	level: number
 	kb: KnowledgeBase
@@ -94,7 +94,7 @@ function assembleOpponents(g: PreambleSetup): Map<string, Opponent> {
 
 	let lim = 0
 	while (opts.size < 3) {
-		for (const [k, o] of ShuffleMap(g, g.opponents)) {
+		for (const [k, o] of ShuffleMap(g.prng, g.opponents)) {
 			const rel = o.level - g.level
 			if (Math.abs(rel) > lim) {
 				continue
@@ -114,7 +114,7 @@ function assembleOpponents(g: PreambleSetup): Map<string, Opponent> {
 }
 
 function assembleAbilities(g: PreambleSetup): Map<string, AbilityCard> {
-	const picks = PickRandom(g, AbilityCards, 3)
+	const picks = PickRandom(g.prng, AbilityCards, 3)
 	let ticks = new Map<string, AbilityCard>()
 	for (const [key, pick] of picks) {
 		let upgrade = g.abilities.get(key)
@@ -130,7 +130,7 @@ function assembleAbilities(g: PreambleSetup): Map<string, AbilityCard> {
 }
 
 function assembleBonuses(g: PreambleSetup): Map<string, BonusCard> {
-	const picks = PickRandom(g, BonusCards, 3)
+	const picks = PickRandom(g.prng, BonusCards, 3)
 	let ticks = new Map<string, BonusCard>()
 	for (const [key, pick] of picks) {
 		let upgrade = g.bonuses.get(key)

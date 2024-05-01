@@ -54,17 +54,28 @@ export interface HyperSet {
 	hyponyms: ScoredWord[]
 }
 
-// Most of the rest of this file is wrappers for functions that use prand
-// We need to use prand so we have same random numbers generated on server and client
-// But the prand call convention can be a little unwieldly, so we cheat a little
-export interface HasPRNG {
-	prng: prand.RandomGenerator
+export type PRNG = (lo: number, hi: number) => number
+
+export interface RandState {
+	seed: number
 	iter: number
 }
 
-export function PickRandom<T>(g: HasPRNG, m: Map<string, T>, n: number): Map<string, T> {
+export function CreateStatefulRand(seed: number): [RandState, PRNG] {
+	let step = prand.xoroshiro128plus(seed)
+	let state = { seed: seed, iter: 0 }
+	return [state, (lo: number, hi: number): number => {
+		const [res, next] = prand.uniformIntDistribution(lo, hi, step)
+		step = next
+		state.iter += 1
+
+		return res
+	}]
+}
+
+export function PickRandom<T>(prng: PRNG, m: Map<string, T>, n: number): Map<string, T> {
 	const res = new Map<string, T>
-	const keys = Shuffle(g, [...m.keys()])
+	const keys = Shuffle(prng, [...m.keys()])
 
 	for (const key of keys.slice(0, n)) {
 		res.set(key, m.get(key) as T)
@@ -73,25 +84,22 @@ export function PickRandom<T>(g: HasPRNG, m: Map<string, T>, n: number): Map<str
 	return res
 }
 
-export function Shuffle<T>(g: HasPRNG, xs: T[]): T[] {
+export function Shuffle<T>(prng: PRNG, xs: T[]): T[] {
 	let ys = new Array(xs.length);
 
 	for (const [i, x] of xs.entries()) {
-		const [j, next] = prand.uniformIntDistribution(0, i, g.prng)
+		const j = prng(0, i)
 		if (j !== i) {
 			ys[i] = ys[j];
 		}
 		ys[j] = x;
-
-		g.prng = next
-		g.iter += 1
 	}
 
 	return ys
 }
 
-export function ShuffleMap<T1, T2>(g: HasPRNG, xs: Map<T1, T2>): Map<T1, T2> {
-	let keys = Shuffle(g, [ ...xs.keys() ])
+export function ShuffleMap<T1, T2>(prng: PRNG, xs: Map<T1, T2>): Map<T1, T2> {
+	let keys = Shuffle(prng, [ ...xs.keys() ])
 	let res = new Map<T1, T2>()
 	for (const key of keys) {
 		const v = xs.get(key)
@@ -141,7 +149,7 @@ export function distance(x: string, y: string): number {
 export function CopyMap<K, T>(m: Map<K, T>): Map<K, T> {
 	let cp = new Map<K, T>()
 	for (const [k, v] of m) {
-		cp.set(k, Object.assign({}, v))
+		cp.set(k, { ...v })
 	}
 	return cp
 }

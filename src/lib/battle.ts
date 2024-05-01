@@ -51,8 +51,8 @@ import {
 	CopyMap,
 	ScoredWord,
 	KnowledgeBase,
-        HasPRNG,
-        ShuffleMap,
+	PRNG,
+	ShuffleMap,
 	Shuffle
 } from './util'
 
@@ -101,6 +101,7 @@ export async function FillWordbank(lookup: (s: string) => Promise<ScoredWord[]>,
 
 interface BattlerSetup {
 	handSize: number
+	prng: PRNG
 	letters: Letter[]
  	bonuses: Map<string, BonusCard>
 	abilities: Map<string, AbilityCard>
@@ -122,6 +123,7 @@ function NewBattler(bs: BattlerSetup): Battler {
                 wordbank: new Map<string, ScoredWord>(),
 
                 playArea: {
+			prng: bs.prng,
                         handSize: bs.handSize,
                         bag: bs.letters,
                         hand: [],
@@ -131,10 +133,11 @@ function NewBattler(bs: BattlerSetup): Battler {
 
 }
 
-export interface Battle extends HasPRNG {
+export interface Battle {
 	type: 'battle'
 
 	kb: KnowledgeBase
+	prng: PRNG
 	done: boolean
 	victory: boolean
 
@@ -144,10 +147,11 @@ export interface Battle extends HasPRNG {
 	opponent: Battler
 }
 
-export interface BattleSetup extends HasPRNG {
+export interface BattleSetup {
 	handSize: number
 	letters: Letter[]
 	kb: KnowledgeBase
+	prng: PRNG
 
 	wordbank: Map<string, ScoredWord>
 
@@ -163,8 +167,6 @@ export async function NewBattle(bs: BattleSetup): Promise<Battle> {
 
 		type: 'battle',
 
-		kb: bs.kb,
-
 		done: false,
 		victory: false,
 
@@ -177,6 +179,7 @@ export async function NewBattle(bs: BattleSetup): Promise<Battle> {
 
 		opponent: NewBattler({
 			handSize: 9,
+			prng: bs.prng,
 			letters: bs.letters,
 			bonuses: new Map<string, BonusCard>(),
 			abilities: new Map<string, AbilityCard>(),
@@ -189,15 +192,15 @@ export async function NewBattle(bs: BattleSetup): Promise<Battle> {
 		battle.opponent.wordbank.set(word.word, word)
 	}
 
-	battle.opponent.wordbank = ShuffleMap(battle, battle.opponent.wordbank)
-        battle.player.wordbank = bs.wordbank
+	battle.opponent.wordbank = ShuffleMap(battle.prng, battle.opponent.wordbank)
+	battle.player.wordbank = bs.wordbank
 
 	await NextRound(battle);
 	return battle;
 }
 
 function AbilityChecks(b: Battler): Battler {
-        let upd = new Map<string, AbilityCard>()
+	let upd = new Map<string, AbilityCard>()
 	for (const [k, v] of b.abilities) {
 		const impl = AbilityImpls.get(k)
 		if (impl === undefined) {

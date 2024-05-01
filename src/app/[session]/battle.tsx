@@ -50,7 +50,7 @@ export function PlayBattle({ game, endfn }: {
 	const statefn = mutator.current.set 
 
 	return (
-		<main className="flex-1 flex flex-col items-center p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
+		<main className="flex-1 flex flex-col items-stretch p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
 			<DrawOpponent opp={myGame.opponent} />
 			<Contest ps={myGame.player.scoresheet} os={myGame.opponent.scoresheet} statefn={statefn} />
 			<Player player={myGame.player} statefn={statefn} />
@@ -95,7 +95,7 @@ const DrawProfile = memo(function DrawProfile({ opp, hd }: { opp: Opponent, hd: 
 const DrawOpponent = memo(function DrawOpponent({ opp }: { opp: Battler }) {
 	const hd = opp.profile.healthMax - opp.health 
 	return (
-		<motion.div className="flex flex-col gap-2">
+		<motion.div className="flex flex-col items-center gap-2">
 			<HealthBar badguy={true} health={opp.health} healthMax={opp.profile.healthMax} />
 
                         <DrawProfile opp={opp.profile} hd={hd} />
@@ -248,8 +248,9 @@ const Contest = memo(function Contest({ ps, os, statefn }: {
                                 {os && os.ok && <ScoreDisplay sheet={os} color="text-red-300" />}
                                 {ps && ps.ok && <ScoreDisplay sheet={ps} color="text-lime-400" />}
 			</div>
+
                         <AnimatePresence>
-			{ps && ps.ok && <AttackButton statefn={statefn} />}
+				{ps && ps.ok && <AttackButton statefn={statefn} />}
                         </AnimatePresence>
 		</div>
 	)
@@ -286,7 +287,7 @@ const Player = memo(function Player({ player, statefn }: { player: Battler, stat
 				player={player} 
 				closefn={closefn}
 			/>
-		) : view === 'words' ? (
+		) : view === 'wordbank' ? (
 			<ListWords 
 				words={player.wordMatches} 
 				statefn={statefn} 
@@ -295,8 +296,7 @@ const Player = memo(function Player({ player, statefn }: { player: Battler, stat
 		) : (<></>)
 
 	return (
-		<motion.div className="flex-1 flex flex-col gap-2 px-1"
-			transition={{ type: 'spring' }}
+		<div className="flex-1 flex flex-col gap-2 px-1"
 		>
 		        {player.playArea.placed.length > 0 && <ActionButton checking={player.checking} scoresheet={player.scoresheet} statefn={statefn} />}
 			<div className="flex-1">
@@ -305,7 +305,7 @@ const Player = memo(function Player({ player, statefn }: { player: Battler, stat
 			<Hand letters={player.playArea.hand} statefn={statefn} />
 			{actionArea}
 			<HealthBar badguy={false} health={player.health} healthMax={player.profile.healthMax} />
-		</motion.div>
+		</div>
 	)
 })
 
@@ -456,11 +456,13 @@ function AbilityCarousel({ player, statefn, closefn }: {
 }
 
 const Placed = memo(function Placed({ letters }: { letters: Letter[] }) {
+	const size = letters.length < 10 ? 1 : 2
+	const gap = size === 2 ? "gap-0.5" : "gap-1"
 	return (
-		<ul className="flex flex-row flex-wrap justify-center gap-1" >
+		<ul className={`flex flex-row flex-wrap justify-center ${gap}`} >
 			{letters.map((letter) => 
 				<motion.li layoutId={letter.id} key={letter.id} >
-					<DrawLetter letter={letter} small={true} />
+					<DrawLetter letter={letter} size={size} />
 				</motion.li>
 			)}
 		</ul>
@@ -471,17 +473,19 @@ const PlayerPlaced = memo(function PlayerPlaced({ letters, statefn }: { letters:
 	if (letters.length === 0) {
 		return (<></>)
 	}
+	const size = letters.length < 8 ? 1 : 2
+	const gap = size === 2 ? "gap-0.5" : "gap-1"
 
 	return (
-		<div className="self-stretch flex flex-row justify-between gap-4">
+		<div className="self-stretch flex flex-row justify-between gap-1">
 			<button className="bg-red-500 p-1 rounded-lg align-top text-lg"
 				onClick={async () => await statefn(Wipe)}
 			>
 				Clear
 			</button>
 
-			<ul className="flex flex-row flex-wrap gap-1" >
-				{letters.map((letter) => <PlacedLetter key={letter.id} letter={letter} statefn={statefn} />)}
+			<ul className={`flex flex-row flex-wrap ${gap}`} >
+				{letters.map((letter) => <PlacedLetter key={letter.id} letter={letter} statefn={statefn} size={size}/>)}
 			</ul>
 
 			<button className="bg-red-500 p-1 rounded-lg text-lg font-black"
@@ -493,16 +497,17 @@ const PlayerPlaced = memo(function PlayerPlaced({ letters, statefn }: { letters:
 	);
 })
 
-const PlacedLetter = memo(function PlacedLetter({ letter, statefn }: {
+const PlacedLetter = memo(function PlacedLetter({ letter, statefn, size }: {
         letter: Letter,
-        statefn: statefnT
+        statefn: statefnT,
+	size: number
 }) {
         return (
                 <motion.li layoutId={letter.id} key={letter.id} >
                         <button 
                                 onClick={async () => await statefn((b: Battle) => BackspaceId(b, letter.id))}
                         >
-                                <DrawLetter letter={letter} small={true} />
+                                <DrawLetter letter={letter} size={size} />
                         </button>
 		</motion.li>
         )
@@ -513,7 +518,7 @@ const HandLetter = memo(function HandLetter({ letter, statefn }: {
         statefn: statefnT
 }) {
 	if (!letter) {
-		return <DrawLetter letter={letter} small={false} />
+		return <DrawLetter letter={letter} size={0} />
 	}
 
 	const placefn = async () => await statefn((g: Battle) => Place(g, letter.id))
@@ -521,7 +526,7 @@ const HandLetter = memo(function HandLetter({ letter, statefn }: {
 	return (
 		<motion.li layoutId={letter.id} key={letter.id} >
 			<button onClick={placefn}>
-				<DrawLetter letter={letter} small={false} />
+				<DrawLetter letter={letter} size={0} />
 			</button>
 		</motion.li>
 	)

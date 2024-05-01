@@ -12,6 +12,11 @@ import {
 	isPerm	
 } from './letter'
 
+import {
+	Shuffle,
+	PRNG
+} from './util'
+
 export type LetterSlot = Letter | undefined
 
 // hand field should be addressed, why complicate it?
@@ -20,6 +25,7 @@ export type LetterSlot = Letter | undefined
 // Nicer than having the hand jiggling every time a letter is removed too
 export interface PlayArea {
 	handSize: number
+	prng: PRNG
 
 	placed: Letter[]
 	hand: LetterSlot[]
@@ -29,6 +35,7 @@ export interface PlayArea {
 export function DiscardPlaced(g: PlayArea): PlayArea {
         return {
                 ...g,
+		hand: g.hand.filter((letter) => letter !== undefined),
                 bag: g.bag.concat(g.placed).filter(isPerm),
                 placed: []
         }
@@ -55,10 +62,11 @@ export function Draw(g: PlayArea): PlayArea {
 }
 
 export function DrawN(g: PlayArea, n: number): PlayArea {
+	const shaken = Shuffle(g.prng, g.bag.filter(isPerm))
         return {
                 ...g,
-                hand: g.hand.concat(g.bag.slice(0, n)),
-                bag: g.bag.slice(n).filter(isPerm)
+                hand: g.hand.concat(shaken.slice(0, n)),
+                bag: shaken.slice(n)
         }
 }
 
@@ -96,6 +104,10 @@ function SlotIn(hand: LetterSlot[], letters: Letter[]): LetterSlot[] {
 		}
 
 		xs.push(letter)
+	}
+
+	for (let i = li; i < letters.length; i++) {
+		xs.push(letters[i])
 	}
 
 	return xs

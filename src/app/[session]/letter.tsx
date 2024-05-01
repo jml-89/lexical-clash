@@ -1,18 +1,24 @@
 import { Letter } from '@/lib/letter'
 
-export function DrawLetter({ letter, small = false }: {
+export function DrawLetter({ letter, size }: {
 	letter: Letter | undefined,
-	small: boolean
+	size: number 
 }) {
 	// to satisfy tailwindcss, need full classNames
-	const dimensions = small ? 'w-8 h-8 border-2' : 'w-12 h-12 border-4'
+	const dimensions 
+		= size === 0 ? 'w-12 h-12 border-4'
+		: size === 1 ? 'w-8 h-8 border-2' 
+		: 'w-5 h-5 border'
 
 	// in a hand, present an empty slot of appropriate size
 	if (!letter) {
 		return <div className={`${dimensions} border-none`} />
 	}
 
-	const textSize = small ? 'text-xl' : 'text-3xl'
+	const textSize 
+		= size === 0 ? 'text-3xl'
+		: 'text-xl'
+
 	const [bg, bo] = 
 		letter.level === 5 ? 
 			['bg-amber-300', 'border-amber-400'] 
@@ -24,6 +30,20 @@ export function DrawLetter({ letter, small = false }: {
 			['bg-teal-300', 'border-teal-400']
 		: // letter.level == 1 or something else who knows
 			['bg-stone-400', 'border-stone-600'] 
+
+	if (size > 1) {
+		return (
+			<div className={[dimensions, "border-solid"
+					, bg, bo, "p-0.5"
+					,"shadow-sm shadow-zinc-400"
+					,"flex justify-center items-center"].join(' ')}
+			>
+				<div className="text-lg font-medium">
+					{letter.char}
+				</div>
+			</div>
+		)
+	}
 
 	return (
 		<div className={[dimensions, "border-solid"

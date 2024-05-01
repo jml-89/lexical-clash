@@ -14,7 +14,9 @@ import {
 	DrawByIndex,
 	Draw,
 	DrawN,
-	UnplaceLast
+	UnplaceLast,
+	UnplaceById,
+	PlaceById
 } from './playarea';
 
 export interface AbilityCard {
@@ -105,9 +107,9 @@ const AbilitiesBase: AbilityBase[] = [
 			}
 
 			let ret = { ...pr }
-			while (ret.placed.length > 1) {
-				ret = UnplaceLast(ret)
-			}
+			ret = UnplaceById(ret, pr.placed[0].id)
+			ret = DiscardPlaced(ret)
+			ret = PlaceById(ret, pr.placed[0].id)
 
 			return {
 				...ret,

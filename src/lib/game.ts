@@ -49,7 +49,11 @@ import {
 	Shuffle, 
 	ShuffleMap, 
 	MapConcat, 
-	CopyMap
+	CopyMap,
+
+	PRNG,
+	RandState,
+	CreateStatefulRand
 } from './util'
 
 import {
@@ -99,9 +103,8 @@ export interface Outcome {
 export interface GameState {
 	sessionid: string
 
-	prng: prand.RandomGenerator
-	seed: number
-	iter: number
+	rs: RandState
+	prng: PRNG
 
 	kb: KnowledgeBase
 
@@ -133,8 +136,8 @@ function Upgrade(g: GameState, n: number): void {
 			indices[i] = i
 		}
 
-		Shuffle(g, indices)
-		.filter((idx) => g.letters[idx].level < 4)
+		Shuffle(g.prng, indices)
+		.filter((idx) => g.letters[idx].level < 5)
 		.slice(0, n)
 		.forEach((idx) => {
 			g.letters[idx].score += 1
@@ -199,13 +202,12 @@ export async function LaunchBattle(g: GameState): Promise<void> {
 
 	g.phase = await NewBattle({
                 prng: g.prng,
-                iter: g.iter,
 		handSize: g.handSize, 
 		kb: g.kb,
 		bonuses: g.bonuses,
 		abilities: g.abilities,
 		opponent: opponent,
-		letters: Shuffle(g, g.letters),
+		letters: g.letters,
 		wordbank: g.wordbank
 	});
 }
@@ -240,24 +242,28 @@ export function LoadGame(o: Object, kb: KnowledgeBase): GameState {
 
 	let ox = tupmap(o) as GameState
 
-	ox.prng = prand.xoroshiro128plus(ox.seed)
-	for (let i = 0; i < ox.iter; i++) {
-		const [j, n] = prand.uniformIntDistribution(0, i, ox.prng)
-		ox.prng = n
+	let [rs, prng] = CreateStatefulRand(ox.rs.seed)
+	while (rs.iter < ox.rs.iter) {
+		prng(0, 1)
 	}
+
+	ox.rs = rs
+	ox.prng = prng
 
 	return ox
 }
 
 export function NewGame(sessionid: string, seed: number, kb: KnowledgeBase): GameState {
+	let [rs, prng] = CreateStatefulRand(seed)
 	return {
+		sessionid: sessionid,
+
 		kb: kb,
-		prng: prand.xoroshiro128plus(seed),
-		iter: 0,
+		rs: rs,
+		prng: prng,
+
 		level: 0,
 		opponents: CopyMap(Opponents),
-		sessionid: sessionid,
-		seed: seed,
 		handSize: 9,
 		postgame: false,
 		abilities: new Map<string, AbilityCard>(),
