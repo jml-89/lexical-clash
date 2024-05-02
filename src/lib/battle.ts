@@ -264,6 +264,12 @@ function WordbankCheck(g: Battler): string[] {
     pm.set(c, n === undefined ? 1 : n + 1);
   }
 
+  for (const letter of g.playArea.placed) {
+    const c = letter.char.toLowerCase();
+    const n = pm.get(c);
+    pm.set(c, n === undefined ? 1 : n + 1);
+  }
+
   for (const [str, scoredword] of g.wordbank) {
     let wm = new Map<string, number>();
     for (const c of scoredword.word) {
@@ -286,7 +292,7 @@ function WordbankCheck(g: Battler): string[] {
   }
 
   found.sort((a, b) => b.score - a.score);
-  return found.map((a) => a.word).slice(0, 10);
+  return found.map((a) => a.word).slice(0, 15);
 }
 
 async function NextRound(g: Battle): Promise<void> {
@@ -408,8 +414,10 @@ async function UpdateScore(
 ): Promise<Scoresheet> {
   return await ScoreWord(
     kb,
-    { placed: g.playArea.placed, bonuses: g.bonuses },
-    o.profile,
+    g.playArea.placed,
+    g.bonuses,
+    o.profile.weakness,
+    lettersToString(o.playArea.placed)
   );
 }
 

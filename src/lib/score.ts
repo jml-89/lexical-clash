@@ -40,18 +40,12 @@ export interface ScoreModifier {
   value: number;
 }
 
-// ScoreWord really just expects a Battle object
-// But nice to pare it down to what really matters
-// In case of some future changes to layout
-export interface ScoreInput {
-  placed: Letter[];
-  bonuses: Map<string, BonusCard>;
-}
-
 export async function ScoreWord(
   kb: KnowledgeBase,
-  input: ScoreInput,
-  opponent: Opponent,
+  placed: Letter[],
+  bonuses: Map<string, BonusCard>,
+  weaknesses: string[],
+  opposingWord: string,
 ): Promise<Scoresheet> {
   let sheet: Scoresheet = {
     ok: false,
@@ -64,7 +58,7 @@ export async function ScoreWord(
 
   sheet.adds.push({
     source: "Letter Score Sum",
-    value: simpleScore(input.placed),
+    value: simpleScore(placed),
   });
 
   sheet.muls.push({
@@ -72,20 +66,20 @@ export async function ScoreWord(
     value: 1,
   });
 
-  const word = lettersToString(input.placed);
+  const word = lettersToString(placed);
   sheet.ok = await kb.valid(word);
   if (!sheet.ok) {
     return sheet;
   }
 
-  for (const [k, v] of input.bonuses) {
+  for (const [k, v] of bonuses) {
     const impl = BonusImpls.get(k);
     if (impl === undefined) {
       console.log(`Could not find ${k} in BonusImpls:`, BonusImpls);
       continue;
     }
 
-    const val = await impl.fn(kb.related, input.placed);
+    const val = await impl.fn(kb.related, placed);
     if (val !== 0) {
       sheet.adds.push({
         source: v.name,
@@ -94,7 +88,7 @@ export async function ScoreWord(
     }
   }
 
-  for (const weakness of opponent.weakness) {
+  for (const weakness of weaknesses) {
     const hit = await kb.related("hypernym", weakness, word);
     if (!hit) {
       continue;
@@ -105,6 +99,20 @@ export async function ScoreWord(
     });
   }
 
+  if (await kb.related("hypernym", opposingWord, word)) {
+    sheet.muls.push({
+      source: "Undercut",
+      value: 0.2
+    })
+  }
+
+  if (await kb.related("hypernym", word, opposingWord)) {
+    sheet.muls.push({
+      source: "Overcut",
+      value: 0.2
+    })
+  }
+
   sumScore(sheet);
   return sheet;
 }
@@ -113,5 +121,5 @@ function sumScore(s: Scoresheet) {
   const add = (xs: number, x: ScoreModifier): number => xs + x.value;
   s.totalAdd = s.adds.reduce(add, 0);
   s.totalMul = s.muls.reduce(add, 0);
-  s.score = s.totalAdd * s.totalMul;
+  s.score = Math.round(s.totalAdd * s.totalMul);
 }

@@ -54,7 +54,7 @@ export function PlayBattle({
   const statefn = mutator.current.set;
 
   return (
-    <main className="flex-1 flex flex-col items-stretch p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
+    <main className="flex-1 flex flex-col items-center p-1 gap-1 bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
       <DrawOpponent opp={myGame.opponent} />
       <Contest
         ps={myGame.player.scoresheet}
@@ -293,9 +293,7 @@ const Contest = memo(function Contest({
         {ps && ps.ok && <ScoreDisplay sheet={ps} color="text-lime-400" />}
       </div>
 
-      <AnimatePresence>
-        {ps && ps.ok && <AttackButton statefn={statefn} />}
-      </AnimatePresence>
+      {ps && ps.ok && <AttackButton statefn={statefn} />}
     </div>
   );
 });
@@ -345,7 +343,7 @@ const Player = memo(function Player({
     );
 
   return (
-    <div className="flex-1 flex flex-col gap-2 px-1">
+    <div className="flex-1 flex flex-col gap-2 items-stretch px-1">
       {player.playArea.placed.length > 0 && (
         <ActionButton
           checking={player.checking}
@@ -353,7 +351,7 @@ const Player = memo(function Player({
           statefn={statefn}
         />
       )}
-      <div className="flex-1">
+      <div className="flex-1 self-stretch">
         <PlayerPlaced letters={player.playArea.placed} statefn={statefn} />
       </div>
       <Hand letters={player.playArea.hand} statefn={statefn} />
@@ -385,18 +383,23 @@ function ListWords({
   };
 
   return (
-    <div className="flex flex-row justify-stretch gap-2">
-      <button className="bg-red-500 p-2 rounded-lg" onClick={closefn}>
-        Back
-      </button>
-
-      <ul className="flex-1 bg-orange-200 p-2 flex flex-row font-bold text-lg gap-2 flex-wrap">
+    <div className="flex flex-col gap-1">
+      <ul className="flex-1 flex flex-row font-bold gap-1 flex-wrap-reverse">
+        <li key="back-button">
+          <button className="self-baseline bg-red-500 px-2 py-0.5 rounded-lg" onClick={closefn}>
+            Back
+          </button>
+        </li>
         {words.map((word, letters) => (
           <li key={word}>
-            <button onClick={placefn(word)}>{word}</button>
+            <button 
+              onClick={placefn(word)}
+              className="bg-orange-200 px-2 py-0.5 rounded-lg"
+            >{word}</button>
           </li>
         ))}
       </ul>
+
     </div>
   );
 }
@@ -419,17 +422,21 @@ function BonusCarousel({
   }
   const bonus = player.bonuses.get(keys[idx]) as BonusCard;
   return (
-    <div className="grid grid-cols-5 grid-rows-5 gap-2 place-content-center">
-      <div className="row-start-1 row-span-4 col-start-1 col-span-5 flex flex-col bg-orange-200 p-2">
-        <h1 className="text-2xl">{bonus.name}</h1>
-        <p className="">{bonus.desc}</p>
-        <div>
-          Level {bonus.level} (+{bonus.level * bonus.weight} points)
+    <div className="flex flex-col gap-1">
+      <div className="flex-1 flex flex-col items-baseline bg-orange-200 p-1">
+        <div className="flex flex-row items-baseline gap-1">
+          <h1 className="text-xl">{bonus.name}</h1>
+          <div className="italic">
+            Level {bonus.level} (+{bonus.level * bonus.weight} points)
+          </div>
         </div>
+        <p className="">{bonus.desc}</p>
       </div>
 
+
+      <div className="self-stretch grid grid-cols-5 gap-1">
       <button
-        className="bg-red-500 row-start-5 col-start-1 col-span-2 w-20"
+        className="col-start-1 bg-red-500 py-0.5 px-2 rounded-lg"
         onClick={closefn}
       >
         Back
@@ -437,7 +444,7 @@ function BonusCarousel({
 
       {idx > 0 && (
         <button
-          className="bg-amber-300 row-start-5 col-start-3 col-span-1"
+          className="col-start-2 bg-amber-300 py-0.5 px-2 rounded-lg"
           onClick={() => setIdx(idx - 1)}
         >
           Prev
@@ -446,12 +453,13 @@ function BonusCarousel({
 
       {idx + 1 !== keys.length && (
         <button
-          className="bg-amber-300 row-start-5 col-start-4 col-span-1"
+          className="col-start-3 bg-amber-300 py-0.5 px-2 rounded-lg"
           onClick={() => setIdx(idx + 1)}
         >
           Next
         </button>
       )}
+      </div>
     </div>
   );
 }
@@ -478,29 +486,21 @@ function AbilityCarousel({
   const canuse = ability.ok && ability.uses > 0;
   const use = async () =>
     await statefn((g: Battle) => UseAbility(g, keys[idx]));
+
+  const buttoncn = "py-0.5 px-2 rounded-lg"
   return (
-    <div className="grid grid-cols-5 grid-rows-5 gap-2 place-content-center">
-      <div className="row-start-1 row-span-4 col-start-1 col-span-4 flex flex-col bg-orange-200 p-2">
-        <h1 className="text-2xl">{ability.name}</h1>
+    <div className="flex flex-col gap-1">
+      <div className="flex-1 flex flex-col bg-orange-200 p-1">
+        <div className="flex flex-row gap-1 items-baseline">
+          <h1 className="text-2xl">{ability.name}</h1>
+          <div className="italic">{ability.uses} uses remaining</div>
+        </div>
         <p className="">{ability.desc}</p>
-        <div className="">{ability.uses} uses remaining</div>
       </div>
 
-      {canuse ? (
-        <button
-          className="row-start-1 row-span-4 col-start-5 col-span-1 bg-lime-500 w-20"
-          onClick={use}
-        >
-          Use
-        </button>
-      ) : (
-        <button className="row-start-1 row-span-4 col-start-5 col-span-1 bg-neutral-500 w-20">
-          Use
-        </button>
-      )}
-
+      <div className="self-stretch grid grid-cols-5 gap-1">
       <button
-        className="bg-red-500 row-start-5 col-start-1 col-span-2 w-20"
+        className={`${buttoncn} col-start-1 bg-red-500`}
         onClick={closefn}
       >
         Back
@@ -508,7 +508,7 @@ function AbilityCarousel({
 
       {idx > 0 && (
         <button
-          className="bg-amber-300 row-start-5 col-start-3 col-span-1"
+          className={`${buttoncn} col-start-2 bg-amber-300`}
           onClick={() => setIdx(idx - 1)}
         >
           Prev
@@ -517,12 +517,28 @@ function AbilityCarousel({
 
       {idx + 1 !== keys.length && (
         <button
-          className="bg-amber-300 row-start-5 col-start-4 col-span-1"
+          className={`${buttoncn} col-start-3 bg-amber-300`}
           onClick={() => setIdx(idx + 1)}
         >
           Next
         </button>
       )}
+
+      {canuse ? (
+        <button
+          className={`${buttoncn} col-start-4 col-span-2 bg-lime-500`}
+          onClick={use}
+        >
+          Use
+        </button>
+      ) : (
+        <button 
+          className={`${buttoncn} col-start-4 col-span-2 bg-neutral-500`}
+        >
+          Use
+        </button>
+      )}
+      </div>
     </div>
   );
 }
