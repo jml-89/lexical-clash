@@ -38,6 +38,10 @@ export function CreateMutator<T>(
 export interface KnowledgeBase {
   valid: (word: string) => Promise<boolean>;
   related: (relation: string, left: string, right: string) => Promise<boolean>;
+  rescore: (
+    words: ScoredWord[],
+    bonuses: BonusQuery[],
+  ) => Promise<ScoredWord[]>;
   hypos: (word: string) => Promise<ScoredWord[]>;
   candidates: (
     lo: number,
@@ -50,6 +54,12 @@ export interface KnowledgeBase {
 
 export interface ScoredWord {
   word: string;
+  base: number;
+  score: number;
+}
+
+export interface BonusQuery {
+  query: string;
   score: number;
 }
 

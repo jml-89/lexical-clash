@@ -9,7 +9,7 @@ import zlib from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import fetch from "node-fetch";
 
-import { ScoredWord, HyperSet } from "./util";
+import { ScoredWord, BonusQuery, HyperSet } from "./util";
 import { Letter, stringToLetters, simpleScore } from "./letter";
 
 import { Pool } from "pg";
@@ -54,6 +54,50 @@ export async function AreWordsRelated(
   return false;
 }
 
+export async function GuessScores(
+  words: ScoredWord[],
+  bonuses: BonusQuery[],
+): Promise<ScoredWord[]> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    await client.query(
+      "create temporary table myscore (word text, base integer, score integer) on commit drop;",
+    );
+    for (const word of words) {
+      await client.query({
+        text: "insert into myscore (word, base, score) values ($1, $2, $2);",
+        values: [word.word, word.base],
+      });
+    }
+
+    for (const bonus of bonuses) {
+      const res = await client.query({
+        text: `update myscore set score = score + $1 where ${bonus.query};`,
+        values: [bonus.score],
+      });
+    }
+
+    const res = await client.query(
+      "select word, base, score from myscore order by score desc;",
+    );
+    const xs = res.rows.map((row) => ({
+      word: row.word,
+      base: row.base,
+      score: row.score,
+    }));
+    await client.query("COMMIT");
+    return xs;
+  } catch (e) {
+    console.log(e);
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 // For opponent words
 export async function HypoForms(word: string): Promise<ScoredWord[]> {
   const res = await pool.query({
@@ -67,7 +111,12 @@ export async function HypoForms(word: string): Promise<ScoredWord[]> {
     values: [word],
   });
 
-  return res.rows.map((row) => ({ word: row.hypo, score: row.score }));
+  return res.rows.map((row) => ({
+    word: row.hypo,
+    base: row.score,
+    bonuses: [],
+    score: row.score,
+  }));
 }
 
 export async function Definitions(s: string): Promise<string[]> {
@@ -221,6 +270,10 @@ export async function GetSession(id: string): Promise<Object | undefined> {
     values: [id],
   });
   return res.rows.length > 0 ? res.rows[0].doc : undefined;
+}
+
+export async function DropSaves(): Promise<void> {
+  await pool.query(`delete from session;`);
 }
 
 export async function InitialiseDatabase(): Promise<void> {

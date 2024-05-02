@@ -20,7 +20,7 @@ import { Opponent } from "./opponent";
 
 import { BonusCard, BonusImpl, BonusImpls } from "./bonus";
 
-import { KnowledgeBase } from "./util";
+import { KnowledgeBase, ScoredWord, BonusQuery } from "./util";
 
 // score = totalAdd+totalMul = sum(adds) + sum(muls)
 // Redundant, yes; convenient, very yes
@@ -72,18 +72,19 @@ export async function ScoreWord(
     return sheet;
   }
 
+  const vq = { word: word, base: simpleScore(placed), score: 0 };
   for (const [k, v] of bonuses) {
-    const impl = BonusImpls.get(k);
-    if (impl === undefined) {
-      console.log(`Could not find ${k} in BonusImpls:`, BonusImpls);
+    const s = BonusImpls.get(v.key);
+    if (!s) {
       continue;
     }
+    const bq = { query: s.query, score: v.weight * v.level };
 
-    const val = await impl.fn(kb.related, placed);
-    if (val !== 0) {
+    const val = await kb.rescore([vq], [bq]);
+    if (val[0].score > val[0].base) {
       sheet.adds.push({
         source: v.name,
-        value: v.weight * v.level * val,
+        value: v.weight * v.level,
       });
     }
   }

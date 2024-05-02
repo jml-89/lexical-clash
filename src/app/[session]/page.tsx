@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import {
   IsWordValid,
+  GuessScores,
   AreWordsRelated,
   HypoForms,
   Candidates,
@@ -24,6 +25,7 @@ export default async function Home({
   const wordnet: KnowledgeBase = {
     valid: IsWordValid,
     related: AreWordsRelated,
+    rescore: GuessScores,
     hypos: HypoForms,
     candidates: Candidates,
     save: SetSession,

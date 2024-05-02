@@ -346,9 +346,11 @@ export async function Submit(g: Battle): Promise<void> {
   if (!g.player.wordbank.has(str)) {
     // This is a little goofy, but the player may have used enhanced letters
     // To get a "true" score, have to do this
+    const n = simpleScore(stringToLetters("tmp", str));
     g.player.wordbank.set(str, {
       word: str,
-      score: simpleScore(stringToLetters("tmp", str)),
+      base: n,
+      score: n,
     });
   }
 

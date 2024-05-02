@@ -31,7 +31,7 @@ type relationFunc = (
 ) => Promise<boolean>;
 
 export interface BonusImpl {
-  fn: (rf: relationFunc, level: number, word: Letter[]) => Promise<number>;
+  query: string;
 }
 
 interface BonusBase {
@@ -39,7 +39,7 @@ interface BonusBase {
   name: string;
   desc: string;
   weight: number;
-  fn: (rf: relationFunc, word: Letter[]) => Promise<number>;
+  query: string;
 }
 
 const base: BonusBase[] = [
@@ -47,84 +47,56 @@ const base: BonusBase[] = [
     key: "double",
     name: "Double Letter",
     desc: "Same letter occurs twice in a row, e.g. gli[mm]er, h[oo]t",
-    weight: 1,
-    fn: async (rf: relationFunc, word: Letter[]): Promise<number> => {
-      let n = 0;
-      let bc = "";
-      for (const c of word) {
-        if (c.char === bc) {
-          n += 1;
-        }
-        bc = c.char;
-      }
-      return n;
-    },
+    weight: 2,
+    query: `word ~* '.*(.)\\1.*'`,
   },
   {
     key: "thth",
     name: "No Lisp",
     desc: "Word contains the sequence [th]",
     weight: 5,
-    fn: async (rf: relationFunc, word: Letter[]): Promise<number> => {
-      let n = 0;
-      let bc = "";
-      for (const c of word) {
-        const nc = c.char.toLowerCase();
-        if (bc === "t" && nc === "h") {
-          n += 1;
-        }
-        bc = nc;
-      }
-      return n;
-    },
+    query: `word ilike '%th%'`,
   },
   {
     key: "short",
     name: "Short and Sweet",
     desc: "Word length is less than 4",
     weight: 3,
-    fn: async (rf: relationFunc, word: Letter[]): Promise<number> => {
-      return word.length < 4 ? 1 : 0;
-    },
+    query: `char_length(word) < 4`,
   },
   {
     key: "long",
     name: "Lettermaxing",
-    desc: "Word length is greater than 4",
-    weight: 1,
-    fn: async (rf: relationFunc, word: Letter[]): Promise<number> => {
-      return word.length > 4 ? 1 : 0;
-    },
+    desc: "Word length is greater than 5",
+    weight: 2,
+    query: `char_length(word) > 5`,
   },
   {
     key: "numbers",
     name: "Numbers Rock!",
     desc: "Word is a number e.g. fifty",
     weight: 4,
-    fn: async (rf: relationFunc, word: Letter[]): Promise<number> => {
-      const related = await rf("hypernym", "number", lettersToString(word));
-      return related ? 1 : 0;
-    },
+    query: `word in (
+        select hypo from simplerelations where hyper = 'number'
+      )`,
   },
   {
     key: "fauna",
     name: "Animal Knower",
     desc: "Word is an animal e.g. wombat",
     weight: 3,
-    fn: async (rf: relationFunc, word: Letter[]): Promise<number> => {
-      const related = await rf("hypernym", "fauna", lettersToString(word));
-      return related ? 1 : 0;
-    },
+    query: `word in (
+        select hypo from simplerelations where hyper = 'fauna'
+      )`,
   },
   {
     key: "flora",
     name: "Green Thumb",
     desc: "Word is a plant e.g. ivy",
-    weight: 2,
-    fn: async (rf: relationFunc, word: Letter[]): Promise<number> => {
-      const related = await rf("hypernym", "flora", lettersToString(word));
-      return related ? 1 : 0;
-    },
+    weight: 3,
+    query: `word in (
+        select hypo from simplerelations where hyper = 'flora'
+      )`,
   },
 ];
 
@@ -142,5 +114,5 @@ export const BonusCards = new Map(
 );
 
 export const BonusImpls = new Map(
-  base.map((bonus) => [bonus.key, { fn: bonus.fn }]),
+  base.map((bonus) => [bonus.key, { query: bonus.query }]),
 );

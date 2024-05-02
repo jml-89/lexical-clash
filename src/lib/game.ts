@@ -29,13 +29,14 @@ import prand from "pure-rand";
 
 import { Battle, NewBattle, Submit, Place, Backspace, Wipe } from "./battle";
 
-import { BonusCard, BonusCards } from "./bonus";
+import { BonusCard, BonusCards, BonusImpl, BonusImpls } from "./bonus";
 import { AbilityCard, AbilityCards } from "./ability";
 import { ScoreWord } from "./score";
 
 import {
   KnowledgeBase,
   ScoredWord,
+  BonusQuery,
   HyperSet,
   Shuffle,
   ShuffleMap,
@@ -53,7 +54,6 @@ import { Preamble, PreambleSetup, NewPreamble } from "./preamble";
 // Still a nice modeling exercise
 export type Phase = Preamble | Battle | Outcome;
 
-// This becomes relevant a little later, see the DoPhase function
 type BattleFn = (x: Battle) => void;
 type OutcomeFn = (x: Outcome) => void;
 type PreambleFn = (x: Preamble) => void;
@@ -97,7 +97,7 @@ export interface GameState {
 
   postgame: boolean;
 
-  banked: Map<string, boolean>;
+  hyperbank: Map<string, boolean>;
   wordbank: Map<string, ScoredWord>;
 
   opponents: Map<string, Opponent>;
@@ -153,6 +153,25 @@ export async function OutcomeToPreamble(g: GameState): Promise<void> {
   g.phase = await NewPreamble(g);
 }
 
+async function Rescore(g: GameState): Promise<Map<string, ScoredWord>> {
+  const bonusQueries: BonusQuery[] = [];
+  for (const [k, bonus] of g.bonuses) {
+    const s = BonusImpls.get(bonus.key);
+    if (!s) {
+      continue;
+    }
+    bonusQueries.push({ query: s.query, score: bonus.weight * bonus.level });
+  }
+
+  const words = await g.kb.rescore([...g.wordbank.values()], bonusQueries);
+  let xs = new Map<string, ScoredWord>();
+  for (const word of words) {
+    xs.set(word.word, word);
+  }
+
+  return xs;
+}
+
 export async function LaunchBattle(g: GameState): Promise<void> {
   if (g.phase.type !== "preamble") {
     return;
@@ -175,6 +194,9 @@ export async function LaunchBattle(g: GameState): Promise<void> {
     return;
   }
 
+  // Update wordbank scores to reflect bonuses
+  g.wordbank = await Rescore(g);
+
   const opponent = g.phase.opponent.choice;
   if (g.postgame) {
     opponent.level = g.level;
@@ -192,8 +214,19 @@ export async function LaunchBattle(g: GameState): Promise<void> {
   });
 }
 
+export async function SaveGame(g: GameState): Promise<void> {
+  function maptup(k: any, v: any) {
+    return v instanceof Map
+      ? {
+          maptuples: [...v],
+        }
+      : v;
+  }
+
+  await g.kb.save(g.sessionid, JSON.stringify(g, maptup));
+}
+
 export function LoadGame(o: Object, kb: KnowledgeBase): GameState {
-  console.log("Load Game");
   const tupmap = (a: any): any => {
     if (!(a instanceof Object)) {
       return a;
@@ -263,42 +296,10 @@ export function NewGame(
       letterUpgrades: 10,
     },
     letters: ScrabbleDistribution(),
-    banked: new Map<string, boolean>(),
+    hyperbank: new Map<string, boolean>(),
     wordbank: new Map<string, ScoredWord>(),
   };
 }
-
-// The inevitable "sharp end" of the type union
-// Has to happen because no other way to know that e.g. battle phase only sends battlefns
-// Still awkward and more of an indictment on my structure than I'd like to admit
-async function DoPhase(g: GameState, phasefn: PhaseFn): Promise<GameState> {
-  const ng = Object.assign({}, g);
-
-  if (ng.phase.type === "battle") {
-    await (<BattleFn>phasefn)(ng.phase);
-  } else if (ng.phase.type === "preamble") {
-    await (<PreambleFn>phasefn)(ng.phase);
-  } else if (ng.phase.type === "outcome") {
-    await (<OutcomeFn>phasefn)(ng.phase);
-  }
-
-  return ng;
-}
-
-/*
-async function FillPlayerBank(
-	g: GameState, 
-	lookup: (s: string) => Promise<ScoredWord[]>, 
-	s: string
-): Promise<void> {
-	let xs = []
-	for (const word of await lookup(s)) {
-		if (!g.wordbank.has(word.word)) {
-			g.wordbank.set(word.word, word)
-		}
-	}
-}
-*/
 
 function FillPlayerBank(g: GameState, w: HyperSet): void {
   for (const word of w.hyponyms) {
@@ -306,6 +307,8 @@ function FillPlayerBank(g: GameState, w: HyperSet): void {
   }
 }
 
+// Transitions between phases, managing higher level save data, and so on
+// Super messy
 export async function Finalise(
   g: GameState,
   setfn: (g: GameState) => void,
@@ -315,7 +318,7 @@ export async function Finalise(
     return;
   }
 
-  const ng = Object.assign({}, g);
+  const ng = { ...g };
 
   if (phase.type === "preamble") {
     await LaunchBattle(ng);
@@ -334,15 +337,7 @@ export async function Finalise(
     };
     setfn(ng);
 
-    function maptup(k: any, v: any) {
-      return v instanceof Map
-        ? {
-            maptuples: [...v],
-          }
-        : v;
-    }
-    const s = JSON.stringify(ng, maptup);
-    await ng.kb.save(ng.sessionid, s);
+    await SaveGame(ng);
   } else if (phase.type === "outcome") {
     await OutcomeToPreamble(ng);
     setfn(ng);
