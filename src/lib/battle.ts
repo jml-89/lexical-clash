@@ -417,7 +417,7 @@ async function UpdateScore(
     g.playArea.placed,
     g.bonuses,
     o.profile.weakness,
-    lettersToString(o.playArea.placed)
+    lettersToString(o.playArea.placed),
   );
 }
 

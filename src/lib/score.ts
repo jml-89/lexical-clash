@@ -102,15 +102,15 @@ export async function ScoreWord(
   if (await kb.related("hypernym", opposingWord, word)) {
     sheet.muls.push({
       source: "Undercut",
-      value: 0.2
-    })
+      value: 0.2,
+    });
   }
 
   if (await kb.related("hypernym", word, opposingWord)) {
     sheet.muls.push({
       source: "Overcut",
-      value: 0.2
-    })
+      value: 0.2,
+    });
   }
 
   sumScore(sheet);

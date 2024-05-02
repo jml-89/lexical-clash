@@ -386,20 +386,24 @@ function ListWords({
     <div className="flex flex-col gap-1">
       <ul className="flex-1 flex flex-row font-bold gap-1 flex-wrap-reverse">
         <li key="back-button">
-          <button className="self-baseline bg-red-500 px-2 py-0.5 rounded-lg" onClick={closefn}>
+          <button
+            className="self-baseline bg-red-500 px-2 py-0.5 rounded-lg"
+            onClick={closefn}
+          >
             Back
           </button>
         </li>
         {words.map((word, letters) => (
           <li key={word}>
-            <button 
+            <button
               onClick={placefn(word)}
               className="bg-orange-200 px-2 py-0.5 rounded-lg"
-            >{word}</button>
+            >
+              {word}
+            </button>
           </li>
         ))}
       </ul>
-
     </div>
   );
 }
@@ -433,32 +437,31 @@ function BonusCarousel({
         <p className="">{bonus.desc}</p>
       </div>
 
-
       <div className="self-stretch grid grid-cols-5 gap-1">
-      <button
-        className="col-start-1 bg-red-500 py-0.5 px-2 rounded-lg"
-        onClick={closefn}
-      >
-        Back
-      </button>
-
-      {idx > 0 && (
         <button
-          className="col-start-2 bg-amber-300 py-0.5 px-2 rounded-lg"
-          onClick={() => setIdx(idx - 1)}
+          className="col-start-1 bg-red-500 py-0.5 px-2 rounded-lg"
+          onClick={closefn}
         >
-          Prev
+          Back
         </button>
-      )}
 
-      {idx + 1 !== keys.length && (
-        <button
-          className="col-start-3 bg-amber-300 py-0.5 px-2 rounded-lg"
-          onClick={() => setIdx(idx + 1)}
-        >
-          Next
-        </button>
-      )}
+        {idx > 0 && (
+          <button
+            className="col-start-2 bg-amber-300 py-0.5 px-2 rounded-lg"
+            onClick={() => setIdx(idx - 1)}
+          >
+            Prev
+          </button>
+        )}
+
+        {idx + 1 !== keys.length && (
+          <button
+            className="col-start-3 bg-amber-300 py-0.5 px-2 rounded-lg"
+            onClick={() => setIdx(idx + 1)}
+          >
+            Next
+          </button>
+        )}
       </div>
     </div>
   );
@@ -487,7 +490,7 @@ function AbilityCarousel({
   const use = async () =>
     await statefn((g: Battle) => UseAbility(g, keys[idx]));
 
-  const buttoncn = "py-0.5 px-2 rounded-lg"
+  const buttoncn = "py-0.5 px-2 rounded-lg";
   return (
     <div className="flex flex-col gap-1">
       <div className="flex-1 flex flex-col bg-orange-200 p-1">
@@ -499,45 +502,45 @@ function AbilityCarousel({
       </div>
 
       <div className="self-stretch grid grid-cols-5 gap-1">
-      <button
-        className={`${buttoncn} col-start-1 bg-red-500`}
-        onClick={closefn}
-      >
-        Back
-      </button>
-
-      {idx > 0 && (
         <button
-          className={`${buttoncn} col-start-2 bg-amber-300`}
-          onClick={() => setIdx(idx - 1)}
+          className={`${buttoncn} col-start-1 bg-red-500`}
+          onClick={closefn}
         >
-          Prev
+          Back
         </button>
-      )}
 
-      {idx + 1 !== keys.length && (
-        <button
-          className={`${buttoncn} col-start-3 bg-amber-300`}
-          onClick={() => setIdx(idx + 1)}
-        >
-          Next
-        </button>
-      )}
+        {idx > 0 && (
+          <button
+            className={`${buttoncn} col-start-2 bg-amber-300`}
+            onClick={() => setIdx(idx - 1)}
+          >
+            Prev
+          </button>
+        )}
 
-      {canuse ? (
-        <button
-          className={`${buttoncn} col-start-4 col-span-2 bg-lime-500`}
-          onClick={use}
-        >
-          Use
-        </button>
-      ) : (
-        <button 
-          className={`${buttoncn} col-start-4 col-span-2 bg-neutral-500`}
-        >
-          Use
-        </button>
-      )}
+        {idx + 1 !== keys.length && (
+          <button
+            className={`${buttoncn} col-start-3 bg-amber-300`}
+            onClick={() => setIdx(idx + 1)}
+          >
+            Next
+          </button>
+        )}
+
+        {canuse ? (
+          <button
+            className={`${buttoncn} col-start-4 col-span-2 bg-lime-500`}
+            onClick={use}
+          >
+            Use
+          </button>
+        ) : (
+          <button
+            className={`${buttoncn} col-start-4 col-span-2 bg-neutral-500`}
+          >
+            Use
+          </button>
+        )}
       </div>
     </div>
   );
