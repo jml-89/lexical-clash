@@ -288,8 +288,6 @@ async function WordbankCheck(
 }
 
 async function NextRound(g: Battle): Promise<void> {
-  console.log(g);
-
   g.round = g.round + 1;
 
   g.player = { ...g.player };

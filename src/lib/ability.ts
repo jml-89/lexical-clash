@@ -48,10 +48,11 @@ const AbilitiesBase: AbilityBase[] = [
       return true;
     },
     func: (pr: PlayArea): PlayArea => {
+      let num = pr.placed.length + pr.hand.length;
       let xs: Letter[] = [];
       for (const c of "AEIOU") {
         xs.push({
-          id: `vowel-magic-${c}`,
+          id: `vowel-magic-${num}-${c}`,
           char: c,
           score: 1,
           level: 2,
