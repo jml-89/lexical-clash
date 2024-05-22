@@ -21,6 +21,7 @@ import {
   UnplaceAll,
   UnplaceById,
   DiscardAll,
+  letterSlotsToString,
 } from "./playarea";
 
 import { PlayerProfile, Opponent } from "./opponent";
@@ -32,17 +33,18 @@ import {
   AbilityImpls,
 } from "./ability";
 
-import { BonusCard, BonusCards } from "./bonus";
+import { BonusImpls, BonusCard, BonusCards } from "./bonus";
 
 import { Scoresheet, ScoreWord } from "./score";
 
 import {
   CopyMap,
   ScoredWord,
-  KnowledgeBase,
+  ServerFunctions,
   PRNG,
   ShuffleMap,
   Shuffle,
+  BonusQuery,
 } from "./util";
 
 export interface Battler {
@@ -53,6 +55,8 @@ export interface Battler {
 
   checking: boolean;
   scoresheet?: Scoresheet;
+
+  hyperbank: Map<string, boolean>;
   wordbank: Map<string, ScoredWord>;
 
   abilities: Map<string, AbilityCard>;
@@ -110,6 +114,7 @@ function NewBattler(bs: BattlerSetup): Battler {
     wordMatches: [],
 
     profile: bs.profile,
+    hyperbank: new Map<string, boolean>(),
     wordbank: new Map<string, ScoredWord>(),
 
     playArea: {
@@ -125,7 +130,7 @@ function NewBattler(bs: BattlerSetup): Battler {
 export interface Battle {
   type: "battle";
 
-  kb: KnowledgeBase;
+  kb: ServerFunctions;
   prng: PRNG;
   done: boolean;
   victory: boolean;
@@ -139,9 +144,10 @@ export interface Battle {
 export interface BattleSetup {
   handSize: number;
   letters: Letter[];
-  kb: KnowledgeBase;
+  kb: ServerFunctions;
   prng: PRNG;
 
+  hyperbank: Map<string, boolean>;
   wordbank: Map<string, ScoredWord>;
 
   bonuses: Map<string, BonusCard>;
@@ -183,6 +189,7 @@ export async function NewBattle(bs: BattleSetup): Promise<Battle> {
 
   battle.opponent.wordbank = ShuffleMap(battle.prng, battle.opponent.wordbank);
   battle.player.wordbank = bs.wordbank;
+  battle.player.hyperbank = bs.hyperbank;
 
   await NextRound(battle);
   return battle;
@@ -242,7 +249,7 @@ function UseAbilityReal(g: Battler, key: string): Battler {
 
 export async function UseAbility(g: Battle, key: string): Promise<void> {
   g.player = UseAbilityReal(g.player, key);
-  g.player.wordMatches = WordbankCheck(g.player);
+  g.player.wordMatches = await WordbankCheck(g.kb, g.player);
 }
 
 // This function only uses the simple score of a word
@@ -250,57 +257,44 @@ export async function UseAbility(g: Battle, key: string): Promise<void> {
 // No bonuses / weaknesses are included
 // Doing the full server round trip for every word, no way
 // There could be a server-side solution...
-function WordbankCheck(g: Battler): string[] {
-  const found: ScoredWord[] = [];
+async function WordbankCheck(
+  kb: ServerFunctions,
+  g: Battler,
+): Promise<string[]> {
+  let letters =
+    letterSlotsToString(g.playArea.hand) + lettersToString(g.playArea.placed);
 
-  let pm = new Map<string, number>();
-  for (const letter of g.playArea.hand) {
-    if (!letter) {
+  const hypers = [...g.hyperbank.keys()];
+  const words = [...g.wordbank.values()];
+
+  const bonusQueries: BonusQuery[] = [];
+  for (const [k, bonus] of g.bonuses) {
+    const s = BonusImpls.get(bonus.key);
+    if (!s) {
       continue;
     }
-
-    const c = letter.char.toLowerCase();
-    const n = pm.get(c);
-    pm.set(c, n === undefined ? 1 : n + 1);
+    bonusQueries.push({ query: s.query, score: bonus.weight * bonus.level });
   }
 
-  for (const letter of g.playArea.placed) {
-    const c = letter.char.toLowerCase();
-    const n = pm.get(c);
-    pm.set(c, n === undefined ? 1 : n + 1);
-  }
+  const suggestedWords = await kb.suggestions(
+    letters,
+    hypers,
+    words,
+    bonusQueries,
+    20,
+  );
 
-  for (const [str, scoredword] of g.wordbank) {
-    let wm = new Map<string, number>();
-    for (const c of scoredword.word) {
-      const n = wm.get(c);
-      wm.set(c, n === undefined ? 1 : n + 1);
-    }
-
-    let good = true;
-    for (const [c, n] of wm) {
-      const m = pm.get(c);
-      good = good && m !== undefined && n <= m;
-      if (!good) {
-        break;
-      }
-    }
-
-    if (good) {
-      found.push(scoredword);
-    }
-  }
-
-  found.sort((a, b) => b.score - a.score);
-  return found.map((a) => a.word).slice(0, 15);
+  return suggestedWords.map((a) => a.word);
 }
 
 async function NextRound(g: Battle): Promise<void> {
+  console.log(g);
+
   g.round = g.round + 1;
 
   g.player = { ...g.player };
   g.player.playArea = Draw(DiscardAll(g.player.playArea));
-  g.player.wordMatches = WordbankCheck(g.player);
+  g.player.wordMatches = await WordbankCheck(g.kb, g.player);
   g.player = AbilityChecks(g.player);
   g.player.scoresheet = await UpdateScore(g.player, g.opponent, g.kb);
 
@@ -412,7 +406,7 @@ export async function PlaceWordbank(g: Battle, id: string): Promise<void> {
 async function UpdateScore(
   g: Battler,
   o: Battler,
-  kb: KnowledgeBase,
+  kb: ServerFunctions,
 ): Promise<Scoresheet> {
   return await ScoreWord(
     kb,

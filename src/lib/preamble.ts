@@ -16,7 +16,7 @@ import { BonusCard, BonusCards } from "./bonus";
 import {
   ShuffleMap,
   PickRandom,
-  KnowledgeBase,
+  ServerFunctions,
   ScoredWord,
   HyperSet,
   PRNG,
@@ -34,7 +34,7 @@ export interface PreambleStage<T> {
 export interface Preamble {
   type: "preamble";
   done: boolean;
-  kb: KnowledgeBase;
+  kb: ServerFunctions;
 
   level: number;
 
@@ -51,7 +51,7 @@ export interface PreambleSetup {
   prng: PRNG;
 
   level: number;
-  kb: KnowledgeBase;
+  kb: ServerFunctions;
 
   opponents: Map<string, Opponent>;
 

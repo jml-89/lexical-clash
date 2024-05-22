@@ -34,7 +34,7 @@ import { AbilityCard, AbilityCards } from "./ability";
 import { ScoreWord } from "./score";
 
 import {
-  KnowledgeBase,
+  ServerFunctions,
   ScoredWord,
   BonusQuery,
   HyperSet,
@@ -86,7 +86,7 @@ export interface GameState {
   rs: RandState;
   prng: PRNG;
 
-  kb: KnowledgeBase;
+  kb: ServerFunctions;
 
   phase: Phase;
 
@@ -97,7 +97,10 @@ export interface GameState {
 
   postgame: boolean;
 
+  // A collection of hypernyms added from boosters
   hyperbank: Map<string, boolean>;
+
+  // A collection of words played
   wordbank: Map<string, ScoredWord>;
 
   opponents: Map<string, Opponent>;
@@ -195,7 +198,7 @@ export async function LaunchBattle(g: GameState): Promise<void> {
   }
 
   // Update wordbank scores to reflect bonuses
-  g.wordbank = await Rescore(g);
+  //g.wordbank = await Rescore(g);
 
   const opponent = g.phase.opponent.choice;
   if (g.postgame) {
@@ -210,6 +213,7 @@ export async function LaunchBattle(g: GameState): Promise<void> {
     abilities: g.abilities,
     opponent: opponent,
     letters: g.letters,
+    hyperbank: g.hyperbank,
     wordbank: g.wordbank,
   });
 }
@@ -226,7 +230,7 @@ export async function SaveGame(g: GameState): Promise<void> {
   await g.kb.save(g.sessionid, JSON.stringify(g, maptup));
 }
 
-export function LoadGame(o: Object, kb: KnowledgeBase): GameState {
+export function LoadGame(o: Object, kb: ServerFunctions): GameState {
   const tupmap = (a: any): any => {
     if (!(a instanceof Object)) {
       return a;
@@ -272,7 +276,7 @@ export function LoadGame(o: Object, kb: KnowledgeBase): GameState {
 export function NewGame(
   sessionid: string,
   seed: number,
-  kb: KnowledgeBase,
+  kb: ServerFunctions,
 ): GameState {
   let [rs, prng] = CreateStatefulRand(seed);
   return {
@@ -302,9 +306,7 @@ export function NewGame(
 }
 
 function FillPlayerBank(g: GameState, w: HyperSet): void {
-  for (const word of w.hyponyms) {
-    g.wordbank.set(word.word, word);
-  }
+  g.hyperbank.set(w.hypernym, true);
 }
 
 // Transitions between phases, managing higher level save data, and so on
@@ -325,9 +327,6 @@ export async function Finalise(
     setfn(ng);
   } else if (phase.type === "battle") {
     MapConcat(ng.wordbank, phase.player.wordbank);
-    if (phase.victory) {
-      MapConcat(ng.wordbank, phase.opponent.wordbank);
-    }
     ng.phase = {
       type: "outcome",
       done: false,

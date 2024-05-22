@@ -54,6 +54,68 @@ export async function AreWordsRelated(
   return false;
 }
 
+export async function SuggestWords(
+  letters: string,
+  hypers: string[],
+  wordbank: ScoredWord[],
+  bonuses: BonusQuery[],
+  num: number,
+): Promise<ScoredWord[]> {
+  let bank = new Map<string, ScoredWord>();
+  for (const word of wordbank) {
+    bank.set(word.word, word);
+  }
+
+  for (const hyper of hypers) {
+    const moreWords = await HypoForms(hyper);
+    for (const word of moreWords) {
+      bank.set(word.word, word);
+    }
+  }
+
+  let res = [...bank.values()];
+  res = playableWords(letters, res);
+  res = await GuessScores(res, bonuses);
+  res.sort((a, b) => b.score - a.score);
+
+  return res.slice(0, 20);
+}
+
+function playableWords(letters: string, words: ScoredWord[]): ScoredWord[] {
+  let playable = [];
+
+  let pm = new Map<string, number>();
+  for (const letter of letters) {
+    const c = letter.toLowerCase();
+    const n = pm.get(c);
+    pm.set(c, n === undefined ? 1 : n + 1);
+  }
+
+  for (const scoredword of words) {
+    let wm = new Map<string, number>();
+    for (const letter of scoredword.word) {
+      const c = letter.toLowerCase();
+      const n = wm.get(c);
+      wm.set(c, n === undefined ? 1 : n + 1);
+    }
+
+    let good = true;
+    for (const [c, n] of wm) {
+      const m = pm.get(c);
+      good = good && m !== undefined && n <= m;
+      if (!good) {
+        break;
+      }
+    }
+
+    if (good) {
+      playable.push(scoredword);
+    }
+  }
+
+  return playable;
+}
+
 export async function GuessScores(
   words: ScoredWord[],
   bonuses: BonusQuery[],

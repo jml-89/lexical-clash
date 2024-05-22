@@ -13,6 +13,16 @@ import { Shuffle, PRNG } from "./util";
 
 export type LetterSlot = Letter | undefined;
 
+export function letterSlotsToString(slots: LetterSlot[]): string {
+  let chars = [];
+  for (const slot of slots) {
+    if (slot) {
+      chars.push(slot.char);
+    }
+  }
+  return chars.join("").toLowerCase();
+}
+
 // hand field should be addressed, why complicate it?
 // Really each array element is a slot that can be empty or have a letter
 // To simulate gaps in the hand when placing a letter

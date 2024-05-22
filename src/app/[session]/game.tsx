@@ -14,7 +14,7 @@ import {
   Finalise,
 } from "@/lib/game";
 
-import { KnowledgeBase } from "@/lib/util";
+import { ServerFunctions } from "@/lib/util";
 import { Preamble } from "@/lib/preamble";
 import { Battle } from "@/lib/battle";
 
@@ -26,17 +26,17 @@ export function Game({
   sid,
   seed,
   save,
-  knowledge,
+  serverfns,
 }: {
   sid: string;
   seed: number;
   save: Object | undefined;
-  knowledge: KnowledgeBase;
+  serverfns: ServerFunctions;
 }) {
   const [game, setGame] = useState(
     save === undefined
-      ? NewGame(sid, seed, knowledge)
-      : LoadGame(save, knowledge),
+      ? NewGame(sid, seed, serverfns)
+      : LoadGame(save, serverfns),
   );
 
   const finaliser = useCallback(

@@ -20,7 +20,7 @@ import { Opponent } from "./opponent";
 
 import { BonusCard, BonusImpl, BonusImpls } from "./bonus";
 
-import { KnowledgeBase, ScoredWord, BonusQuery } from "./util";
+import { ServerFunctions, ScoredWord, BonusQuery } from "./util";
 
 // score = totalAdd+totalMul = sum(adds) + sum(muls)
 // Redundant, yes; convenient, very yes
@@ -41,7 +41,7 @@ export interface ScoreModifier {
 }
 
 export async function ScoreWord(
-  kb: KnowledgeBase,
+  kb: ServerFunctions,
   placed: Letter[],
   bonuses: Map<string, BonusCard>,
   weaknesses: string[],

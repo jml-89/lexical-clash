@@ -6,11 +6,12 @@ import {
   AreWordsRelated,
   HypoForms,
   Candidates,
+  SuggestWords,
   GetSession,
   SetSession,
   ServerSeed,
 } from "@/lib/wordnet";
-import { KnowledgeBase } from "@/lib/util";
+import { ServerFunctions } from "@/lib/util";
 
 import { Game } from "./game";
 
@@ -22,11 +23,12 @@ export default async function Home({
   };
 }) {
   const session = await GetSession(params.session);
-  const wordnet: KnowledgeBase = {
+  const serverfns: ServerFunctions = {
     valid: IsWordValid,
     related: AreWordsRelated,
     rescore: GuessScores,
     hypos: HypoForms,
+    suggestions: SuggestWords,
     candidates: Candidates,
     save: SetSession,
   };
@@ -36,7 +38,7 @@ export default async function Home({
       sid={params.session}
       seed={await ServerSeed()}
       save={session}
-      knowledge={wordnet}
+      serverfns={serverfns}
     />
   );
 }
