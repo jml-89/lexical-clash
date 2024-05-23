@@ -14,29 +14,30 @@ import {
   animate,
 } from "framer-motion";
 
+import type { Battler } from "@/lib/battler";
+import {} from "@/lib/battler";
+
 import {
-  Battler,
   Battle,
   Submit,
-  Backspace,
-  BackspaceId,
-  Wipe,
-  Place,
   PlaceWordbank,
   UseAbility,
   UpdateScores,
   Checking,
+  OnPlayArea,
 } from "@/lib/battle";
-import { Scoresheet } from "@/lib/score";
 
-import { Letter } from "@/lib/letter";
-import { LetterSlot } from "@/lib/playarea";
-import { Opponent } from "@/lib/opponent";
-import { BonusCard } from "@/lib/bonus";
-import { AbilityCard } from "@/lib/ability";
+import type { Scoresheet } from "@/lib/score";
+
 import { CreateMutator } from "@/lib/util";
 
-import { DrawLetter } from "./letter";
+import { DrawScoresheet } from "@/cmp/score";
+import { DrawPlayArea, PlayAreaFnT } from "@/cmp/playarea";
+import { DrawOpponent } from "@/cmp/opponent";
+import { HealthBar } from "@/cmp/misc";
+
+import { AbilityCarousel } from "@/cmp/ability";
+import { BonusCarousel } from "@/cmp/bonus";
 
 type battlefn = (a: Battle) => Promise<void>;
 type statefnT = (fn: battlefn) => Promise<void>;
@@ -65,106 +66,6 @@ export function PlayBattle({
     </main>
   );
 }
-
-const DrawProfile = memo(function DrawProfile({
-  opp,
-  hd,
-}: {
-  opp: Opponent;
-  hd: number;
-}) {
-  return (
-    <div className="flex flex-row gap-4">
-      <motion.div
-        className="flex-none"
-        initial={{
-          rotate: 0,
-          scale: 0,
-        }}
-        animate={{
-          rotate: [0, -hd, hd, 0],
-          scale: [1, 0.9, 1.1, 1],
-        }}
-        transition={{
-          duration: 0.2,
-          repeat: hd,
-        }}
-      >
-        <Image
-          src={`/${opp.image}`}
-          width={80}
-          height={80}
-          alt={`Mugshot of ${opp.name}`}
-        />
-      </motion.div>
-
-      <div className="flex flex-col">
-        <div className="text-amber-300">
-          <span className="text-lg font-bold">{opp.name}</span>{" "}
-          <span className="italic">(Level {opp.level})</span>
-        </div>
-        <div className="text-red-300">
-          <span className="font-bold">Uses:</span> {opp.strength.join(", ")}
-        </div>
-        <div className="text-lime-300">
-          <span className="font-bold">Weak to:</span> {opp.weakness.join(", ")}
-        </div>
-      </div>
-    </div>
-  );
-});
-
-const DrawOpponent = memo(function DrawOpponent({ opp }: { opp: Battler }) {
-  const hd = opp.profile.healthMax - opp.health;
-  return (
-    <motion.div className="flex flex-col items-center gap-2">
-      <HealthBar
-        badguy={true}
-        health={opp.health}
-        healthMax={opp.profile.healthMax}
-      />
-
-      <DrawProfile opp={opp.profile} hd={hd} />
-
-      <motion.div initial={{ y: -100 }} animate={{ y: 0 }}>
-        <Placed letters={opp.playArea.placed} />
-      </motion.div>
-    </motion.div>
-  );
-});
-
-const HealthBar = memo(function HealthBar({
-  badguy,
-  health,
-  healthMax,
-}: {
-  badguy: boolean;
-  health: number;
-  healthMax: number;
-}) {
-  const color = badguy ? "bg-red-800" : "bg-lime-500";
-  const healthpct = Math.floor((health / healthMax) * 100.0);
-
-  return (
-    <div
-      className={[
-        "w-full h-4",
-        "border-2 border-black",
-        "bg-zinc-400",
-        "flex",
-      ].join(" ")}
-    >
-      {healthpct > 0 && (
-        <motion.div
-          initial={{ width: "0%" }}
-          animate={{ width: `${healthpct}%` }}
-          transition={{ duration: 0.6 }}
-          className={color}
-        />
-      )}
-    </div>
-  );
-});
 
 const ActionButton = memo(function ActionButton({
   checking,
@@ -224,59 +125,6 @@ function AttackButton({ statefn }: { statefn: statefnT }) {
   );
 }
 
-function ScoreTable({ sheet }: { sheet: Scoresheet }) {
-  return (
-    <table className="text-right">
-      <tbody>
-        {sheet.adds.map((sm) => (
-          <tr key={sm.source}>
-            <th className="font-medium" scope="row">
-              {sm.source}
-            </th>
-            <td>+{sm.value}</td>
-          </tr>
-        ))}
-        {sheet.muls.map((sm) => (
-          <tr key={sm.source}>
-            <th className="font-medium" scope="row">
-              {sm.source}
-            </th>
-            <td>x{sm.value}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function AnimatedNumber({ n }: { n: number }) {
-  const [scope, animate] = useAnimate();
-  const bigScore = useMotionValue(0);
-  const rounded = useTransform(bigScore, (x) => Math.round(x));
-  useEffect(() => {
-    animate(bigScore, n, { duration: (1 / 30) * n });
-  }, [animate, bigScore, n]);
-
-  return <motion.div>{rounded}</motion.div>;
-}
-
-const ScoreDisplay = memo(function ScoreDisplay({
-  sheet,
-  color,
-}: {
-  sheet: Scoresheet;
-  color: string;
-}) {
-  return (
-    <div className={`flex flex-row-reverse justify-between ${color}`}>
-      <div className={`text-6xl ${color}`}>
-        <AnimatedNumber n={sheet.score} />
-      </div>
-      <ScoreTable sheet={sheet} />
-    </div>
-  );
-});
-
 const Contest = memo(function Contest({
   ps,
   os,
@@ -289,8 +137,8 @@ const Contest = memo(function Contest({
   return (
     <div className="flex flex-row justify-center gap-2">
       <div className="flex flex-col justify-center text-sm font-light">
-        {os && os.ok && <ScoreDisplay sheet={os} color="text-red-300" />}
-        {ps && ps.ok && <ScoreDisplay sheet={ps} color="text-lime-400" />}
+        {os && os.ok && <DrawScoresheet sheet={os} color="text-red-300" />}
+        {ps && ps.ok && <DrawScoresheet sheet={ps} color="text-lime-400" />}
       </div>
 
       {ps && ps.ok && <AttackButton statefn={statefn} />}
@@ -320,6 +168,7 @@ const Player = memo(function Player({
   );
 
   const closefn = useCallback(() => setView("buttons"), [setView]);
+  const abilitystatefn = (s: string) => statefn((g) => UseAbility(g, s));
 
   const actionArea =
     view === "buttons" ? (
@@ -329,9 +178,13 @@ const Player = memo(function Player({
         {player.wordMatches.length > 0 && somebutton("Wordbank", "wordbank")}
       </div>
     ) : view === "abilities" ? (
-      <AbilityCarousel player={player} statefn={statefn} closefn={closefn} />
+      <AbilityCarousel
+        abilities={player.abilities}
+        statefn={abilitystatefn}
+        closefn={closefn}
+      />
     ) : view === "bonuses" ? (
-      <BonusCarousel player={player} closefn={closefn} />
+      <BonusCarousel bonuses={player.bonuses} closefn={closefn} />
     ) : view === "wordbank" ? (
       <ListWords
         words={player.wordMatches}
@@ -342,6 +195,8 @@ const Player = memo(function Player({
       <></>
     );
 
+  const playfn = (fn: PlayAreaFnT) => statefn((g) => OnPlayArea(g, fn));
+
   return (
     <div className="flex-1 flex flex-col gap-2 items-stretch px-1">
       {player.playArea.placed.length > 0 && (
@@ -351,10 +206,7 @@ const Player = memo(function Player({
           statefn={statefn}
         />
       )}
-      <div className="flex-1 self-stretch">
-        <PlayerPlaced letters={player.playArea.placed} statefn={statefn} />
-      </div>
-      <Hand letters={player.playArea.hand} statefn={statefn} />
+      <DrawPlayArea playarea={player.playArea} statefn={playfn} />
       {actionArea}
       <HealthBar
         badguy={false}
@@ -407,262 +259,3 @@ function ListWords({
     </div>
   );
 }
-
-function BonusCarousel({
-  player,
-  closefn,
-}: {
-  player: Battler;
-  closefn: () => void;
-}) {
-  const [idx, setIdx] = useState(0);
-  if (player.bonuses.size === 0) {
-    return <></>;
-  }
-
-  let keys: string[] = [];
-  for (const [k, v] of player.bonuses) {
-    keys.push(k);
-  }
-  const bonus = player.bonuses.get(keys[idx]) as BonusCard;
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex-1 flex flex-col items-baseline bg-orange-200 p-1">
-        <div className="flex flex-row items-baseline gap-1">
-          <h1 className="text-xl">{bonus.name}</h1>
-          <div className="italic">
-            Level {bonus.level} (+{bonus.level * bonus.weight} points)
-          </div>
-        </div>
-        <p className="">{bonus.desc}</p>
-      </div>
-
-      <div className="self-stretch grid grid-cols-5 gap-1">
-        <button
-          className="col-start-1 bg-red-500 py-0.5 px-2 rounded-lg"
-          onClick={closefn}
-        >
-          Back
-        </button>
-
-        {idx > 0 && (
-          <button
-            className="col-start-2 bg-amber-300 py-0.5 px-2 rounded-lg"
-            onClick={() => setIdx(idx - 1)}
-          >
-            Prev
-          </button>
-        )}
-
-        {idx + 1 !== keys.length && (
-          <button
-            className="col-start-3 bg-amber-300 py-0.5 px-2 rounded-lg"
-            onClick={() => setIdx(idx + 1)}
-          >
-            Next
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function AbilityCarousel({
-  player,
-  statefn,
-  closefn,
-}: {
-  player: Battler;
-  statefn: statefnT;
-  closefn: () => void;
-}) {
-  const [idx, setIdx] = useState(0);
-  if (player.abilities.size === 0) {
-    return <></>;
-  }
-
-  let keys: string[] = [];
-  for (const [k, v] of player.abilities) {
-    keys.push(k);
-  }
-  const ability = player.abilities.get(keys[idx]) as AbilityCard;
-  const canuse = ability.ok && ability.uses > 0;
-  const use = async () =>
-    await statefn((g: Battle) => UseAbility(g, keys[idx]));
-
-  const buttoncn = "py-0.5 px-2 rounded-lg";
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex-1 flex flex-col bg-orange-200 p-1">
-        <div className="flex flex-row gap-1 items-baseline">
-          <h1 className="text-2xl">{ability.name}</h1>
-          <div className="italic">{ability.uses} uses remaining</div>
-        </div>
-        <p className="">{ability.desc}</p>
-      </div>
-
-      <div className="self-stretch grid grid-cols-5 gap-1">
-        <button
-          className={`${buttoncn} col-start-1 bg-red-500`}
-          onClick={closefn}
-        >
-          Back
-        </button>
-
-        {idx > 0 && (
-          <button
-            className={`${buttoncn} col-start-2 bg-amber-300`}
-            onClick={() => setIdx(idx - 1)}
-          >
-            Prev
-          </button>
-        )}
-
-        {idx + 1 !== keys.length && (
-          <button
-            className={`${buttoncn} col-start-3 bg-amber-300`}
-            onClick={() => setIdx(idx + 1)}
-          >
-            Next
-          </button>
-        )}
-
-        {canuse ? (
-          <button
-            className={`${buttoncn} col-start-4 col-span-2 bg-lime-500`}
-            onClick={use}
-          >
-            Use
-          </button>
-        ) : (
-          <button
-            className={`${buttoncn} col-start-4 col-span-2 bg-neutral-500`}
-          >
-            Use
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const Placed = memo(function Placed({ letters }: { letters: Letter[] }) {
-  const size = letters.length < 10 ? 1 : 2;
-  const gap = size === 2 ? "gap-0.5" : "gap-1";
-  return (
-    <ul className={`flex flex-row flex-wrap justify-center ${gap}`}>
-      {letters.map((letter) => (
-        <motion.li layoutId={letter.id} key={letter.id}>
-          <DrawLetter letter={letter} size={size} />
-        </motion.li>
-      ))}
-    </ul>
-  );
-});
-
-const PlayerPlaced = memo(function PlayerPlaced({
-  letters,
-  statefn,
-}: {
-  letters: Letter[];
-  statefn: statefnT;
-}) {
-  if (letters.length === 0) {
-    return <></>;
-  }
-  const size = letters.length < 8 ? 1 : 2;
-  const gap = size === 2 ? "gap-0.5" : "gap-1";
-
-  return (
-    <div className="self-stretch flex flex-row justify-between gap-1">
-      <button
-        className="bg-red-500 p-1 rounded-lg align-top text-lg"
-        onClick={async () => await statefn(Wipe)}
-      >
-        Clear
-      </button>
-
-      <ul className={`flex flex-row flex-wrap ${gap}`}>
-        {letters.map((letter) => (
-          <PlacedLetter
-            key={letter.id}
-            letter={letter}
-            statefn={statefn}
-            size={size}
-          />
-        ))}
-      </ul>
-
-      <button
-        className="bg-red-500 p-1 rounded-lg text-lg font-black"
-        onClick={async () => await statefn(Backspace)}
-      >
-        ⌫
-      </button>
-    </div>
-  );
-});
-
-const PlacedLetter = memo(function PlacedLetter({
-  letter,
-  statefn,
-  size,
-}: {
-  letter: Letter;
-  statefn: statefnT;
-  size: number;
-}) {
-  return (
-    <motion.li layoutId={letter.id} key={letter.id}>
-      <button
-        onClick={async () =>
-          await statefn((b: Battle) => BackspaceId(b, letter.id))
-        }
-      >
-        <DrawLetter letter={letter} size={size} />
-      </button>
-    </motion.li>
-  );
-});
-
-const HandLetter = memo(function HandLetter({
-  letter,
-  statefn,
-}: {
-  letter: Letter | undefined;
-  statefn: statefnT;
-}) {
-  if (!letter) {
-    return <DrawLetter letter={letter} size={0} />;
-  }
-
-  const placefn = async () => await statefn((g: Battle) => Place(g, letter.id));
-
-  return (
-    <motion.li layoutId={letter.id} key={letter.id}>
-      <button onClick={placefn}>
-        <DrawLetter letter={letter} size={0} />
-      </button>
-    </motion.li>
-  );
-});
-
-const Hand = memo(function Hand({
-  letters,
-  statefn,
-}: {
-  letters: LetterSlot[];
-  statefn: statefnT;
-}) {
-  return (
-    <ul className="flex flex-row gap-1 flex-wrap place-content-center">
-      {letters.map((letter, idx) => (
-        <HandLetter
-          key={letter ? letter.id : `empty-${idx}`}
-          letter={letter}
-          statefn={statefn}
-        />
-      ))}
-    </ul>
-  );
-});

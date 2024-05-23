@@ -27,7 +27,7 @@ import { Opponent, Opponents, PlayerProfile } from "./opponent";
 
 import prand from "pure-rand";
 
-import { Battle, NewBattle, Submit, Place, Backspace, Wipe } from "./battle";
+import { Battle, NewBattle } from "./battle";
 
 import { BonusCard, BonusCards, BonusImpl, BonusImpls } from "./bonus";
 import { AbilityCard, AbilityCards } from "./ability";
@@ -53,11 +53,6 @@ import { Preamble, PreambleSetup, NewPreamble } from "./preamble";
 // But appears to be closer to C-style union types
 // Still a nice modeling exercise
 export type Phase = Preamble | Battle | Outcome;
-
-type BattleFn = (x: Battle) => void;
-type OutcomeFn = (x: Outcome) => void;
-type PreambleFn = (x: Preamble) => void;
-export type PhaseFn = PreambleFn | BattleFn | OutcomeFn;
 
 export interface Outcome {
   type: "outcome";

@@ -1,6 +1,27 @@
+import { memo } from "react";
+import { motion } from "framer-motion";
+
 import { Letter } from "@/lib/letter";
 
-export function DrawLetter({
+export const DrawLetters = memo(function DrawLetters({
+  letters,
+}: {
+  letters: Letter[];
+}) {
+  const size = letters.length < 10 ? 1 : 2;
+  const gap = size === 2 ? "gap-0.5" : "gap-1";
+  return (
+    <ul className={`flex flex-row flex-wrap justify-center ${gap}`}>
+      {letters.map((letter) => (
+        <motion.li layoutId={letter.id} key={letter.id}>
+          <DrawLetter letter={letter} size={size} />
+        </motion.li>
+      ))}
+    </ul>
+  );
+});
+
+export const DrawLetter = memo(function DrawLetter({
   letter,
   size,
 }: {
@@ -84,4 +105,4 @@ export function DrawLetter({
       </div>
     </div>
   );
-}
+});
