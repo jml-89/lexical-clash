@@ -48,7 +48,7 @@ const PlayerPlaced = memo(function PlayerPlaced({
   return (
     <div className="self-stretch flex flex-row justify-between gap-1">
       <button
-        className="bg-red-500 p-1 rounded-lg align-top text-lg"
+        className="bg-red-500 text-black p-1 rounded-lg align-top text-lg"
         onClick={async () => await statefn(UnplaceAll)}
       >
         Clear
@@ -66,7 +66,7 @@ const PlayerPlaced = memo(function PlayerPlaced({
       </ul>
 
       <button
-        className="bg-red-500 p-1 rounded-lg text-lg font-black"
+        className="bg-red-500 text-black p-1 rounded-lg text-lg font-black"
         onClick={async () => await statefn(UnplaceLast)}
       >
         ⌫

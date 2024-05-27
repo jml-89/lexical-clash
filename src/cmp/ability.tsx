@@ -81,3 +81,14 @@ export function AbilityCarousel({
     </div>
   );
 }
+
+export function DrawAbility({ ability }: { ability: AbilityCard }) {
+  const comment = ability.uses > 1 ? `Upgrade to ${ability.uses} uses` : `New`;
+  return (
+    <div key={ability.name} className="flex flex-col gap-1">
+      <h1 className="text-xl font-bold">{ability.name}</h1>
+      <div className="italic">{ability.desc}</div>
+      <div>{comment}</div>
+    </div>
+  );
+}

@@ -3,25 +3,21 @@ import Image from "next/image";
 import { memo } from "react";
 import { motion } from "framer-motion";
 
-import type { Battler } from "@/lib/battler";
 import type { Opponent } from "@/lib/opponent";
+import type { ComBattler } from "@/lib/battler";
 
 import { HealthBar } from "@/cmp/misc";
 import { DrawLetters } from "@/cmp/letter";
 
-export const DrawOpponent = memo(function DrawOpponent({
+export const DrawComBattler = memo(function DrawComBattler({
   opp,
 }: {
-  opp: Battler;
+  opp: ComBattler;
 }) {
-  const hd = opp.profile.healthMax - opp.health;
+  const hd = opp.healthMax - opp.health;
   return (
     <motion.div className="flex flex-col items-center gap-2">
-      <HealthBar
-        badguy={true}
-        health={opp.health}
-        healthMax={opp.profile.healthMax}
-      />
+      <HealthBar badguy={true} health={opp.health} healthMax={opp.healthMax} />
 
       <DrawProfile opp={opp.profile} hd={hd} />
 
@@ -79,3 +75,34 @@ const DrawProfile = memo(function DrawProfile({
     </div>
   );
 });
+
+export function OpponentMugshot({ opponent }: { opponent: Opponent }) {
+  return (
+    <div key={opponent.name} className="flex flex-row gap-1">
+      <div className="flex-none">
+        <Image
+          src={`/${opponent.image}`}
+          width={120}
+          height={120}
+          alt={`Mugshot of ${opponent.name}`}
+        />
+      </div>
+
+      <div className="flex flex-col justify-between items-baseline text-left">
+        <h1 className="text-amber-300 text-xl">{opponent.name}</h1>
+        <div className="text-amber-300 italic">
+          Level {opponent.level} {opponent.desc}
+        </div>
+
+        <div className="text-red-300">
+          <span className="font-bold">Uses:</span>{" "}
+          {opponent.strength.join(", ")}
+        </div>
+        <div className="text-lime-300">
+          <span className="font-bold">Weak to:</span>{" "}
+          {opponent.weakness.join(", ")}
+        </div>
+      </div>
+    </div>
+  );
+}

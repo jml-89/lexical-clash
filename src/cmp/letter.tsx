@@ -68,7 +68,7 @@ export const DrawLetter = memo(function DrawLetter({
           "flex justify-center items-center",
         ].join(" ")}
       >
-        <div className="text-lg font-medium">{letter.char}</div>
+        <div className="text-black text-lg font-medium">{letter.char}</div>
       </div>
     );
   }
@@ -78,6 +78,7 @@ export const DrawLetter = memo(function DrawLetter({
       className={[
         dimensions,
         "border-solid",
+        "text-black",
         bg,
         bo,
         "p-0.5",

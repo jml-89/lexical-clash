@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import type { ServerFunctions } from "@/lib/wordnet";
 import {
   IsWordValid,
   GuessScores,
@@ -11,9 +12,8 @@ import {
   SetSession,
   ServerSeed,
 } from "@/lib/wordnet";
-import { ServerFunctions } from "@/lib/util";
 
-import { Game } from "./game";
+import { PlayGame } from "@/cmp/game";
 
 export default async function Home({
   params,
@@ -34,7 +34,7 @@ export default async function Home({
   };
 
   return (
-    <Game
+    <PlayGame
       sid={params.session}
       seed={await ServerSeed()}
       save={session}

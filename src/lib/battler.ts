@@ -1,10 +1,20 @@
 //Battler represents both human and computer players
 
 import type { Letter } from "./letter";
-import { lettersToString, stringToLetters } from "./letter";
+import {
+  ScrabbleDistribution,
+  lettersToString,
+  stringToLetters,
+} from "./letter";
 
 import type { PlayArea } from "./playarea";
-import { letterSlotsToString } from "./playarea";
+import {
+  usableLetters,
+  letterSlotsToString,
+  PlaceWord,
+  UnplaceAll,
+  NewHand,
+} from "./playarea";
 
 import type { Opponent } from "./opponent";
 
@@ -17,60 +27,91 @@ import { BonusImpls, BonusCards } from "./bonus";
 import type { Scoresheet } from "./score";
 import { ScoreWord } from "./score";
 
-import type { ScoredWord, BonusQuery, ServerFunctions, PRNG } from "./util";
+import type { ServerFunctions } from "./wordnet";
+import type { ScoredWord, PRNG } from "./util";
+
+import type { Player } from "./player";
 
 import { CopyMap } from "./util";
 
 export interface Battler {
+  kb: ServerFunctions;
   health: number;
-
+  healthMax: number;
   playArea: PlayArea;
-  profile: Opponent;
-
   checking: boolean;
   scoresheet?: Scoresheet;
-
-  hyperbank: Map<string, boolean>;
-  wordbank: Map<string, ScoredWord>;
-
   abilities: Map<string, AbilityCard>;
   bonuses: Map<string, BonusCard>;
-
+  hyperbank: string[];
+  wordbank: string[];
   wordMatches: string[];
 }
 
-export interface BattlerSetup {
-  handSize: number;
-  prng: PRNG;
-  letters: Letter[];
-  bonuses: Map<string, BonusCard>;
-  abilities: Map<string, AbilityCard>;
+export interface ComBattler {
+  kb: ServerFunctions;
+  health: number;
+  healthMax: number;
   profile: Opponent;
+  playArea: PlayArea;
+  scoresheet?: Scoresheet;
 }
 
-export function NewBattler(bs: BattlerSetup): Battler {
+export function NewBattler(
+  prng: PRNG,
+  kb: ServerFunctions,
+  player: Player,
+): Battler {
   return {
-    health: bs.profile.healthMax,
+    kb: kb,
 
-    abilities: CopyMap(bs.abilities),
-    bonuses: CopyMap(bs.bonuses),
+    health: 10 + player.level,
+    healthMax: 10 + player.level,
+
+    abilities: CopyMap(player.abilities),
+    bonuses: CopyMap(player.bonuses),
 
     checking: false,
     scoresheet: undefined,
     wordMatches: [],
 
-    profile: bs.profile,
-    hyperbank: new Map<string, boolean>(),
-    wordbank: new Map<string, ScoredWord>(),
+    hyperbank: [...player.hyperbank],
+    wordbank: [...player.wordbank],
 
     playArea: {
-      prng: bs.prng,
-      handSize: bs.handSize,
-      bag: bs.letters,
+      prng: prng,
+      handSize: player.handSize,
+      bag: player.bag,
       hand: [],
       placed: [],
     },
   };
+}
+
+export function NewComBattler(
+  prng: PRNG,
+  kb: ServerFunctions,
+  profile: Opponent,
+): ComBattler {
+  return {
+    kb: kb,
+
+    health: 10 + profile.level,
+    healthMax: 10 + profile.level,
+    profile: profile,
+    scoresheet: undefined,
+    playArea: {
+      prng: prng,
+      handSize: 10 + profile.level,
+      bag: ScrabbleDistribution(),
+      hand: [],
+      placed: [],
+    },
+  };
+}
+
+export async function PlaceWordbank(g: Battler, id: string): Promise<Battler> {
+  return OnPlayArea(g, (p) => PlaceWord(UnplaceAll(p), id));
 }
 
 export function AbilityChecks(b: Battler): Battler {
@@ -125,71 +166,70 @@ export function UseAbilityReal(g: Battler, key: string): Battler {
   });
 }
 
-// This function only uses the simple score of a word
-// That is, its letter score
-// No bonuses / weaknesses are included
-// Doing the full server round trip for every word, no way
-// There could be a server-side solution...
-export async function WordbankCheck(
-  kb: ServerFunctions,
-  g: Battler,
-): Promise<string[]> {
-  let letters =
-    letterSlotsToString(g.playArea.hand) + lettersToString(g.playArea.placed);
-
-  const hypers = [...g.hyperbank.keys()];
-  const words = [...g.wordbank.values()];
-
-  const bonusQueries: BonusQuery[] = [];
-  for (const [k, bonus] of g.bonuses) {
-    const s = BonusImpls.get(bonus.key);
-    if (!s) {
-      continue;
+export async function WordbankCheck(g: Battler): Promise<string[]> {
+  let letters = [...g.playArea.placed];
+  for (const letter of g.playArea.hand) {
+    if (letter) {
+      letters.push(letter);
     }
-    bonusQueries.push({ query: s.query, score: bonus.weight * bonus.level });
   }
 
-  const suggestedWords = await kb.suggestions(
+  const suggestedWords = await g.kb.suggestions(
     letters,
-    hypers,
-    words,
-    bonusQueries,
+    g.hyperbank,
+    g.wordbank,
+    g.bonuses,
     20,
   );
 
   return suggestedWords.map((a) => a.word);
 }
 
-export async function NextWord(g: Battler, round: number): Promise<Letter[]> {
-  let res: Letter[] = [];
+export async function NextComHand(g: ComBattler): Promise<ComBattler> {
+  g = { ...g };
+  g.playArea = NewHand(g.playArea);
+  g.playArea.placed = await NextWord(g);
+  return g;
+}
 
-  const keys = [...g.wordbank.keys()];
-  const choice = g.wordbank.get(keys[round % keys.length]);
-  if (choice !== undefined) {
-    res = stringToLetters(choice.word, choice.word);
-  }
+export async function NextWord(g: ComBattler): Promise<Letter[]> {
+  const suggestedWords = await g.kb.suggestions(
+    usableLetters(g.playArea),
+    g.profile.strength,
+    [],
+    new Map<string, BonusCard>(),
+    5,
+  );
 
-  if (g.profile.level > 7) {
-    const incr = Math.min(4, g.profile.level - 7);
-    for (const c of res) {
-      c.level += incr;
-      c.score += incr;
-    }
-  }
+  const word = suggestedWords[0].word;
+  return stringToLetters(word, word);
+}
 
+export async function UseAbility(g: Battler, key: string): Promise<Battler> {
+  let res = UseAbilityReal(g, key);
+  res.wordMatches = await WordbankCheck(g);
   return res;
 }
 
-export async function UpdateScore(
+export async function OnPlayArea(
   g: Battler,
-  o: Battler,
-  kb: ServerFunctions,
-): Promise<Scoresheet> {
-  return await ScoreWord(
-    kb,
-    g.playArea.placed,
-    g.bonuses,
-    o.profile.weakness,
-    lettersToString(o.playArea.placed),
-  );
+  fn: (p: PlayArea) => PlayArea,
+): Promise<Battler> {
+  return {
+    ...g,
+    playArea: fn(g.playArea),
+    scoresheet: undefined,
+  };
+}
+
+export async function Checking(g: Battler): Promise<Battler> {
+  return { ...g, checking: true };
+}
+
+export async function NextHand(g: Battler): Promise<Battler> {
+  g = { ...g };
+  g.playArea = NewHand(g.playArea);
+  g.wordMatches = await WordbankCheck(g);
+  g = AbilityChecks(g);
+  return g;
 }

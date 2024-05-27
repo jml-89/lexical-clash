@@ -20,7 +20,8 @@ import { Opponent } from "./opponent";
 
 import { BonusCard, BonusImpl, BonusImpls } from "./bonus";
 
-import { ServerFunctions, ScoredWord, BonusQuery } from "./util";
+import type { ServerFunctions } from "./wordnet";
+import { ScoredWord } from "./util";
 
 // score = totalAdd+totalMul = sum(adds) + sum(muls)
 // Redundant, yes; convenient, very yes
@@ -80,6 +81,7 @@ export async function ScoreWord(
     }
     const bq = { query: s.query, score: v.weight * v.level };
 
+    /*
     const val = await kb.rescore([vq], [bq]);
     if (val[0].score > val[0].base) {
       sheet.adds.push({
@@ -87,6 +89,7 @@ export async function ScoreWord(
         value: v.weight * v.level,
       });
     }
+    */
   }
 
   for (const weakness of weaknesses) {

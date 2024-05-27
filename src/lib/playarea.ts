@@ -65,6 +65,10 @@ export function Draw(g: PlayArea): PlayArea {
   return DrawN(g, num);
 }
 
+export function NewHand(g: PlayArea): PlayArea {
+  return Draw(DiscardAll(g));
+}
+
 export function DrawN(g: PlayArea, n: number): PlayArea {
   const shaken = Shuffle(g.prng, g.bag.filter(isPerm));
   return {
@@ -210,4 +214,14 @@ export function PlaceById(g: PlayArea, id: string): PlayArea {
     placed: g.placed.concat([letter]),
     hand: nextHand,
   };
+}
+
+export function usableLetters(g: PlayArea): Letter[] {
+  let res = [...g.placed];
+  for (const letter of g.hand) {
+    if (letter) {
+      res.push(letter);
+    }
+  }
+  return res;
 }

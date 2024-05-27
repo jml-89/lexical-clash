@@ -9,11 +9,46 @@ import zlib from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import fetch from "node-fetch";
 
-import { ScoredWord, BonusQuery, HyperSet } from "./util";
-import { Letter, stringToLetters, simpleScore } from "./letter";
+import type { ScoredWord, HyperSet } from "./util";
+
+import type { Letter } from "./letter";
+import { stringToLetters, lettersToString, simpleScore } from "./letter";
+
+import type { BonusCard } from "./bonus";
+import { BonusImpls } from "./bonus";
 
 import { Pool } from "pg";
 const pool = new Pool();
+
+export interface ServerFunctions {
+  valid: (word: string) => Promise<boolean>;
+
+  related: (relation: string, left: string, right: string) => Promise<boolean>;
+
+  rescore: (
+    words: ScoredWord[],
+    bonuses: Map<string, BonusCard>,
+  ) => Promise<ScoredWord[]>;
+
+  suggestions: (
+    letters: Letter[],
+    hyperbank: string[],
+    wordbank: string[],
+    bonuses: Map<string, BonusCard>,
+    num: number,
+  ) => Promise<ScoredWord[]>;
+
+  hypos: (word: string) => Promise<ScoredWord[]>;
+
+  candidates: (
+    lo: number,
+    hi: number,
+    maxlen: number,
+    num: number,
+  ) => Promise<HyperSet[]>;
+
+  save: (id: string, o: string) => Promise<void>;
+}
 
 export async function IsWordValid(word: string): Promise<boolean> {
   try {
@@ -55,70 +90,70 @@ export async function AreWordsRelated(
 }
 
 export async function SuggestWords(
-  letters: string,
+  letters: Letter[],
   hypers: string[],
-  wordbank: ScoredWord[],
-  bonuses: BonusQuery[],
+  wordbank: string[],
+  bonuses: Map<string, BonusCard>,
   num: number,
 ): Promise<ScoredWord[]> {
-  let bank = new Map<string, ScoredWord>();
+  let bank = new Set<string>();
   for (const word of wordbank) {
-    bank.set(word.word, word);
+    bank.add(word);
   }
 
   for (const hyper of hypers) {
     const moreWords = await HypoForms(hyper);
     for (const word of moreWords) {
-      bank.set(word.word, word);
+      bank.add(word.word);
     }
   }
 
-  let res = [...bank.values()];
-  res = playableWords(letters, res);
-  res = await GuessScores(res, bonuses);
-  res.sort((a, b) => b.score - a.score);
+  const res = playableWords(lettersToString(letters), [...bank.values()]);
+  let blargh = res.map((x) => ({ word: x, base: 0, score: 0 }));
+  blargh = await GuessScores(blargh, bonuses);
+  blargh.sort((a, b) => b.score - a.score);
 
-  return res.slice(0, 20);
+  return blargh.slice(0, num);
 }
 
-function playableWords(letters: string, words: ScoredWord[]): ScoredWord[] {
+function playableWords(letters: string, words: string[]): string[] {
   let playable = [];
 
-  let pm = new Map<string, number>();
-  for (const letter of letters) {
-    const c = letter.toLowerCase();
-    const n = pm.get(c);
-    pm.set(c, n === undefined ? 1 : n + 1);
-  }
+  const have = letterMap(letters);
 
-  for (const scoredword of words) {
-    let wm = new Map<string, number>();
-    for (const letter of scoredword.word) {
-      const c = letter.toLowerCase();
-      const n = wm.get(c);
-      wm.set(c, n === undefined ? 1 : n + 1);
-    }
+  for (const word of words) {
+    const want = letterMap(word);
 
     let good = true;
-    for (const [c, n] of wm) {
-      const m = pm.get(c);
-      good = good && m !== undefined && n <= m;
+    for (const [c, wantNum] of want) {
+      const haveNum = have.get(c);
+      good = good && haveNum !== undefined && wantNum <= haveNum;
       if (!good) {
         break;
       }
     }
 
     if (good) {
-      playable.push(scoredword);
+      playable.push(word);
     }
   }
 
   return playable;
 }
 
+function letterMap(word: string): Map<string, number> {
+  let res = new Map<string, number>();
+  for (const letter of word) {
+    const c = letter.toLowerCase();
+    const n = res.get(c);
+    res.set(c, n === undefined ? 1 : n + 1);
+  }
+  return res;
+}
+
 export async function GuessScores(
   words: ScoredWord[],
-  bonuses: BonusQuery[],
+  bonuses: Map<string, BonusCard>,
 ): Promise<ScoredWord[]> {
   const client = await pool.connect();
   try {
@@ -134,10 +169,15 @@ export async function GuessScores(
       });
     }
 
-    for (const bonus of bonuses) {
+    for (const [k, bonus] of bonuses) {
+      const impl = BonusImpls.get(k);
+      if (!impl) {
+        continue;
+      }
+
       const res = await client.query({
-        text: `update myscore set score = score + $1 where ${bonus.query};`,
-        values: [bonus.score],
+        text: `update myscore set score = score + $1 where ${impl.query};`,
+        values: [bonus.weight * bonus.level],
       });
     }
 

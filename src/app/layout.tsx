@@ -19,8 +19,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-dvh h-full bg-slate-800 flex flex-col justify-between">
-          <nav className="flex-none bg-slate-900 text-3xl text-amber-400 tracking-tighter font-extralight ">
+        <div className="min-h-dvh h-full bg-slate-800 text-amber-400 flex flex-col justify-between">
+          <nav className="flex-none bg-slate-900 text-3xl tracking-tighter font-extralight ">
             <Link href="/">Lexical Clash</Link>
           </nav>
 

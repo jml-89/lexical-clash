@@ -59,3 +59,16 @@ export function BonusCarousel({
     </div>
   );
 }
+
+export function DrawBonus({ bonus }: { bonus: BonusCard }) {
+  return (
+    <div key={bonus.name} className="flex flex-col gap-1">
+      <h1 className="text-xl font-bold">{bonus.name}</h1>
+      <div className="italic">{bonus.desc}</div>
+      <div>
+        <span className="font-bold">Level {bonus.level}:</span>{" "}
+        {bonus.weight * bonus.level} points
+      </div>
+    </div>
+  );
+}

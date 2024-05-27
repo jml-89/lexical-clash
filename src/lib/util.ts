@@ -33,46 +33,9 @@ export function CreateMutator<T>(
   };
 }
 
-// This was dumped here just so it's safe to import anywhere
-// Really, belongs in wordnet.ts, but that's server-only
-export interface ServerFunctions {
-  valid: (word: string) => Promise<boolean>;
-
-  related: (relation: string, left: string, right: string) => Promise<boolean>;
-
-  rescore: (
-    words: ScoredWord[],
-    bonuses: BonusQuery[],
-  ) => Promise<ScoredWord[]>;
-
-  suggestions: (
-    letters: string,
-    hyperbank: string[],
-    wordbank: ScoredWord[],
-    bonuses: BonusQuery[],
-    num: number,
-  ) => Promise<ScoredWord[]>;
-
-  hypos: (word: string) => Promise<ScoredWord[]>;
-
-  candidates: (
-    lo: number,
-    hi: number,
-    maxlen: number,
-    num: number,
-  ) => Promise<HyperSet[]>;
-
-  save: (id: string, o: string) => Promise<void>;
-}
-
 export interface ScoredWord {
   word: string;
   base: number;
-  score: number;
-}
-
-export interface BonusQuery {
-  query: string;
   score: number;
 }
 

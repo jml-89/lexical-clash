@@ -2,193 +2,240 @@
 // Really should be called profile at this point
 // Not a whole lot to say other than it's hardcoded and shouldn't be
 
+import type { ServerFunctions } from "./wordnet";
+import type { PRNG } from "./util";
+import { Shuffle } from "./util";
+
 export interface Opponent {
-  key: string;
   name: string;
   desc: string;
-  isboss: boolean;
   level: number;
-  healthMax: number;
+  themes: string[];
   weakness: string[];
   strength: string[];
   image: string;
 }
 
 export const PlayerProfile = {
-  key: "player",
   name: "Player",
   desc: "Gamer Neckus",
-  isboss: false,
+  themes: ["all"],
   level: 1,
-  healthMax: 10,
   weakness: [],
   strength: [],
   image: "portrait/dark/frog.jpg",
 };
 
-export const Opponents: Map<string, Opponent> = new Map(
+export async function NewOpponent(
+  sf: ServerFunctions,
+  prng: PRNG,
+  level: number,
+  theme: string,
+): Promise<Opponent> {
+  const isCandidate = (o: Opponent) => isThematic(o, theme) && o.level <= level;
+
+  const candidates = Shuffle(prng, [...opponents.values()].filter(isCandidate));
+  return candidates[0];
+}
+
+function isThematic(opponent: Opponent, theme: string): boolean {
+  return opponent.themes.findIndex((s) => s === "all" || s === theme) >= 0;
+}
+
+const opponents = new Map<string, Opponent>([
   [
+    "dog",
     {
-      key: "dog",
       name: "Dog",
       desc: "Canis Familiaris",
+      image: "portrait/dark/dog.jpg",
+
       level: 1,
-      isboss: false,
+      themes: ["outside"],
+
       weakness: ["food"],
       strength: ["food"],
-      image: "portrait/dark/dog.jpg",
     },
+  ],
+
+  [
+    "cat",
     {
-      key: "cat",
       name: "Cat",
       desc: "Felinus Scratchus",
       level: 1,
-      isboss: false,
+      themes: ["outside"],
       weakness: ["flora"],
       strength: ["fauna"],
       image: "portrait/dark/cat.jpg",
     },
+  ],
+
+  [
+    "fish",
     {
-      key: "fish",
       name: "Fish",
       desc: "Splishus Splashus",
       level: 1,
-      isboss: false,
+      themes: ["water"],
       weakness: ["tool"],
       strength: ["malacopterygian"],
       image: "portrait/dark/fish.jpg",
     },
+  ],
 
+  [
+    "rat",
     {
-      key: "rat",
       name: "Rat",
       desc: "Gnawus Allus",
       level: 2,
-      isboss: false,
+      themes: ["all"],
       weakness: ["game"],
       strength: ["body"],
       image: "portrait/dark/rat.jpg",
     },
+  ],
+
+  [
+    "bee",
     {
-      key: "bee",
       name: "Bee",
       desc: "buzz buzz",
       level: 2,
-      isboss: false,
+      themes: ["outside"],
       weakness: ["chemical"],
       strength: ["insect"],
       image: "portrait/dark/bee.jpg",
     },
+  ],
+  [
+    "octopus",
     {
-      key: "octopus",
       name: "Octopus",
       desc: "Extra-Aquatical",
       level: 2,
-      isboss: false,
+      themes: ["water"],
       weakness: ["weather"],
       strength: ["number"],
       image: "portrait/dark/octopus.jpg",
     },
+  ],
 
+  [
+    "vampire",
     {
-      key: "vampire",
       name: "Vampire",
       desc: "Ah ah ah!",
       level: 3,
-      isboss: false,
+      themes: ["castle"],
       weakness: ["mineral"],
       strength: ["misconduct"],
       image: "portrait/dark/vamp.jpg",
     },
+  ],
+
+  [
+    "philosopher",
     {
-      key: "philosopher",
       name: "Philosopher",
       desc: "Nerdus Wordus",
       level: 3,
-      isboss: false,
+      themes: ["castle"],
       weakness: ["color"],
       strength: ["time"],
       image: "portrait/dark/philo.jpg",
     },
+  ],
+
+  [
+    "robot",
     {
-      key: "robot",
       name: "Automaton",
       desc: "Beepus Boopus",
       level: 3,
-      isboss: false,
+      themes: ["castle"],
       weakness: ["water"],
       strength: ["machine"],
       image: "portrait/dark/robot.jpg",
     },
+  ],
 
+  [
+    "kookaburra",
     {
-      key: "kookaburra",
       name: "Kookaburra",
       desc: "Laughus Laughus",
       level: 4,
-      isboss: false,
+      themes: ["outside"],
       weakness: ["herb"],
       strength: ["bird"],
       image: "portrait/dark/kookaburra.jpg",
     },
+  ],
+
+  [
+    "cloud",
     {
-      key: "cloud",
       name: "Cloud",
       desc: "Fluffus Fluffy",
       level: 4,
-      isboss: false,
+      themes: ["outside"],
       weakness: ["measure"],
       strength: ["weather"],
       image: "portrait/dark/cloud.jpg",
     },
+  ],
 
+  [
+    "dinosaur",
     {
-      key: "dinosaur",
       name: "Tea Rex",
       desc: "Herbus Sippus",
       level: 5,
-      isboss: false,
+      themes: ["all"],
       weakness: ["kindle"],
       strength: ["herb"],
       image: "portrait/dark/dinosaur.jpg",
     },
+  ],
+
+  [
+    "train",
     {
-      key: "train",
       name: "Locomotive",
       desc: "Steamus Pistonus",
       level: 5,
-      isboss: false,
+      themes: ["outside"],
       weakness: ["nature"],
       strength: ["transport"],
       image: "portrait/dark/train.jpg",
     },
+  ],
 
+  [
+    "plaguedoctor",
     {
-      key: "plaguedoctor",
       name: "Plague Doctor",
       desc: "One Sick Bird",
       level: 6,
-      isboss: false,
+      themes: ["castle"],
       weakness: ["technology"],
       strength: ["disease"],
       image: "portrait/dark/plaguedoctor.jpg",
     },
+  ],
 
+  [
+    "wombat",
     {
-      key: "wombat",
       name: "Boss Wombat",
       desc: "The End",
       level: 7,
-      isboss: true,
+      themes: ["all"],
       weakness: [""],
       strength: ["noesis"],
       image: "portrait/dark/wombat.jpg",
     },
-  ].map((opp) => [
-    opp.key,
-    {
-      ...opp,
-      healthMax: 10,
-    },
-  ]),
-);
+  ],
+]);
