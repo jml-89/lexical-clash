@@ -17,12 +17,16 @@ import {
   GetConnectedScenes,
   ChooseConnection,
   StartBattle,
+  EndIntro,
+  TakeLootItem,
 } from "@/lib/scene";
 
 import type { BattleFnT } from "@/cmp/battle";
 import { PlayBattle } from "@/cmp/battle";
 import { OpponentMugshot } from "@/cmp/opponent";
 import { DrawLootContainer } from "@/cmp/loot";
+
+import { ButtonX } from "@/cmp/misc";
 
 export type SceneFnT = (a: Scene) => Promise<Scene>;
 type StateFnT = (fn: SceneFnT) => Promise<void>;
@@ -50,27 +54,51 @@ function PlaySceneContent({
 }) {
   const battlefn = (fn: BattleFnT) => statefn((g) => OnBattle(g, fn));
 
-  if (scene.opponent) {
-    // introduce opponent
+  if (scene.desc) {
     return (
-      <div className="self-center flex flex-col justify-center bg-slate-800 p-2 rounded-lg gap-2">
-        <div className="text-6xl">A Foe Appears!</div>
-        <OpponentMugshot opponent={scene.opponent} />
-        <button onClick={() => statefn(StartBattle)}>
-          <div className="p-2 text-3xl bg-red-800">Start Battle!</div>
-        </button>
+      <div className="flex-1 flex flex-col justify-center items-center gap-1">
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="self-stretch p-6 backdrop-blur-lg flex flex-row justify-center">
+            <div className="text-4xl italic text-white drop-shadow-2xl">
+              {scene.desc}
+            </div>
+          </div>
+        </div>
+        <ButtonX onClick={() => statefn(EndIntro)}>Explore!</ButtonX>
       </div>
     );
   }
 
   if (scene.battle) {
-    // play battle
     return <PlayBattle battle={scene.battle} statefn={battlefn} />;
+  }
+
+  if (scene.opponent) {
+    return (
+      <div className="flex-1 self-stretch flex flex-col justify-center gap-2 self-center">
+        <div className="text-4xl bg-slate-800 self-stretch p-2">
+          A Foe Appears!
+        </div>
+        <div className="flex-1 flex flex-col justify-center items-center gap-2">
+          <div className="bg-slate-800 p-2 rounded-lg">
+            <OpponentMugshot opponent={scene.opponent} />
+          </div>
+        </div>
+        <button className="self-center" onClick={() => statefn(StartBattle)}>
+          <div className="p-4 text-4xl bg-red-800">Start Battle!</div>
+        </button>
+      </div>
+    );
   }
 
   if (scene.loot) {
     // loot interaction
-    return <DrawLootContainer loot={scene.loot} />;
+    return (
+      <DrawLootContainer
+        loot={scene.loot}
+        claimfn={() => statefn(TakeLootItem)}
+      />
+    );
   }
 
   const choose = (key: string) =>
@@ -86,15 +114,19 @@ function DrawConnections({
   choosefn: (key: string) => Promise<void>;
 }) {
   return (
-    <div className="p-2 bg-slate-900 backdrop-blur-lg flex flex-col justify-center gap-2 self-center">
-      <div className="text-4xl">Choose Your Path</div>
-      {GetConnectedScenes(scene).map((draft) => (
-        <DrawDraft
-          key={draft.title}
-          draft={draft}
-          clickHandler={() => choosefn(draft.title)}
-        />
-      ))}
+    <div className="flex-1 self-stretch backdrop-blur-sm flex flex-col justify-center gap-2 self-center">
+      <div className="text-4xl bg-slate-800 self-stretch p-2">
+        Choose Your Path
+      </div>
+      <div className="flex-1 flex flex-col justify-center items-center gap-2">
+        {GetConnectedScenes(scene).map((draft) => (
+          <DrawDraft
+            key={draft.title}
+            draft={draft}
+            clickHandler={() => choosefn(draft.title)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -108,13 +140,13 @@ function DrawDraft({
 }) {
   return (
     <button onClick={clickHandler}>
-      <div className="p-2 bg-slate-700 rounded-lg flex flex-col gap-1">
+      <div className="p-2 bg-slate-700 rounded-lg flex flex-col justify-center items-center gap-1">
         <div className="text-3xl">{draft.title}</div>
         <Image
-          src={`/${draft.image}`}
+          src={`/bg/${draft.image}`}
           alt={`Illustration of ${draft.title}`}
-          height={360}
-          width={360}
+          height={180}
+          width={180}
         />
         <div className="italic">{draft.desc}</div>
       </div>
@@ -131,8 +163,10 @@ function DrawScenery({
 }) {
   return (
     <div
-      style={{ "--image-url": `url(/${scene.image})` } as React.CSSProperties}
-      className="flex-1 flex flex-col bg-[image:var(--image-url)] bg-cover"
+      style={
+        { "--image-url": `url(/bg/${scene.image})` } as React.CSSProperties
+      }
+      className="flex-1 flex flex-col bg-[image:var(--image-url)] bg-center bg-cover"
     >
       {children}
     </div>

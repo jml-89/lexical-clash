@@ -18,7 +18,7 @@ import { AbilityCard, AbilityCards } from "./ability";
 import { ScoreWord } from "./score";
 
 import type { Scene } from "./scene";
-import { DefaultScene, NextScene } from "./scene";
+import { FirstScene, NextScene } from "./scene";
 
 import type { Player } from "./player";
 import { NewPlayer } from "./player";
@@ -149,6 +149,6 @@ export function NewGame(
     rs: rs,
     prng: prng,
 
-    scene: DefaultScene(kb, prng, NewPlayer()),
+    scene: FirstScene(kb, prng, NewPlayer()),
   };
 }

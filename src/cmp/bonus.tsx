@@ -19,7 +19,7 @@ export function BonusCarousel({
   }
   const bonus = bonuses.get(keys[idx]) as BonusCard;
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 text-black">
       <div className="flex-1 flex flex-col items-baseline bg-orange-200 p-1">
         <div className="flex flex-row items-baseline gap-1">
           <h1 className="text-xl">{bonus.name}</h1>

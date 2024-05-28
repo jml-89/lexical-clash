@@ -111,7 +111,10 @@ export function NewComBattler(
 }
 
 export async function PlaceWordbank(g: Battler, id: string): Promise<Battler> {
-  return OnPlayArea(g, (p) => PlaceWord(UnplaceAll(p), id));
+  let res = await OnPlayArea(g, (p) => PlaceWord(UnplaceAll(p), id));
+  res.checking = true;
+  console.log(res);
+  return res;
 }
 
 export function AbilityChecks(b: Battler): Battler {
@@ -201,8 +204,25 @@ export async function NextWord(g: ComBattler): Promise<Letter[]> {
     5,
   );
 
-  const word = suggestedWords[0].word;
-  return stringToLetters(word, word);
+  if (suggestedWords.length > 0) {
+    const word = suggestedWords[0].word;
+    return stringToLetters(word, word);
+  }
+
+  const fallbackWords = await g.kb.suggestions(
+    usableLetters(g.playArea),
+    ["letter"],
+    [],
+    new Map<string, BonusCard>(),
+    5,
+  );
+
+  if (fallbackWords.length > 0) {
+    const word = fallbackWords[0].word;
+    return stringToLetters(word, word);
+  }
+
+  return [];
 }
 
 export async function UseAbility(g: Battler, key: string): Promise<Battler> {
@@ -215,11 +235,11 @@ export async function OnPlayArea(
   g: Battler,
   fn: (p: PlayArea) => PlayArea,
 ): Promise<Battler> {
-  return {
+  return AbilityChecks({
     ...g,
     playArea: fn(g.playArea),
     scoresheet: undefined,
-  };
+  });
 }
 
 export async function Checking(g: Battler): Promise<Battler> {

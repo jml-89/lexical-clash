@@ -5,16 +5,17 @@ import { Letter } from "@/lib/letter";
 
 export const DrawLetters = memo(function DrawLetters({
   letters,
+  small,
 }: {
   letters: Letter[];
+  small?: boolean;
 }) {
-  const size = letters.length < 10 ? 1 : 2;
-  const gap = size === 2 ? "gap-0.5" : "gap-1";
+  const gap = small ? "gap-0.5" : "gap-1";
   return (
     <ul className={`flex flex-row flex-wrap justify-center ${gap}`}>
       {letters.map((letter) => (
         <motion.li layoutId={letter.id} key={letter.id}>
-          <DrawLetter letter={letter} size={size} />
+          <DrawLetter letter={letter} size={small ? 2 : 1} />
         </motion.li>
       ))}
     </ul>

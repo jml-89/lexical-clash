@@ -50,8 +50,8 @@ export const DrawBattler = memo(function DrawBattler({
   const actionArea =
     view === "buttons" ? (
       <div className="flex flex-row gap-4 justify-center">
-        {somebutton("Bonuses", "bonuses")}
-        {somebutton("Abilities", "abilities")}
+        {player.bonuses.size > 0 && somebutton("Bonuses", "bonuses")}
+        {player.abilities.size > 0 && somebutton("Abilities", "abilities")}
         {player.wordMatches.length > 0 && somebutton("Wordbank", "wordbank")}
       </div>
     ) : view === "abilities" ? (
@@ -106,12 +106,11 @@ function ListWords({
   const placefn = (id: string): (() => Promise<void>) => {
     return async () => {
       await statefn((g: Battler) => PlaceWordbank(g, id));
-      await statefn(Checking);
     };
   };
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 text-black">
       <ul className="flex-1 flex flex-row font-bold gap-1 flex-wrap-reverse">
         <li key="back-button">
           <button

@@ -22,7 +22,10 @@ export const DrawComBattler = memo(function DrawComBattler({
       <DrawProfile opp={opp.profile} hd={hd} />
 
       <motion.div initial={{ y: -100 }} animate={{ y: 0 }}>
-        <DrawLetters letters={opp.playArea.placed} />
+        <DrawLetters
+          letters={opp.playArea.placed}
+          small={opp.playArea.placed.length > 10}
+        />
       </motion.div>
     </motion.div>
   );

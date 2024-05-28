@@ -28,7 +28,7 @@ export function AbilityCarousel({
 
   const buttoncn = "py-0.5 px-2 rounded-lg";
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 text-black">
       <div className="flex-1 flex flex-col bg-orange-200 p-1">
         <div className="flex flex-row gap-1 items-baseline">
           <h1 className="text-2xl">{ability.name}</h1>

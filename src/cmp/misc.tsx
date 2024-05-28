@@ -77,3 +77,20 @@ export function DrawHyperSet({ hs }: { hs: HyperSet }) {
     </div>
   );
 }
+
+export function ButtonX({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="self-center text-black bg-amber-500 rounded-lg p-4 text-2xl shadow-lg"
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
