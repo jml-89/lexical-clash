@@ -6,7 +6,7 @@ import type { LootContainer } from "@/lib/loot";
 import { DrawLetters } from "./letter";
 import { DrawAbility } from "./ability";
 import { DrawBonus } from "./bonus";
-import { DrawHyperSet } from "./misc";
+import { DrawWordpack } from "./wordpack";
 
 import { ButtonX } from "@/cmp/misc";
 
@@ -23,8 +23,33 @@ export function DrawLootContainer({
   if (isOpen) {
     return <DrawOpenContainer loot={loot} claimfn={claimfn} />;
   } else {
-    return <DrawClosedContainer loot={loot} openHandler={handleOpen} />;
+    return <DrawClosedContainerMinimal loot={loot} openHandler={handleOpen} />;
   }
+}
+
+function DrawClosedContainerMinimal({
+  loot,
+  openHandler,
+}: {
+  loot: LootContainer;
+  openHandler: () => void;
+}) {
+  return (
+    <div className="flex-1 self-stretch flex flex-col items-center justify-center backdrop-blur-sm gap-4">
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="shadow-slate-900 shadow-lg">
+          <Image
+            src={`/items/${loot.image}`}
+            alt={`Drawing of a ${loot.title}`}
+            width={240}
+            height={240}
+          />
+        </div>
+      </div>
+
+      <ButtonX onClick={openHandler}>Open!</ButtonX>
+    </div>
+  );
 }
 
 function DrawClosedContainer({
@@ -83,7 +108,7 @@ function DrawNicely({
 }) {
   return (
     <div className="flex-1 flex flex-col gap-2 justify-center items-center">
-      <div className="self-stretch text-2xl bg-slate-800">
+      <div className="self-stretch text-2xl bg-slate-800 flex flex-row justify-center">
         You Found {title}!
       </div>
       <div className="flex-1 flex flex-col justify-center items-center">
@@ -94,33 +119,34 @@ function DrawNicely({
 }
 
 function DrawNextLoot({ loot }: { loot: LootContainer }) {
-  if (loot.abilities.length > 0) {
-    return (
-      <DrawNicely title="An Ability">
-        <DrawAbility ability={loot.abilities[0]} />
-      </DrawNicely>
-    );
-  }
+  const next = loot.contents[0];
+  switch (next.type) {
+    case "ability":
+      return (
+        <DrawNicely title="An Ability">
+          <DrawAbility ability={next.item} />
+        </DrawNicely>
+      );
 
-  if (loot.bonuses.length > 0) {
-    return (
-      <DrawNicely title="A Boon">
-        <DrawBonus bonus={loot.bonuses[0]} />
-      </DrawNicely>
-    );
-  }
+    case "bonus":
+      return (
+        <DrawNicely title="A Boon">
+          <DrawBonus bonus={next.item} />
+        </DrawNicely>
+      );
 
-  if (loot.hypers.length > 0) {
-    return (
-      <DrawNicely title="A Word Pack">
-        <DrawHyperSet hs={loot.hypers[0]} />
-      </DrawNicely>
-    );
-  }
+    case "wordpack":
+      return (
+        <DrawNicely title="A Word Pack">
+          <DrawWordpack wordpack={next.item} />
+        </DrawNicely>
+      );
 
-  return (
-    <DrawNicely title={`${loot.letters.length} Letters`}>
-      <DrawLetters letters={loot.letters} />
-    </DrawNicely>
-  );
+    case "letters":
+      return (
+        <DrawNicely title={`${next.item.length} Letters`}>
+          <DrawLetters letters={next.item} />
+        </DrawNicely>
+      );
+  }
 }

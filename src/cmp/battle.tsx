@@ -31,8 +31,10 @@ export function PlayBattle({
   battle: Battle;
   statefn: StateFnT;
 }) {
-  const battlerfn = (fn: BattlerFnT) => statefn((g) => OnBattler(g, fn));
-  //bg-gradient-to-b from-slate-800 via-slate-800 to-slate-700">
+  const battlerfn = useCallback(
+    (fn: BattlerFnT) => statefn((g) => OnBattler(g, fn)),
+    [statefn],
+  );
 
   return (
     <main className="flex-1 flex flex-col items-center p-1 gap-1 backdrop-brightness-50 backdrop-saturate-0">
@@ -42,7 +44,7 @@ export function PlayBattle({
         os={battle.opponent.scoresheet}
         statefn={statefn}
       />
-      <DrawBattler player={battle.player} statefn={battlerfn} />
+      <DrawBattler battler={battle.player} statefn={battlerfn} />
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { motion } from "framer-motion";
 
 import type { PlayArea, LetterSlot } from "@/lib/playarea";
@@ -104,13 +104,19 @@ const Hand = memo(function Hand({
   letters: LetterSlot[];
   statefn: StateFnT;
 }) {
+  const placefn = useCallback(
+    async (letter: Letter) =>
+      await statefn((p: PlayArea) => PlaceById(p, letter.id)),
+    [statefn],
+  );
+
   return (
     <ul className="flex flex-row gap-1 flex-wrap place-content-center">
       {letters.map((letter, idx) => (
         <HandLetter
           key={letter ? letter.id : `empty-${idx}`}
           letter={letter}
-          statefn={statefn}
+          onClick={placefn}
         />
       ))}
     </ul>
@@ -119,21 +125,18 @@ const Hand = memo(function Hand({
 
 const HandLetter = memo(function HandLetter({
   letter,
-  statefn,
+  onClick,
 }: {
   letter: Letter | undefined;
-  statefn: StateFnT;
+  onClick: (letter: Letter) => void;
 }) {
   if (!letter) {
     return <DrawLetter letter={letter} size={0} />;
   }
 
-  const placefn = async () =>
-    await statefn((p: PlayArea) => PlaceById(p, letter.id));
-
   return (
     <motion.li layoutId={letter.id} key={letter.id}>
-      <button onClick={placefn}>
+      <button onClick={() => onClick(letter)}>
         <DrawLetter letter={letter} size={0} />
       </button>
     </motion.li>

@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import type { GameState } from "@/lib/game";
 import { NewGame, LoadGame, OnScene } from "@/lib/game";
-
-import type { ServerFunctions } from "@/lib/wordnet";
 
 import type { Scene } from "@/lib/scene";
 
@@ -20,24 +18,26 @@ export function PlayGame({
   sid,
   seed,
   save,
-  serverfns,
 }: {
   sid: string;
   seed: number;
   save: Object | undefined;
-  serverfns: ServerFunctions;
 }) {
-  const [game, setGame] = useState(
-    save === undefined
-      ? NewGame(sid, seed, serverfns)
-      : LoadGame(save, serverfns),
+  const gameRef = useRef(save ? LoadGame(save) : NewGame(sid, seed));
+  const [signal, setSignal] = useState(0);
+
+  const statefn = useCallback(
+    async function (fn: GameFnT): Promise<void> {
+      gameRef.current = await fn(gameRef.current);
+      setSignal((x) => x + 1);
+    },
+    [setSignal, gameRef],
   );
 
-  const statefn = async function (fn: GameFnT): Promise<void> {
-    setGame(await fn(game));
-  };
+  const scenefn = useCallback(
+    (fn: SceneFnT) => statefn((g) => OnScene(g, fn)),
+    [statefn],
+  );
 
-  const scenefn = (fn: SceneFnT) => statefn((g) => OnScene(g, fn));
-
-  return <PlayScene scene={game.scene} statefn={scenefn} />;
+  return <PlayScene scene={gameRef.current.scene} statefn={scenefn} />;
 }

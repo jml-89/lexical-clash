@@ -1,5 +1,5 @@
 //score
-// Scoring takes place on the client but relies on calls to server functions
+// Scoring takes place on the server to reduce round trips
 // Why?
 // Server has the dictionary
 // Feasible to load dictionary on client if small
@@ -10,18 +10,16 @@
 // - Letter score
 // - Bonuses
 // - Enemy weaknesses
-// Letter score can be done client side
-// Bonuses can rely on word relations, requires server functions
-// And enemy weaknesses are always word relations, another server function there
 
-import { Letter, lettersToString, simpleScore } from "./letter";
+"use server";
 
-import { Opponent } from "./opponent";
+import type { Letter } from "./letter";
+import { lettersToString, simpleScore } from "./letter";
 
-import { BonusCard, BonusImpl, BonusImpls } from "./bonus";
+import type { BonusCard, BonusImpl } from "./bonus";
+import { BonusImpls } from "./bonus";
 
-import type { ServerFunctions } from "./wordnet";
-import { ScoredWord } from "./util";
+import { IsWordValid, AreWordsRelated, GuessScores } from "./wordnet";
 
 // score = totalAdd+totalMul = sum(adds) + sum(muls)
 // Redundant, yes; convenient, very yes
@@ -42,9 +40,8 @@ export interface ScoreModifier {
 }
 
 export async function ScoreWord(
-  kb: ServerFunctions,
   placed: Letter[],
-  bonuses: Map<string, BonusCard>,
+  bonuses: BonusCard[],
   weaknesses: string[],
   opposingWord: string,
 ): Promise<Scoresheet> {
@@ -68,49 +65,44 @@ export async function ScoreWord(
   });
 
   const word = lettersToString(placed);
-  sheet.ok = await kb.valid(word);
+  sheet.ok = await IsWordValid(word);
   if (!sheet.ok) {
     return sheet;
   }
 
-  const vq = { word: word, base: simpleScore(placed), score: 0 };
-  for (const [k, v] of bonuses) {
-    const s = BonusImpls.get(v.key);
-    if (!s) {
-      continue;
-    }
-    const bq = { query: s.query, score: v.weight * v.level };
-
-    /*
-    const val = await kb.rescore([vq], [bq]);
+  for (const bonus of bonuses) {
+    const val = await GuessScores(
+      [{ word: word, base: simpleScore(placed), score: 0 }],
+      [bonus],
+    );
     if (val[0].score > val[0].base) {
       sheet.adds.push({
-        source: v.name,
-        value: v.weight * v.level,
+        source: bonus.name,
+        value: bonus.weight * bonus.level,
       });
     }
-    */
   }
 
   for (const weakness of weaknesses) {
-    const hit = await kb.related("hypernym", weakness, word);
+    const hit = await AreWordsRelated("hypernym", weakness, word);
     if (!hit) {
       continue;
     }
+
     sheet.muls.push({
       source: `Weakness: ${weakness}`,
       value: 1,
     });
   }
 
-  if (await kb.related("hypernym", opposingWord, word)) {
+  if (await AreWordsRelated("hypernym", opposingWord, word)) {
     sheet.muls.push({
       source: "Undercut",
       value: 0.2,
     });
   }
 
-  if (await kb.related("hypernym", word, opposingWord)) {
+  if (await AreWordsRelated("hypernym", word, opposingWord)) {
     sheet.muls.push({
       source: "Overcut",
       value: 0.2,
@@ -121,7 +113,7 @@ export async function ScoreWord(
   return sheet;
 }
 
-function sumScore(s: Scoresheet) {
+function sumScore(s: Scoresheet): void {
   const add = (xs: number, x: ScoreModifier): number => xs + x.value;
   s.totalAdd = s.adds.reduce(add, 0);
   s.totalMul = s.muls.reduce(add, 0);

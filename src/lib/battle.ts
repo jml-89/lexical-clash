@@ -11,66 +11,19 @@ import {
   simpleScore,
 } from "./letter";
 
+import type { Player } from "./player";
 import type { Opponent } from "./opponent";
-import { PlayerProfile } from "./opponent";
-
-import type { AbilityCard } from "./ability";
-import type { BonusCard } from "./bonus";
 import type { Scoresheet } from "./score";
 
-import type { Player } from "./player";
-
 import type { Battler, ComBattler } from "./battler";
-import {
-  NewBattler,
-  NewComBattler,
-  AbilityChecks,
-  UseAbilityReal,
-  WordbankCheck,
-  NextWord,
-  NextHand,
-  NextComHand,
-} from "./battler";
+import { NewBattler, NewComBattler, NextHand, NextComHand } from "./battler";
 
 import { ScoreWord } from "./score";
 
-//UpdatePlayerScore,
-//UpdateComScore,
-
-import type { ServerFunctions } from "./wordnet";
 import type { ScoredWord, PRNG } from "./util";
 import { CopyMap, ShuffleMap, Shuffle } from "./util";
 
-export async function FillWordbank(
-  lookup: (s: string) => Promise<ScoredWord[]>,
-  o: ComBattler,
-): Promise<ScoredWord[]> {
-  let xs = [];
-  for (const s of o.profile.strength) {
-    for (const word of await lookup(s)) {
-      xs.push(word);
-    }
-  }
-
-  const minScore = 4 + 4 * (o.profile.level - 1);
-  const maxScore = 9 + 5 * (o.profile.level - 1);
-  const scoreInRange = (xs: ScoredWord): boolean => {
-    return minScore <= xs.score && xs.score <= maxScore;
-  };
-
-  let ys = xs.filter(scoreInRange);
-
-  // This happens when the level gets too high
-  // This is a signal to just go huge, use best words
-  if (ys.length < 10) {
-    ys = xs.toSorted((a, b) => b.score - a.score).slice(0, 20);
-  }
-
-  return ys;
-}
-
 export interface Battle {
-  kb: ServerFunctions;
   prng: PRNG;
 
   done: boolean;
@@ -83,13 +36,11 @@ export interface Battle {
 }
 
 export async function NewBattle(
-  kb: ServerFunctions,
   prng: PRNG,
   player: Player,
   opponent: Opponent,
 ): Promise<Battle> {
   const battle: Battle = {
-    kb: kb,
     prng: prng,
 
     done: false,
@@ -97,8 +48,8 @@ export async function NewBattle(
 
     round: 0,
 
-    player: NewBattler(prng, kb, player),
-    opponent: NewComBattler(prng, kb, opponent),
+    player: NewBattler(prng, player),
+    opponent: NewComBattler(prng, opponent),
   };
 
   return await NextRound(battle);
@@ -133,8 +84,9 @@ export async function Submit(g: Battle): Promise<Battle> {
   g = { ...g };
 
   const str = lettersToString(g.player.playArea.placed);
-  if (g.player.wordbank.findIndex((x) => x === str) < 0) {
-    g.player.wordbank.push(str);
+  // oh no that's horrible
+  if (g.player.player.wordbank.findIndex((x) => x === str) < 0) {
+    g.player.player.wordbank.push(str);
   }
 
   if (g.player.health <= 0) {
@@ -179,9 +131,8 @@ export async function UpdateScores(g: Battle): Promise<Battle> {
 
 export async function UpdatePlayerScore(b: Battle): Promise<Scoresheet> {
   return await ScoreWord(
-    b.kb,
     b.player.playArea.placed,
-    b.player.bonuses,
+    [...b.player.player.bonuses.values()],
     b.opponent.profile.weakness,
     lettersToString(b.opponent.playArea.placed),
   );
@@ -189,9 +140,8 @@ export async function UpdatePlayerScore(b: Battle): Promise<Scoresheet> {
 
 export async function UpdateComScore(b: Battle): Promise<Scoresheet> {
   return await ScoreWord(
-    b.kb,
     b.opponent.playArea.placed,
-    new Map<string, BonusCard>(),
+    [],
     [],
     lettersToString(b.player.playArea.placed),
   );

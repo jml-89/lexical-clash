@@ -13,40 +13,44 @@ import type { Opponent } from "./opponent";
 import { NewOpponent } from "./opponent";
 
 import type { LootContainer } from "./loot";
-import { LootCount, FirstLootContainer, NewLootContainer } from "./loot";
+import { FirstLootContainer, NewLootContainer } from "./loot";
 
 import type { Battle } from "./battle";
 import { NewBattle } from "./battle";
 
-import type { ServerFunctions } from "./wordnet";
-import type { PRNG, HyperSet } from "./util";
-
-//type SceneState = "arrival" | "confrontation" | "battle" | "victory" | "defeat" | "departure";
+import type { PRNG } from "./util";
 
 export interface Scene {
-  kb: ServerFunctions;
   prng: PRNG;
 
-  title: string;
-  desc?: string;
-  image: string;
-
-  //state: SceneState;
-
+  location: Location;
   player: Player;
 
+  intro: boolean;
   opponent?: Opponent;
   battle?: Battle;
+  battleloot?: LootContainer;
   loot?: LootContainer;
-
-  connections: string[];
   exit?: string; // connection chosen to leave, also indicator that scene is done
 }
 
 export async function EndIntro(scene: Scene): Promise<Scene> {
   return {
     ...scene,
-    desc: undefined,
+    intro: false,
+  };
+}
+
+export async function TakeBattleLootItem(scene: Scene): Promise<Scene> {
+  if (!scene.battleloot) {
+    return scene;
+  }
+
+  const [player, battleloot] = ClaimLootItem(scene.player, scene.battleloot);
+  return {
+    ...scene,
+    player: player,
+    battleloot: battleloot.contents.length > 0 ? battleloot : undefined,
   };
 }
 
@@ -59,28 +63,19 @@ export async function TakeLootItem(scene: Scene): Promise<Scene> {
   return {
     ...scene,
     player: player,
-    loot: LootCount(loot) > 0 ? loot : undefined,
+    loot: loot.contents.length > 0 ? loot : undefined,
   };
 }
 
-export function FirstScene(
-  kb: ServerFunctions,
-  prng: PRNG,
-  player: Player,
-): Scene {
+export function FirstScene(prng: PRNG, player: Player): Scene {
   return {
-    kb: kb,
     prng: prng,
 
     player: player,
-
-    title: "Welcome",
-    desc: "Your journey begins",
-    image: "field.jpg",
+    location: [...locations.values()][0],
+    intro: true,
 
     loot: FirstLootContainer(),
-
-    connections: ["Meadow"],
   };
 }
 
@@ -92,53 +87,42 @@ export async function StartBattle(scene: Scene): Promise<Scene> {
   return {
     ...scene,
     opponent: undefined,
-    battle: await NewBattle(scene.kb, scene.prng, scene.player, scene.opponent),
+    battle: await NewBattle(scene.prng, scene.player, scene.opponent),
   };
 }
 
 export async function NextScene(scene: Scene): Promise<Scene> {
   const exit = scene.exit ? scene.exit : "Meadow";
-  return await NewScene(scene.kb, scene.prng, scene.player, exit);
+  return await NewScene(scene.prng, scene.player, exit);
 }
 
 export async function NewScene(
-  kb: ServerFunctions,
   prng: PRNG,
   player: Player,
   key: string,
 ): Promise<Scene> {
-  const draft = drafts.get(key);
-  if (!draft) {
+  const location = locations.get(key);
+  if (!location) {
     throw `NewScene: {key} not found`;
   }
 
   let loot = undefined;
-  if (prng(0, 100) <= draft.lootpct) {
-    loot = await NewLootContainer(kb, prng, draft.level);
+  if (prng(0, 100) <= location.lootpct) {
+    loot = await NewLootContainer(prng, location.level, false);
   }
 
   let opponent = undefined;
-  if (prng(0, 100) <= draft.opponentpct) {
-    opponent = await NewOpponent(kb, prng, draft.level, draft.theme);
-  }
-
-  //Use all the links for now
-  //Down the track will trim links when that is of interest
-  let conns: string[] = [];
-  for (const link of draft.connections) {
-    conns.push(link);
+  if (prng(0, 100) <= location.opponentpct) {
+    opponent = await NewOpponent(prng, location.level, location.theme);
   }
 
   return {
-    kb: kb,
     prng: prng,
-    title: draft.title,
-    desc: draft.desc,
-    image: draft.image,
+    location: location,
+    intro: true,
     player: player,
     opponent: opponent,
     loot: loot,
-    connections: conns,
   };
 }
 
@@ -156,21 +140,26 @@ export async function OnBattle(
       ...scene,
       player: { ...scene.player, handSize: scene.player.handSize + 1 },
       battle: undefined,
+      battleloot: await NewLootContainer(
+        scene.prng,
+        scene.battle.opponent.profile.level,
+        true,
+      ),
     };
   }
 
   return { ...scene, battle: battle };
 }
 
-export function GetConnectedScenes(scene: Scene): SceneDraft[] {
-  let res: SceneDraft[] = [];
-  for (const connection of scene.connections) {
-    const draft = drafts.get(connection);
-    if (draft) {
-      res.push(draft);
+export function GetConnectedScenes(scene: Scene): Location[] {
+  let res: Location[] = [];
+  for (const title of scene.location.connections) {
+    const location = locations.get(title);
+    if (location) {
+      res.push(location);
     }
   }
-  return [...res.values()];
+  return res;
 }
 
 export async function ChooseConnection(
@@ -183,9 +172,9 @@ export async function ChooseConnection(
   };
 }
 
-//Draft of a scene gets pressed into a concrete scene later
+//location where a scene can occur
 //level and theme used to guide opponent and loot selection
-export interface SceneDraft {
+export interface Location {
   title: string;
   desc: string;
   image: string;
@@ -203,9 +192,21 @@ export interface SceneDraft {
   opponentpct: number;
 }
 
-//One could imagine this being in the database instead, naturally
-const drafts = new Map<string, SceneDraft>(
+//One could imagine this being in the database, naturally
+//However it is here in the source code, unnaturally
+const locations = new Map<string, Location>(
   [
+    {
+      title: "Welcome",
+      desc: "Your journey begins",
+      image: "field.jpg",
+      level: 1,
+      theme: "outside",
+      lootpct: 0,
+      opponentpct: 0,
+      connections: ["Meadow"],
+    },
+
     {
       title: "Meadow",
       desc: "A verdant clearing, calm and safe",
@@ -229,9 +230,107 @@ const drafts = new Map<string, SceneDraft>(
       theme: "outside",
 
       lootpct: 30,
-      opponentpct: 30,
+      opponentpct: 75,
 
-      connections: ["Castle Entrance", "Cave Entrance"],
+      connections: ["Forest River", "Forest Steps"],
+    },
+
+    {
+      title: "Forest River",
+      desc: "A flowing brook",
+      image: "forest-river.jpg",
+
+      level: 1,
+      theme: "outside",
+
+      lootpct: 30,
+      opponentpct: 75,
+
+      connections: ["Forest Riverbed"],
+    },
+
+    {
+      title: "Forest Riverbed",
+      desc: "It's cold and wet down here...",
+      image: "forest-riverbed.jpg",
+
+      level: 2,
+      theme: "water",
+
+      lootpct: 30,
+      opponentpct: 75,
+
+      connections: ["Oyster Mouth"],
+    },
+
+    {
+      title: "Oyster Mouth",
+      desc: "This is bad idea!",
+      image: "oyster-mouth.jpg",
+
+      level: 3,
+      theme: "water",
+
+      lootpct: 100,
+      opponentpct: 100,
+
+      connections: ["Bright Forest Path"],
+    },
+
+    {
+      title: "Forest Steps",
+      desc: "Hewn stone steps leading deeper",
+      image: "forest-steps.jpg",
+
+      level: 1,
+      theme: "outside",
+
+      lootpct: 30,
+      opponentpct: 75,
+
+      connections: ["Cottage Entrance"],
+    },
+
+    {
+      title: "Cottage Entrance",
+      desc: "A curious cosy cottage",
+      image: "cottage-entrance.jpg",
+
+      level: 2,
+      theme: "outside",
+
+      lootpct: 30,
+      opponentpct: 75,
+
+      connections: ["Cottage"],
+    },
+
+    {
+      title: "Cottage",
+      desc: "A witch's haven!",
+      image: "cottage-interior.jpg",
+
+      level: 3,
+      theme: "witch",
+
+      lootpct: 100,
+      opponentpct: 100,
+
+      connections: ["Bright Forest Path"],
+    },
+
+    {
+      title: "Bright Forest Path",
+      desc: "A well kept forest pathway",
+      image: "forest-bright.jpg",
+
+      level: 2,
+      theme: "outside",
+
+      lootpct: 30,
+      opponentpct: 75,
+
+      connections: ["Castle Entrance"],
     },
 
     {
@@ -243,7 +342,7 @@ const drafts = new Map<string, SceneDraft>(
       theme: "underground",
 
       lootpct: 35,
-      opponentpct: 50,
+      opponentpct: 75,
 
       connections: ["Forest Path", "Cave"],
     },
@@ -257,7 +356,7 @@ const drafts = new Map<string, SceneDraft>(
       theme: "underground",
 
       lootpct: 35,
-      opponentpct: 50,
+      opponentpct: 75,
 
       connections: ["Cave River", "Cave Camp"],
     },
@@ -271,7 +370,7 @@ const drafts = new Map<string, SceneDraft>(
       theme: "underground",
 
       lootpct: 35,
-      opponentpct: 50,
+      opponentpct: 75,
 
       connections: ["Cave Camp", "Cave Exit"],
     },
@@ -285,7 +384,7 @@ const drafts = new Map<string, SceneDraft>(
       theme: "underground",
 
       lootpct: 85,
-      opponentpct: 80,
+      opponentpct: 90,
 
       connections: ["Cave Exit"],
     },
@@ -299,7 +398,7 @@ const drafts = new Map<string, SceneDraft>(
       theme: "underground",
 
       lootpct: 25,
-      opponentpct: 40,
+      opponentpct: 50,
 
       connections: ["Castle Entrance"],
     },
@@ -313,7 +412,7 @@ const drafts = new Map<string, SceneDraft>(
       theme: "castle",
 
       lootpct: 25,
-      opponentpct: 40,
+      opponentpct: 60,
 
       connections: ["Castle Room"],
     },
@@ -327,7 +426,7 @@ const drafts = new Map<string, SceneDraft>(
       theme: "castle",
 
       lootpct: 25,
-      opponentpct: 40,
+      opponentpct: 75,
 
       connections: ["Castle Throne"],
     },
@@ -341,9 +440,37 @@ const drafts = new Map<string, SceneDraft>(
       theme: "castle",
 
       lootpct: 95,
-      opponentpct: 60,
+      opponentpct: 100,
 
       connections: ["Castle Garden"],
     },
-  ].map((draft) => [draft.title, draft]),
+
+    {
+      title: "Castle Garden",
+      desc: "A delightful garden",
+      image: "castle-garden.jpg",
+
+      level: 3,
+      theme: "castle",
+
+      lootpct: 75,
+      opponentpct: 50,
+
+      connections: ["Sewer Entrance"],
+    },
+
+    {
+      title: "Sewer Entrance",
+      desc: "Entrance to a strange sewer",
+      image: "sewer-entrance.jpg",
+
+      level: 3,
+      theme: "sewer",
+
+      lootpct: 55,
+      opponentpct: 60,
+
+      connections: ["Sewer Tunnel"],
+    },
+  ].map((location) => [location.title, location]),
 );

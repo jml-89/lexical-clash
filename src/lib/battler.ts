@@ -27,7 +27,7 @@ import { BonusImpls, BonusCards } from "./bonus";
 import type { Scoresheet } from "./score";
 import { ScoreWord } from "./score";
 
-import type { ServerFunctions } from "./wordnet";
+import { SuggestWords } from "./wordnet";
 import type { ScoredWord, PRNG } from "./util";
 
 import type { Player } from "./player";
@@ -35,21 +35,16 @@ import type { Player } from "./player";
 import { CopyMap } from "./util";
 
 export interface Battler {
-  kb: ServerFunctions;
   health: number;
   healthMax: number;
   playArea: PlayArea;
   checking: boolean;
+  player: Player;
   scoresheet?: Scoresheet;
-  abilities: Map<string, AbilityCard>;
-  bonuses: Map<string, BonusCard>;
-  hyperbank: string[];
-  wordbank: string[];
   wordMatches: string[];
 }
 
 export interface ComBattler {
-  kb: ServerFunctions;
   health: number;
   healthMax: number;
   profile: Opponent;
@@ -57,26 +52,16 @@ export interface ComBattler {
   scoresheet?: Scoresheet;
 }
 
-export function NewBattler(
-  prng: PRNG,
-  kb: ServerFunctions,
-  player: Player,
-): Battler {
+export function NewBattler(prng: PRNG, player: Player): Battler {
   return {
-    kb: kb,
-
     health: 10 + player.level,
     healthMax: 10 + player.level,
 
-    abilities: CopyMap(player.abilities),
-    bonuses: CopyMap(player.bonuses),
+    player: player,
 
     checking: false,
     scoresheet: undefined,
     wordMatches: [],
-
-    hyperbank: [...player.hyperbank],
-    wordbank: [...player.wordbank],
 
     playArea: {
       prng: prng,
@@ -88,21 +73,15 @@ export function NewBattler(
   };
 }
 
-export function NewComBattler(
-  prng: PRNG,
-  kb: ServerFunctions,
-  profile: Opponent,
-): ComBattler {
+export function NewComBattler(prng: PRNG, profile: Opponent): ComBattler {
   return {
-    kb: kb,
-
     health: 10 + profile.level,
     healthMax: 10 + profile.level,
     profile: profile,
     scoresheet: undefined,
     playArea: {
       prng: prng,
-      handSize: 10 + profile.level,
+      handSize: 2 + profile.level * 4,
       bag: ScrabbleDistribution(),
       hand: [],
       placed: [],
@@ -113,13 +92,12 @@ export function NewComBattler(
 export async function PlaceWordbank(g: Battler, id: string): Promise<Battler> {
   let res = await OnPlayArea(g, (p) => PlaceWord(UnplaceAll(p), id));
   res.checking = true;
-  console.log(res);
   return res;
 }
 
 export function AbilityChecks(b: Battler): Battler {
   let upd = new Map<string, AbilityCard>();
-  for (const [k, v] of b.abilities) {
+  for (const [k, v] of b.player.abilities) {
     const impl = AbilityImpls.get(k);
     if (impl === undefined) {
       console.log(`No implementation found for bonus ${k}`);
@@ -133,7 +111,10 @@ export function AbilityChecks(b: Battler): Battler {
 
   return {
     ...b,
-    abilities: upd,
+    player: {
+      ...b.player,
+      abilities: upd,
+    },
   };
 }
 
@@ -144,14 +125,14 @@ export function UseAbilityReal(g: Battler, key: string): Battler {
     return g;
   }
 
-  const ability = g.abilities.get(key);
+  const ability = g.player.abilities.get(key);
   if (ability === undefined) {
     console.log(`No card found for ability ${key}`);
     return g;
   }
 
   let nextAbilities = new Map<string, AbilityCard>();
-  for (const [k, v] of g.abilities) {
+  for (const [k, v] of g.player.abilities) {
     if (k === key) {
       let x = { ...v };
       x.uses -= 1;
@@ -165,7 +146,10 @@ export function UseAbilityReal(g: Battler, key: string): Battler {
     ...g,
     playArea: impl.func(g.playArea),
     scoresheet: undefined,
-    abilities: nextAbilities,
+    player: {
+      ...g.player,
+      abilities: nextAbilities,
+    },
   });
 }
 
@@ -177,11 +161,11 @@ export async function WordbankCheck(g: Battler): Promise<string[]> {
     }
   }
 
-  const suggestedWords = await g.kb.suggestions(
+  const suggestedWords = await SuggestWords(
     letters,
-    g.hyperbank,
-    g.wordbank,
-    g.bonuses,
+    g.player.wordpacks.map((pack) => pack.hypernym),
+    g.player.wordbank,
+    [...g.player.bonuses.values()],
     20,
   );
 
@@ -196,11 +180,11 @@ export async function NextComHand(g: ComBattler): Promise<ComBattler> {
 }
 
 export async function NextWord(g: ComBattler): Promise<Letter[]> {
-  const suggestedWords = await g.kb.suggestions(
+  const suggestedWords = await SuggestWords(
     usableLetters(g.playArea),
     g.profile.strength,
     [],
-    new Map<string, BonusCard>(),
+    [],
     5,
   );
 
@@ -209,11 +193,11 @@ export async function NextWord(g: ComBattler): Promise<Letter[]> {
     return stringToLetters(word, word);
   }
 
-  const fallbackWords = await g.kb.suggestions(
+  const fallbackWords = await SuggestWords(
     usableLetters(g.playArea),
     ["letter"],
     [],
-    new Map<string, BonusCard>(),
+    [],
     5,
   );
 

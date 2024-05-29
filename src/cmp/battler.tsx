@@ -24,10 +24,10 @@ export type BattlerFnT = (a: Battler) => Promise<Battler>;
 type StateFnT = (fn: BattlerFnT) => Promise<void>;
 
 export const DrawBattler = memo(function DrawBattler({
-  player,
+  battler,
   statefn,
 }: {
-  player: Battler;
+  battler: Battler;
   statefn: StateFnT;
 }) {
   const [view, setView] = useState("buttons");
@@ -45,26 +45,36 @@ export const DrawBattler = memo(function DrawBattler({
   );
 
   const closefn = useCallback(() => setView("buttons"), [setView]);
-  const abilitystatefn = (s: string) => statefn((g) => UseAbility(g, s));
+
+  const abilitystatefn = useCallback(
+    (s: string) => statefn((g) => UseAbility(g, s)),
+    [statefn],
+  );
+
+  const playfn = useCallback(
+    (fn: PlayAreaFnT) => statefn((g) => OnPlayArea(g, fn)),
+    [statefn],
+  );
 
   const actionArea =
     view === "buttons" ? (
       <div className="flex flex-row gap-4 justify-center">
-        {player.bonuses.size > 0 && somebutton("Bonuses", "bonuses")}
-        {player.abilities.size > 0 && somebutton("Abilities", "abilities")}
-        {player.wordMatches.length > 0 && somebutton("Wordbank", "wordbank")}
+        {battler.player.bonuses.size > 0 && somebutton("Bonuses", "bonuses")}
+        {battler.player.abilities.size > 0 &&
+          somebutton("Abilities", "abilities")}
+        {battler.wordMatches.length > 0 && somebutton("Wordbank", "wordbank")}
       </div>
     ) : view === "abilities" ? (
       <AbilityCarousel
-        abilities={player.abilities}
+        abilities={battler.player.abilities}
         statefn={abilitystatefn}
         closefn={closefn}
       />
     ) : view === "bonuses" ? (
-      <BonusCarousel bonuses={player.bonuses} closefn={closefn} />
+      <BonusCarousel bonuses={battler.player.bonuses} closefn={closefn} />
     ) : view === "wordbank" ? (
       <ListWords
-        words={player.wordMatches}
+        words={battler.wordMatches}
         statefn={statefn}
         closefn={closefn}
       />
@@ -72,23 +82,21 @@ export const DrawBattler = memo(function DrawBattler({
       <></>
     );
 
-  const playfn = (fn: PlayAreaFnT) => statefn((g) => OnPlayArea(g, fn));
-
   return (
     <div className="flex-1 flex flex-col gap-2 items-stretch px-1">
-      {player.playArea.placed.length > 0 && (
+      {battler.playArea.placed.length > 0 && (
         <ActionButton
-          checking={player.checking}
-          scoresheet={player.scoresheet}
+          checking={battler.checking}
+          scoresheet={battler.scoresheet}
           statefn={statefn}
         />
       )}
-      <DrawPlayArea playarea={player.playArea} statefn={playfn} />
+      <DrawPlayArea playarea={battler.playArea} statefn={playfn} />
       {actionArea}
       <HealthBar
         badguy={false}
-        health={player.health}
-        healthMax={player.healthMax}
+        health={battler.health}
+        healthMax={battler.healthMax}
       />
     </div>
   );
@@ -103,11 +111,14 @@ function ListWords({
   statefn: StateFnT;
   closefn: () => void;
 }) {
-  const placefn = (id: string): (() => Promise<void>) => {
-    return async () => {
-      await statefn((g: Battler) => PlaceWordbank(g, id));
-    };
-  };
+  const placefn = useCallback(
+    (id: string): (() => Promise<void>) => {
+      return async () => {
+        await statefn((g: Battler) => PlaceWordbank(g, id));
+      };
+    },
+    [statefn],
+  );
 
   return (
     <div className="flex flex-col gap-1 text-black">

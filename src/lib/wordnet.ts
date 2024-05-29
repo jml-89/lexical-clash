@@ -9,7 +9,7 @@ import zlib from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import fetch from "node-fetch";
 
-import type { ScoredWord, HyperSet } from "./util";
+import type { ScoredWord } from "./util";
 
 import type { Letter } from "./letter";
 import { stringToLetters, lettersToString, simpleScore } from "./letter";
@@ -19,36 +19,6 @@ import { BonusImpls } from "./bonus";
 
 import { Pool } from "pg";
 const pool = new Pool();
-
-export interface ServerFunctions {
-  valid: (word: string) => Promise<boolean>;
-
-  related: (relation: string, left: string, right: string) => Promise<boolean>;
-
-  rescore: (
-    words: ScoredWord[],
-    bonuses: Map<string, BonusCard>,
-  ) => Promise<ScoredWord[]>;
-
-  suggestions: (
-    letters: Letter[],
-    hyperbank: string[],
-    wordbank: string[],
-    bonuses: Map<string, BonusCard>,
-    num: number,
-  ) => Promise<ScoredWord[]>;
-
-  hypos: (word: string) => Promise<ScoredWord[]>;
-
-  candidates: (
-    lo: number,
-    hi: number,
-    maxlen: number,
-    num: number,
-  ) => Promise<HyperSet[]>;
-
-  save: (id: string, o: string) => Promise<void>;
-}
 
 export async function IsWordValid(word: string): Promise<boolean> {
   try {
@@ -93,7 +63,7 @@ export async function SuggestWords(
   letters: Letter[],
   hypers: string[],
   wordbank: string[],
-  bonuses: Map<string, BonusCard>,
+  bonuses: BonusCard[],
   num: number,
 ): Promise<ScoredWord[]> {
   let bank = new Set<string>();
@@ -104,16 +74,39 @@ export async function SuggestWords(
   for (const hyper of hypers) {
     const moreWords = await HypoForms(hyper);
     for (const word of moreWords) {
-      bank.add(word.word);
+      bank.add(word);
     }
   }
 
   const res = playableWords(lettersToString(letters), [...bank.values()]);
-  let blargh = res.map((x) => ({ word: x, base: 0, score: 0 }));
+  let blargh = res.map((x) => letterScore(letters, x));
   blargh = await GuessScores(blargh, bonuses);
   blargh.sort((a, b) => b.score - a.score);
 
   return blargh.slice(0, num);
+}
+
+function letterScore(letters: Letter[], word: string): ScoredWord {
+  let myLetters = [...letters];
+  myLetters.sort((a, b) => b.score - a.score);
+
+  let score = 0;
+  for (const c of word) {
+    const idx = myLetters.findIndex(
+      (letter) => letter.char.toLowerCase() === c.toLowerCase(),
+    );
+    if (idx < 0) {
+      continue;
+    }
+    score += myLetters[idx].score;
+    myLetters = [...myLetters.slice(0, idx), ...myLetters.slice(idx + 1)];
+  }
+
+  return {
+    word: word,
+    base: score,
+    score: 0,
+  };
 }
 
 function playableWords(letters: string, words: string[]): string[] {
@@ -153,7 +146,7 @@ function letterMap(word: string): Map<string, number> {
 
 export async function GuessScores(
   words: ScoredWord[],
-  bonuses: Map<string, BonusCard>,
+  bonuses: BonusCard[],
 ): Promise<ScoredWord[]> {
   const client = await pool.connect();
   try {
@@ -169,8 +162,8 @@ export async function GuessScores(
       });
     }
 
-    for (const [k, bonus] of bonuses) {
-      const impl = BonusImpls.get(k);
+    for (const bonus of bonuses) {
+      const impl = BonusImpls.get(bonus.key);
       if (!impl) {
         continue;
       }
@@ -201,7 +194,7 @@ export async function GuessScores(
 }
 
 // For opponent words
-export async function HypoForms(word: string): Promise<ScoredWord[]> {
+export async function HypoForms(word: string): Promise<string[]> {
   const res = await pool.query({
     text: `
 			select a.hypo, b.score
@@ -213,12 +206,16 @@ export async function HypoForms(word: string): Promise<ScoredWord[]> {
     values: [word],
   });
 
+  return res.rows.map((row) => row.hypo);
+
+  /*
   return res.rows.map((row) => ({
     word: row.hypo,
     base: row.score,
     bonuses: [],
     score: row.score,
   }));
+  */
 }
 
 export async function Definitions(s: string): Promise<string[]> {
@@ -245,16 +242,14 @@ export async function Definitions(s: string): Promise<string[]> {
   return res.rows.map((row) => row.content);
 }
 
-// Candidates
-// lo & hi, bounds on collection size
-// maxlen: maximum
-// num: how many to return
-export async function Candidates(
+// GetHypernyms
+// lo & hi, bounds on number of hyponyms
+// maxlen, ignore hyponyms longer than this
+export async function GetRandomHypernym(
   lo: number,
   hi: number,
   maxlen: number,
-  num: number,
-): Promise<HyperSet[]> {
+): Promise<string> {
   const res = await pool.query({
     text: `
 			select hyper
@@ -265,23 +260,12 @@ export async function Candidates(
 			and count(*) > $1
 			and count(*) < $2
 			order by random()
-			limit $4;
+			limit 1;
 		`,
-    values: [lo, hi, maxlen, num],
+    values: [lo, hi, maxlen],
   });
 
-  const hs: HyperSet[] = [];
-  for (const row of res.rows) {
-    const defs = await Definitions(row.hyper);
-    const hypos = await HypoForms(row.hyper);
-    hs.push({
-      hypernym: row.hyper as string,
-      definitions: defs,
-      hyponyms: hypos,
-    });
-  }
-
-  return hs;
+  return res.rows[0].hyper;
 }
 
 // For the purposes of this simple game, return all matching synids
@@ -783,8 +767,4 @@ async function cleanup(): Promise<void> {
 
 		analyze;
 		`);
-}
-
-export async function ServerSeed(): Promise<number> {
-  return Date.now();
 }

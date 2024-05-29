@@ -7,9 +7,11 @@
 // There was also discarded letters previously but I've left that off now
 // Letters just get recycled into the letter bag
 
-import { Letter, isPerm } from "./letter";
+import type { Letter } from "./letter";
+import { isPerm } from "./letter";
 
-import { Shuffle, PRNG } from "./util";
+import type { PRNG } from "./util";
+import { Shuffle } from "./util";
 
 export type LetterSlot = Letter | undefined;
 

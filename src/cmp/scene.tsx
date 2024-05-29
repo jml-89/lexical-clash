@@ -11,7 +11,7 @@ import {
   animate,
 } from "framer-motion";
 
-import type { Scene, SceneDraft } from "@/lib/scene";
+import type { Scene, Location } from "@/lib/scene";
 import {
   OnBattle,
   GetConnectedScenes,
@@ -19,11 +19,12 @@ import {
   StartBattle,
   EndIntro,
   TakeLootItem,
+  TakeBattleLootItem,
 } from "@/lib/scene";
 
 import type { BattleFnT } from "@/cmp/battle";
 import { PlayBattle } from "@/cmp/battle";
-import { OpponentMugshot } from "@/cmp/opponent";
+import { OpponentMugshotMinimal } from "@/cmp/opponent";
 import { DrawLootContainer } from "@/cmp/loot";
 
 import { ButtonX } from "@/cmp/misc";
@@ -39,9 +40,26 @@ export function PlayScene({
   statefn: StateFnT;
 }) {
   return (
-    <DrawScenery scene={scene}>
+    <DrawLocation location={scene.location}>
       <PlaySceneContent scene={scene} statefn={statefn} />
-    </DrawScenery>
+    </DrawLocation>
+  );
+}
+
+function SceneLayout({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex-1 flex flex-col justify-center items-stretch">
+      <div className="text-4xl font-light bg-slate-800 self-stretch p-1 flex flex-row justify-center">
+        {title}
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -52,20 +70,28 @@ function PlaySceneContent({
   scene: Scene;
   statefn: StateFnT;
 }) {
-  const battlefn = (fn: BattleFnT) => statefn((g) => OnBattle(g, fn));
+  const battlefn = useCallback(
+    (fn: BattleFnT) => statefn((g) => OnBattle(g, fn)),
+    [statefn],
+  );
 
-  if (scene.desc) {
+  if (scene.intro) {
     return (
-      <div className="flex-1 flex flex-col justify-center items-center gap-1">
-        <div className="flex-1 flex flex-col justify-center">
-          <div className="self-stretch p-6 backdrop-blur-lg flex flex-row justify-center">
+      <SceneLayout title={scene.location.title}>
+        <div className="flex-1 flex flex-col justify-center items-stretch">
+          <motion.div
+            initial={{ y: -100 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 3 }}
+            className="p-6 backdrop-blur-lg flex flex-row justify-center"
+          >
             <div className="text-4xl italic text-white drop-shadow-2xl">
-              {scene.desc}
+              {scene.location.desc}
             </div>
-          </div>
+          </motion.div>
         </div>
         <ButtonX onClick={() => statefn(EndIntro)}>Explore!</ButtonX>
-      </div>
+      </SceneLayout>
     );
   }
 
@@ -75,29 +101,42 @@ function PlaySceneContent({
 
   if (scene.opponent) {
     return (
-      <div className="flex-1 self-stretch flex flex-col justify-center gap-2 self-center">
-        <div className="text-4xl bg-slate-800 self-stretch p-2">
-          A Foe Appears!
-        </div>
+      <SceneLayout title="A Foe Appears!">
         <div className="flex-1 flex flex-col justify-center items-center gap-2">
-          <div className="bg-slate-800 p-2 rounded-lg">
-            <OpponentMugshot opponent={scene.opponent} />
+          <div className="shadow-slate-900 shadow-lg">
+            <OpponentMugshotMinimal opponent={scene.opponent} />
           </div>
         </div>
-        <button className="self-center" onClick={() => statefn(StartBattle)}>
-          <div className="p-4 text-4xl bg-red-800">Start Battle!</div>
-        </button>
-      </div>
+        <ButtonX scary onClick={() => statefn(StartBattle)}>
+          Start Battle!
+        </ButtonX>
+      </SceneLayout>
+    );
+  }
+
+  if (scene.battleloot) {
+    // loot interaction
+    return (
+      <SceneLayout title="The Spoils of Battle!">
+        <DrawLootContainer
+          key="battleloot"
+          loot={scene.battleloot}
+          claimfn={() => statefn(TakeBattleLootItem)}
+        />
+      </SceneLayout>
     );
   }
 
   if (scene.loot) {
     // loot interaction
     return (
-      <DrawLootContainer
-        loot={scene.loot}
-        claimfn={() => statefn(TakeLootItem)}
-      />
+      <SceneLayout title="Loot!">
+        <DrawLootContainer
+          key="locationloot"
+          loot={scene.loot}
+          claimfn={() => statefn(TakeLootItem)}
+        />
+      </SceneLayout>
     );
   }
 
@@ -114,57 +153,55 @@ function DrawConnections({
   choosefn: (key: string) => Promise<void>;
 }) {
   return (
-    <div className="flex-1 self-stretch backdrop-blur-sm flex flex-col justify-center gap-2 self-center">
-      <div className="text-4xl bg-slate-800 self-stretch p-2">
-        Choose Your Path
-      </div>
-      <div className="flex-1 flex flex-col justify-center items-center gap-2">
-        {GetConnectedScenes(scene).map((draft) => (
-          <DrawDraft
-            key={draft.title}
-            draft={draft}
-            clickHandler={() => choosefn(draft.title)}
+    <SceneLayout title="Choose Your Path">
+      <div className="flex-1 flex flex-col justify-evenly items-center gap-2 backdrop-blur-sm">
+        {GetConnectedScenes(scene).map((location) => (
+          <DrawLocationPreview
+            key={location.title}
+            location={location}
+            clickHandler={() => choosefn(location.title)}
           />
         ))}
       </div>
-    </div>
+    </SceneLayout>
   );
 }
 
-function DrawDraft({
-  draft,
+function DrawLocationPreview({
+  location,
   clickHandler,
 }: {
-  draft: SceneDraft;
+  location: Location;
   clickHandler: () => Promise<void>;
 }) {
+  //<div className="text-3xl">{location.title}</div>
+  //<div className="italic">{location.desc}</div>
+
   return (
     <button onClick={clickHandler}>
-      <div className="p-2 bg-slate-700 rounded-lg flex flex-col justify-center items-center gap-1">
-        <div className="text-3xl">{draft.title}</div>
+      <div className="shadow-slate-900 shadow-lg">
         <Image
-          src={`/bg/${draft.image}`}
-          alt={`Illustration of ${draft.title}`}
-          height={180}
-          width={180}
+          src={`/bg/${location.image}`}
+          alt={`Illustration of ${location.title}`}
+          height={240}
+          width={240}
         />
-        <div className="italic">{draft.desc}</div>
       </div>
     </button>
   );
 }
 
-function DrawScenery({
-  scene,
+function DrawLocation({
+  location,
   children,
 }: {
-  scene: Scene;
+  location: Location;
   children: React.ReactNode;
 }) {
   return (
     <div
       style={
-        { "--image-url": `url(/bg/${scene.image})` } as React.CSSProperties
+        { "--image-url": `url(/bg/${location.image})` } as React.CSSProperties
       }
       className="flex-1 flex flex-col bg-[image:var(--image-url)] bg-center bg-cover"
     >

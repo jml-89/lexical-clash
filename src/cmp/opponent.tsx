@@ -56,7 +56,7 @@ const DrawProfile = memo(function DrawProfile({
         }}
       >
         <Image
-          src={`/${opp.image}`}
+          src={`/portrait/dark/${opp.image}`}
           width={80}
           height={80}
           alt={`Mugshot of ${opp.name}`}
@@ -79,12 +79,16 @@ const DrawProfile = memo(function DrawProfile({
   );
 });
 
-export function OpponentMugshot({ opponent }: { opponent: Opponent }) {
+export function OpponentMugshotHorizontal({
+  opponent,
+}: {
+  opponent: Opponent;
+}) {
   return (
     <div key={opponent.name} className="flex flex-row gap-1">
       <div className="flex-none">
         <Image
-          src={`/${opponent.image}`}
+          src={`/portrait/dark/${opponent.image}`}
           width={120}
           height={120}
           alt={`Mugshot of ${opponent.name}`}
@@ -105,6 +109,35 @@ export function OpponentMugshot({ opponent }: { opponent: Opponent }) {
           <span className="font-bold">Weak to:</span>{" "}
           {opponent.weakness.join(", ")}
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function OpponentMugshotMinimal({ opponent }: { opponent: Opponent }) {
+  return (
+    <Image
+      src={`/portrait/dark/${opponent.image}`}
+      width={320}
+      height={320}
+      alt={`Mugshot of ${opponent.name}`}
+    />
+  );
+}
+
+export function OpponentMugshotVertical({ opponent }: { opponent: Opponent }) {
+  return (
+    <div key={opponent.name} className="flex flex-col gap-1 items-center">
+      <h1 className="text-2xl">{opponent.name}</h1>
+      <Image
+        src={`/portrait/dark/${opponent.image}`}
+        width={320}
+        height={320}
+        alt={`Mugshot of ${opponent.name}`}
+      />
+
+      <div className="text-amber-300 italic">
+        Level {opponent.level} {opponent.desc}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { Letter } from "./letter";
 import type { BonusCard } from "./bonus";
 import type { AbilityCard } from "./ability";
+import type { Wordpack } from "./wordpack";
 import type { LootContainer } from "./loot";
 
 export interface Player {
@@ -8,14 +9,12 @@ export interface Player {
   handSize: number;
   bag: Letter[];
 
-  // A collection of hypernyms added from boosters
-  hyperbank: string[];
+  abilities: Map<string, AbilityCard>;
+  bonuses: Map<string, BonusCard>;
+  wordpacks: Wordpack[];
 
   // A collection of words played
   wordbank: string[];
-
-  abilities: Map<string, AbilityCard>;
-  bonuses: Map<string, BonusCard>;
 }
 
 export function NewPlayer(): Player {
@@ -23,10 +22,53 @@ export function NewPlayer(): Player {
     level: 1,
     handSize: 9,
     bag: [],
-    hyperbank: [],
+    wordpacks: [],
     wordbank: [],
     abilities: new Map<string, AbilityCard>(),
     bonuses: new Map<string, BonusCard>(),
+  };
+}
+
+function AddAbility(player: Player, ability: AbilityCard): Player {
+  const x = player.abilities.get(ability.key);
+  player.abilities.set(
+    ability.key,
+    x ? { ...x, uses: x.uses + 1 } : { ...ability },
+  );
+  return {
+    ...player,
+  };
+}
+
+function AddBonus(player: Player, bonus: BonusCard): Player {
+  const x = player.bonuses.get(bonus.key);
+  player.bonuses.set(
+    bonus.key,
+    x ? { ...x, level: x.level + 1 } : { ...bonus },
+  );
+  return {
+    ...player,
+  };
+}
+
+function AddWordpack(player: Player, wordpack: Wordpack): Player {
+  if (player.wordpacks.some((x) => x.hypernym === wordpack.hypernym)) {
+    return player;
+  }
+
+  return {
+    ...player,
+    wordpacks: [...player.wordpacks, wordpack],
+  };
+}
+
+function AddLetters(player: Player, letters: Letter[]): Player {
+  return {
+    ...player,
+    bag: [...player.bag, ...letters].map((letter, idx) => ({
+      ...letter,
+      id: `bag-${idx}`,
+    })),
   };
 }
 
@@ -35,39 +77,16 @@ export function ClaimLootItem(
   player: Player,
   loot: LootContainer,
 ): [Player, LootContainer] {
-  for (const ability of loot.abilities) {
-    const x = player.abilities.get(ability.key);
-    player.abilities.set(
-      ability.key,
-      x ? { ...x, uses: x.uses + 1 } : { ...ability },
-    );
-    return [{ ...player }, { ...loot, abilities: loot.abilities.slice(1) }];
+  const next = loot.contents[0];
+  const lessLoot = { ...loot, contents: loot.contents.slice(1) };
+  switch (next.type) {
+    case "ability":
+      return [AddAbility(player, next.item), lessLoot];
+    case "bonus":
+      return [AddBonus(player, next.item), lessLoot];
+    case "wordpack":
+      return [AddWordpack(player, next.item), lessLoot];
+    case "letters":
+      return [AddLetters(player, next.item), lessLoot];
   }
-
-  for (const bonus of loot.bonuses) {
-    const x = player.bonuses.get(bonus.key);
-    player.bonuses.set(
-      bonus.key,
-      x ? { ...x, level: x.level + 1 } : { ...bonus },
-    );
-    return [{ ...player }, { ...loot, bonuses: loot.bonuses.slice(1) }];
-  }
-
-  for (const hyper of loot.hypers) {
-    if (player.hyperbank.some((x) => x === hyper.hypernym)) {
-      return [player, { ...loot, hypers: loot.hypers.slice(1) }];
-    }
-
-    player.hyperbank.push(hyper.hypernym);
-    return [{ ...player }, { ...loot, hypers: loot.hypers.slice(1) }];
-  }
-
-  if (loot.letters.length > 0) {
-    return [
-      { ...player, bag: [...player.bag, ...loot.letters] },
-      { ...loot, letters: [] },
-    ];
-  }
-
-  return [player, loot];
 }
