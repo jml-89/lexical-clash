@@ -71,22 +71,13 @@ const opponents = [
     strength: "fauna",
     weakness: "flora",
     drafts: [
-      {
-        name: "Mouse",
-        image: "mouse.jpg",
-      },
-      {
-        name: "Rat",
-        image: "rat.jpg",
-      },
-      {
-        name: "Giant Rat",
-        image: "giant-rat.jpg",
-      },
-      {
-        name: "Wombat",
-        image: "wombat.jpg",
-      },
+      { name: "Mouse", image: "mouse.jpg" },
+      { name: "Rat", image: "rat.jpg" },
+      { name: "Giant Rat", image: "giant-rat.jpg" },
+      { name: "Giant Rat", image: "giant-rat.jpg" },
+      { name: "Giant Rat", image: "giant-rat.jpg" },
+      { name: "Giant Rat", image: "giant-rat.jpg" },
+      { name: "Wombat", image: "wombat.jpg" },
     ],
   },
   {
@@ -95,22 +86,11 @@ const opponents = [
     strength: "fauna",
     weakness: "flora",
     drafts: [
-      {
-        name: "Dog",
-        image: "dog.jpg",
-      },
-      {
-        name: "Cat",
-        image: "cat.jpg",
-      },
-      {
-        name: "Bee",
-        image: "bee.jpg",
-      },
-      {
-        name: "Kookaburra",
-        image: "kookaburra.jpg",
-      },
+      { name: "Dog", image: "dog.jpg" },
+      { name: "Cat", image: "cat.jpg" },
+      { name: "Bee", image: "bee.jpg" },
+      { name: "Bee", image: "bee.jpg" },
+      { name: "Kookaburra", image: "kookaburra.jpg" },
     ],
   },
 
@@ -124,6 +104,7 @@ const opponents = [
       { name: "Millipede", image: "millipede.jpg" },
       { name: "Centipede", image: "centipede.jpg" },
       { name: "Scarab", image: "scarab.jpg" },
+      { name: "Scarab", image: "scarab.jpg" },
     ],
   },
 
@@ -133,18 +114,12 @@ const opponents = [
     strength: "fish",
     weakness: "weather",
     drafts: [
-      {
-        name: "Frog",
-        image: "frog.jpg",
-      },
-      {
-        name: "Fish",
-        image: "fish.jpg",
-      },
-      {
-        name: "Octopus",
-        image: "octopus.jpg",
-      },
+      { name: "Frog", image: "frog.jpg" },
+      { name: "Fish", image: "fish.jpg" },
+      { name: "Octopus", image: "octopus.jpg" },
+      { name: "Octopus", image: "octopus.jpg" },
+      { name: "Octopus", image: "octopus.jpg" },
+      { name: "Octopus", image: "octopus.jpg" },
     ],
   },
 
@@ -154,22 +129,12 @@ const opponents = [
     strength: "disease",
     weakness: "color",
     drafts: [
-      {
-        name: "Philosopher",
-        image: "philo.jpg",
-      },
-      {
-        name: "Plague Doctor",
-        image: "plaguedoctor.jpg",
-      },
-      {
-        name: "Witch",
-        image: "witch.jpg",
-      },
-      {
-        name: "Vampire",
-        image: "vamp.jpg",
-      },
+      { name: "Philosopher", image: "philo.jpg" },
+      { name: "Philosopher", image: "philo.jpg" },
+      { name: "Philosopher", image: "philo.jpg" },
+      { name: "Plague Doctor", image: "plaguedoctor.jpg" },
+      { name: "Witch", image: "witch.jpg" },
+      { name: "Vampire", image: "vamp.jpg" },
     ],
   },
 
@@ -179,14 +144,11 @@ const opponents = [
     strength: "machine",
     weakness: "nature",
     drafts: [
-      {
-        name: "Automaton",
-        image: "robot.jpg",
-      },
-      {
-        name: "Locomotive",
-        image: "train.jpg",
-      },
+      { name: "Automaton", image: "robot.jpg" },
+      { name: "Automaton", image: "robot.jpg" },
+      { name: "Automaton", image: "robot.jpg" },
+      { name: "Locomotive", image: "train.jpg" },
+      { name: "Locomotive", image: "train.jpg" },
     ],
   },
 
@@ -196,10 +158,11 @@ const opponents = [
     strength: "herb",
     weakness: "metal",
     drafts: [
-      {
-        name: "Tea Rex",
-        image: "dinosaur.jpg",
-      },
+      { name: "Tea Rex", image: "dinosaur.jpg" },
+      { name: "Tea Rex", image: "dinosaur.jpg" },
+      { name: "Tea Rex", image: "dinosaur.jpg" },
+      { name: "Tea Rex", image: "dinosaur.jpg" },
+      { name: "Tea Rex", image: "dinosaur.jpg" },
     ],
   },
 ];

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 import type { LootContainer } from "@/lib/loot";
 
@@ -37,17 +38,30 @@ function DrawClosedContainerMinimal({
   return (
     <div className="flex-1 self-stretch flex flex-col items-center justify-center backdrop-blur-sm gap-4">
       <div className="flex-1 flex flex-col justify-center">
-        <div className="shadow-slate-900 shadow-lg">
-          <Image
-            src={`/items/${loot.image}`}
-            alt={`Drawing of a ${loot.title}`}
-            width={240}
-            height={240}
-          />
-        </div>
+        <motion.div
+          animate={{ rotate: [0, -2, 2, 0] }}
+          transition={{
+            when: "afterChildren",
+            duration: 0.2,
+            repeat: Infinity,
+            repeatDelay: 1.5,
+          }}
+        >
+          <motion.button
+            onClick={openHandler}
+            className="shadow-slate-900 shadow-lg"
+            initial={{ y: -150 }}
+            animate={{ y: 0 }}
+          >
+            <Image
+              src={`/items/${loot.image}`}
+              alt={`Drawing of a ${loot.title}`}
+              width={240}
+              height={240}
+            />
+          </motion.button>
+        </motion.div>
       </div>
-
-      <ButtonX onClick={openHandler}>Open!</ButtonX>
     </div>
   );
 }
@@ -93,8 +107,9 @@ function DrawOpenContainer({
       }
       className="flex-1 flex flex-col bg-[image:var(--image-url)] bg-center bg-cover"
     >
-      <DrawNextLoot loot={loot} />
-      <ButtonX onClick={claimfn}>Claim</ButtonX>
+      <button className="flex-1 flex flex-col justify-center" onClick={claimfn}>
+        <DrawNextLoot loot={loot} />
+      </button>
     </div>
   );
 }
@@ -107,12 +122,29 @@ function DrawNicely({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex-1 flex flex-col gap-2 justify-center items-center">
+    <div className="flex-1 self-stretch flex flex-col gap-2 justify-center items-center">
       <div className="self-stretch text-2xl bg-slate-800 flex flex-row justify-center">
         You Found {title}!
       </div>
-      <div className="flex-1 flex flex-col justify-center items-center">
-        <div className="bg-slate-800 p-2 rounded-lg">{children}</div>
+      <div className="flex-1 self-stretch flex flex-col justify-center items-center">
+        <motion.div
+          animate={{ y: [0, -2, 2, 0] }}
+          transition={{
+            repeat: Infinity,
+            duration: 0.5,
+            repeatDelay: 1,
+            when: "afterChildren",
+          }}
+        >
+          <motion.div
+            className="backdrop-blur-xl bg-black/50 border p-2 rounded-lg"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            {children}
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );

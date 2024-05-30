@@ -46,6 +46,23 @@ export const HealthBar = memo(function HealthBar({
   );
 });
 
+export function GlassButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="text-black text-4xl font-light tracking-tight m-2 self-center backdrop-blur-sm bg-white/50 rounded-lg p-4 text-2xl border shadow-lg shadow-slate-900"
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function ButtonX({
   children,
   onClick,

@@ -176,7 +176,6 @@ export async function ChooseConnection(
 //level and theme used to guide opponent and loot selection
 export interface Location {
   title: string;
-  desc: string;
   image: string;
 
   level: number;
@@ -198,7 +197,6 @@ const locations = new Map<string, Location>(
   [
     {
       title: "Welcome",
-      desc: "Your journey begins",
       image: "field.jpg",
       level: 1,
       theme: "outside",
@@ -209,7 +207,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Meadow",
-      desc: "A verdant clearing, calm and safe",
       image: "meadow.jpg",
 
       level: 1,
@@ -223,7 +220,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Forest Path",
-      desc: "An overgrown path through a quiet forest",
       image: "forest-path.jpg",
 
       level: 1,
@@ -237,7 +233,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Forest River",
-      desc: "A flowing brook",
       image: "forest-river.jpg",
 
       level: 1,
@@ -251,7 +246,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Forest Riverbed",
-      desc: "It's cold and wet down here...",
       image: "forest-riverbed.jpg",
 
       level: 2,
@@ -265,7 +259,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Oyster Mouth",
-      desc: "This is bad idea!",
       image: "oyster-mouth.jpg",
 
       level: 3,
@@ -279,7 +272,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Forest Steps",
-      desc: "Hewn stone steps leading deeper",
       image: "forest-steps.jpg",
 
       level: 1,
@@ -293,7 +285,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Cottage Entrance",
-      desc: "A curious cosy cottage",
       image: "cottage-entrance.jpg",
 
       level: 2,
@@ -307,7 +298,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Cottage",
-      desc: "A witch's haven!",
       image: "cottage-interior.jpg",
 
       level: 3,
@@ -321,7 +311,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Bright Forest Path",
-      desc: "A well kept forest pathway",
       image: "forest-bright.jpg",
 
       level: 2,
@@ -335,7 +324,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Cave Entrance",
-      desc: "The entrance to a dark cave",
       image: "cave-entrance.jpg",
 
       level: 1,
@@ -349,7 +337,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Cave",
-      desc: "A forboding cave",
       image: "cave-inside.jpg",
 
       level: 2,
@@ -363,7 +350,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Cave River",
-      desc: "A crystal blue river cutting through",
       image: "cave-river.jpg",
 
       level: 2,
@@ -377,7 +363,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Cave Camp",
-      desc: "A hidden rogue's camp",
       image: "cave-camp.jpg",
 
       level: 3,
@@ -391,7 +376,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Cave Exit",
-      desc: "A welcome sight",
       image: "cave-exit.jpg",
 
       level: 3,
@@ -405,7 +389,6 @@ const locations = new Map<string, Location>(
 
     {
       title: "Castle Entrance",
-      desc: "A grand home",
       image: "castle-entrance.jpg",
 
       level: 3,
@@ -419,10 +402,35 @@ const locations = new Map<string, Location>(
 
     {
       title: "Castle Room",
-      desc: "One of many rooms here",
       image: "castle-room.jpg",
 
-      level: 3,
+      level: 4,
+      theme: "castle",
+
+      lootpct: 25,
+      opponentpct: 75,
+
+      connections: ["Castle Sitting Room", "Castle Dining Hall"],
+    },
+
+    {
+      title: "Castle Sitting Room",
+      image: "castle-sitting-room.jpg",
+
+      level: 4,
+      theme: "castle",
+
+      lootpct: 25,
+      opponentpct: 75,
+
+      connections: ["Castle Throne"],
+    },
+
+    {
+      title: "Castle Dining Hall",
+      image: "castle-dining-hall.jpg",
+
+      level: 4,
       theme: "castle",
 
       lootpct: 25,
@@ -433,13 +441,12 @@ const locations = new Map<string, Location>(
 
     {
       title: "Castle Throne",
-      desc: "A grand throne room",
       image: "castle-throne.jpg",
 
-      level: 3,
+      level: 5,
       theme: "castle",
 
-      lootpct: 95,
+      lootpct: 100,
       opponentpct: 100,
 
       connections: ["Castle Garden"],
@@ -447,10 +454,9 @@ const locations = new Map<string, Location>(
 
     {
       title: "Castle Garden",
-      desc: "A delightful garden",
       image: "castle-garden.jpg",
 
-      level: 3,
+      level: 4,
       theme: "castle",
 
       lootpct: 75,
@@ -461,10 +467,9 @@ const locations = new Map<string, Location>(
 
     {
       title: "Sewer Entrance",
-      desc: "Entrance to a strange sewer",
       image: "sewer-entrance.jpg",
 
-      level: 3,
+      level: 5,
       theme: "sewer",
 
       lootpct: 55,

@@ -27,7 +27,7 @@ import { PlayBattle } from "@/cmp/battle";
 import { OpponentMugshotMinimal } from "@/cmp/opponent";
 import { DrawLootContainer } from "@/cmp/loot";
 
-import { ButtonX } from "@/cmp/misc";
+import { ButtonX, GlassButton } from "@/cmp/misc";
 
 export type SceneFnT = (a: Scene) => Promise<Scene>;
 type StateFnT = (fn: SceneFnT) => Promise<void>;
@@ -78,19 +78,14 @@ function PlaySceneContent({
   if (scene.intro) {
     return (
       <SceneLayout title={scene.location.title}>
-        <div className="flex-1 flex flex-col justify-center items-stretch">
-          <motion.div
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            transition={{ duration: 3 }}
-            className="p-6 backdrop-blur-lg flex flex-row justify-center"
-          >
-            <div className="text-4xl italic text-white drop-shadow-2xl">
-              {scene.location.desc}
-            </div>
-          </motion.div>
-        </div>
-        <ButtonX onClick={() => statefn(EndIntro)}>Explore!</ButtonX>
+        <motion.div
+          className="flex-1 flex flex-row justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 100 }}
+          transition={{ duration: 1 }}
+        >
+          <GlassButton onClick={() => statefn(EndIntro)}>Explore!</GlassButton>
+        </motion.div>
       </SceneLayout>
     );
   }
@@ -103,13 +98,26 @@ function PlaySceneContent({
     return (
       <SceneLayout title="A Foe Appears!">
         <div className="flex-1 flex flex-col justify-center items-center gap-2">
-          <div className="shadow-slate-900 shadow-lg">
-            <OpponentMugshotMinimal opponent={scene.opponent} />
-          </div>
+          <motion.div
+            animate={{ x: [0, -2, 2, 0] }}
+            transition={{
+              when: "afterChildren",
+              duration: 0.2,
+              repeat: Infinity,
+              repeatDelay: 1.5,
+            }}
+          >
+            <motion.button
+              onClick={() => statefn(StartBattle)}
+              className="shadow-slate-900 shadow-lg"
+              initial={{ scale: 0.1 }}
+              animate={{ scale: 1.0 }}
+              transition={{ duration: 1.5 }}
+            >
+              <OpponentMugshotMinimal opponent={scene.opponent} />
+            </motion.button>
+          </motion.div>
         </div>
-        <ButtonX scary onClick={() => statefn(StartBattle)}>
-          Start Battle!
-        </ButtonX>
       </SceneLayout>
     );
   }
@@ -178,7 +186,12 @@ function DrawLocationPreview({
   //<div className="italic">{location.desc}</div>
 
   return (
-    <button onClick={clickHandler}>
+    <motion.button
+      onClick={clickHandler}
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ duration: 1 }}
+    >
       <div className="shadow-slate-900 shadow-lg">
         <Image
           src={`/bg/${location.image}`}
@@ -187,7 +200,7 @@ function DrawLocationPreview({
           width={240}
         />
       </div>
-    </button>
+    </motion.button>
   );
 }
 
@@ -199,13 +212,13 @@ function DrawLocation({
   children: React.ReactNode;
 }) {
   return (
-    <div
+    <motion.div
       style={
         { "--image-url": `url(/bg/${location.image})` } as React.CSSProperties
       }
       className="flex-1 flex flex-col bg-[image:var(--image-url)] bg-center bg-cover"
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
