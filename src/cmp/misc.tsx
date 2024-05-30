@@ -19,16 +19,16 @@ export const HealthBar = memo(function HealthBar({
   health: number;
   healthMax: number;
 }) {
-  const color = badguy ? "bg-red-800" : "bg-lime-500";
+  const barcolor = badguy ? "bg-red-800" : "bg-lime-500";
   const healthpct = Math.floor((health / healthMax) * 100.0);
 
   return (
     <div
       className={[
-        "w-full h-4",
-        "border-2 border-black",
+        "h-6",
+        "shadow-slate-900 shadow-sm border-1 border-black",
         "bg-zinc-400",
-        "flex",
+        "grid",
       ].join(" ")}
     >
       {healthpct > 0 && (
@@ -36,9 +36,12 @@ export const HealthBar = memo(function HealthBar({
           initial={{ width: "0%" }}
           animate={{ width: `${healthpct}%` }}
           transition={{ duration: 0.6 }}
-          className={color}
+          className={`${barcolor} row-start-1 col-start-1`}
         />
       )}
+      <div className="text-black text-sm font-medium row-start-1 col-start-1 flex flex-row justify-center items-center">
+        {health}/{healthMax}
+      </div>
     </div>
   );
 });

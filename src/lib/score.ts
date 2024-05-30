@@ -41,9 +41,9 @@ export interface ScoreModifier {
 
 export async function ScoreWord(
   placed: Letter[],
-  bonuses: BonusCard[],
-  weaknesses: string[],
-  opposingWord: string,
+  bonuses?: BonusCard[],
+  weakness?: string,
+  opposingWord?: string,
 ): Promise<Scoresheet> {
   let sheet: Scoresheet = {
     ok: false,
@@ -70,39 +70,36 @@ export async function ScoreWord(
     return sheet;
   }
 
-  for (const bonus of bonuses) {
-    const val = await GuessScores(
-      [{ word: word, base: simpleScore(placed), score: 0 }],
-      [bonus],
-    );
-    if (val[0].score > val[0].base) {
-      sheet.adds.push({
-        source: bonus.name,
-        value: bonus.weight * bonus.level,
-      });
+  if (bonuses) {
+    for (const bonus of bonuses) {
+      const val = await GuessScores(
+        [{ word: word, base: simpleScore(placed), score: 0 }],
+        [bonus],
+      );
+      if (val[0].score > val[0].base) {
+        sheet.adds.push({
+          source: bonus.name,
+          value: bonus.weight * bonus.level,
+        });
+      }
     }
   }
 
-  for (const weakness of weaknesses) {
-    const hit = await AreWordsRelated("hypernym", weakness, word);
-    if (!hit) {
-      continue;
-    }
-
+  if (weakness && (await AreWordsRelated("hypernym", weakness, word))) {
     sheet.muls.push({
       source: `Weakness: ${weakness}`,
       value: 1,
     });
   }
 
-  if (await AreWordsRelated("hypernym", opposingWord, word)) {
+  if (opposingWord && (await AreWordsRelated("hypernym", opposingWord, word))) {
     sheet.muls.push({
       source: "Undercut",
       value: 0.2,
     });
   }
 
-  if (await AreWordsRelated("hypernym", word, opposingWord)) {
+  if (opposingWord && (await AreWordsRelated("hypernym", word, opposingWord))) {
     sheet.muls.push({
       source: "Overcut",
       value: 0.2,

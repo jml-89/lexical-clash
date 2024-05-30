@@ -182,7 +182,7 @@ export async function NextComHand(g: ComBattler): Promise<ComBattler> {
 export async function NextWord(g: ComBattler): Promise<Letter[]> {
   const suggestedWords = await SuggestWords(
     usableLetters(g.playArea),
-    g.profile.strength,
+    [g.profile.strength],
     [],
     [],
     5,

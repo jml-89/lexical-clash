@@ -16,8 +16,14 @@ export const DrawComBattler = memo(function DrawComBattler({
 }) {
   const hd = opp.healthMax - opp.health;
   return (
-    <motion.div className="flex flex-col items-center gap-2">
-      <HealthBar badguy={true} health={opp.health} healthMax={opp.healthMax} />
+    <motion.div className="self-stretch flex flex-col items-center gap-2">
+      <div className="self-stretch">
+        <HealthBar
+          badguy={true}
+          health={opp.health}
+          healthMax={opp.healthMax}
+        />
+      </div>
 
       <DrawProfile opp={opp.profile} hd={hd} />
 
@@ -39,7 +45,7 @@ const DrawProfile = memo(function DrawProfile({
   hd: number;
 }) {
   return (
-    <div className="flex flex-row gap-4">
+    <div className="flex flex-row gap-2">
       <motion.div
         className="flex-none"
         initial={{
@@ -64,15 +70,17 @@ const DrawProfile = memo(function DrawProfile({
       </motion.div>
 
       <div className="flex flex-col">
-        <div className="text-amber-300">
-          <span className="text-lg font-bold">{opp.name}</span>{" "}
-          <span className="italic">(Level {opp.level})</span>
+        <div className="text-amber-300 flex flex-row gap-1 items-baseline">
+          <span className="text-lg font-bold">{opp.name}</span>
+          <span className="italic">
+            (Level {opp.level} {opp.memberof})
+          </span>
         </div>
         <div className="text-red-300">
-          <span className="font-bold">Uses:</span> {opp.strength.join(", ")}
+          <span className="font-bold">Uses:</span> {opp.strength}
         </div>
         <div className="text-lime-300">
-          <span className="font-bold">Weak to:</span> {opp.weakness.join(", ")}
+          <span className="font-bold">Weak to:</span> {opp.weakness}
         </div>
       </div>
     </div>
@@ -98,16 +106,14 @@ export function OpponentMugshotHorizontal({
       <div className="flex flex-col justify-between items-baseline text-left">
         <h1 className="text-amber-300 text-xl">{opponent.name}</h1>
         <div className="text-amber-300 italic">
-          Level {opponent.level} {opponent.desc}
+          Level {opponent.level} {opponent.memberof}
         </div>
 
         <div className="text-red-300">
-          <span className="font-bold">Uses:</span>{" "}
-          {opponent.strength.join(", ")}
+          <span className="font-bold">Uses:</span> {opponent.strength}
         </div>
         <div className="text-lime-300">
-          <span className="font-bold">Weak to:</span>{" "}
-          {opponent.weakness.join(", ")}
+          <span className="font-bold">Weak to:</span> {opponent.weakness}
         </div>
       </div>
     </div>
@@ -137,7 +143,7 @@ export function OpponentMugshotVertical({ opponent }: { opponent: Opponent }) {
       />
 
       <div className="text-amber-300 italic">
-        Level {opponent.level} {opponent.desc}
+        Level {opponent.level} {opponent.memberof}
       </div>
     </div>
   );

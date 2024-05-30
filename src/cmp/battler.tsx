@@ -83,7 +83,7 @@ export const DrawBattler = memo(function DrawBattler({
     );
 
   return (
-    <div className="flex-1 flex flex-col gap-2 items-stretch px-1">
+    <div className="self-stretch flex-1 flex flex-col gap-2 items-center px-1">
       {battler.playArea.placed.length > 0 && (
         <ActionButton
           checking={battler.checking}
@@ -93,11 +93,13 @@ export const DrawBattler = memo(function DrawBattler({
       )}
       <DrawPlayArea playarea={battler.playArea} statefn={playfn} />
       {actionArea}
-      <HealthBar
-        badguy={false}
-        health={battler.health}
-        healthMax={battler.healthMax}
-      />
+      <div className="self-stretch">
+        <HealthBar
+          badguy={false}
+          health={battler.health}
+          healthMax={battler.healthMax}
+        />
+      </div>
     </div>
   );
 });

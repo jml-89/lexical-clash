@@ -7,11 +7,24 @@ import { Shuffle } from "./util";
 
 export interface Opponent {
   name: string;
-  desc: string;
+  memberof: string;
   level: number;
-  themes: string[];
-  weakness: string[];
-  strength: string[];
+  theme: string;
+  weakness: string;
+  strength: string;
+  image: string;
+}
+
+interface OpponentSet {
+  name: string;
+  theme: string;
+  weakness: string;
+  strength: string;
+  drafts: OpponentDraft[];
+}
+
+interface OpponentDraft {
+  name: string;
   image: string;
 }
 
@@ -21,208 +34,172 @@ export async function NewOpponent(
   level: number,
   theme: string,
 ): Promise<Opponent> {
-  const isCandidate = (o: Opponent) => isThematic(o, theme) && o.level <= level;
-  let candidates = opponents.filter(isCandidate);
-  const bestLevel = candidates.reduce(
-    (acc, cur) => (acc > cur.level ? acc : cur.level),
-    0,
-  );
-  candidates = candidates.filter((o) => o.level === bestLevel);
+  let idx = opponents.findIndex((set) => set.theme === theme);
+  if (idx === -1) {
+    if (theme === "all") {
+      throw `No theme found`;
+    }
+    return await NewOpponent(prng, level, "all");
+  }
 
-  return Shuffle(prng, candidates)[0];
+  const li = Math.max(0, level - 1);
+  if (li >= opponents[idx].drafts.length) {
+    if (theme === "all") {
+      throw `No opponent found for ${level}`;
+    }
+    return await NewOpponent(prng, level, "all");
+  }
+
+  return AwakenOpponent(opponents[idx], li);
 }
 
-function isThematic(opponent: Opponent, theme: string): boolean {
-  return opponent.themes.findIndex((s) => s === "all" || s === theme) >= 0;
+function AwakenOpponent(set: OpponentSet, idx: number): Opponent {
+  return {
+    ...set.drafts[idx], //name, image
+    memberof: set.name,
+    theme: set.theme,
+    strength: set.strength,
+    weakness: set.weakness,
+    level: idx + 1,
+  };
 }
 
 const opponents = [
   {
-    name: "Mouse",
-    desc: "Squeakus Meekus",
-    level: 1,
-    themes: ["all"],
-    weakness: ["flora"],
-    strength: ["fauna"],
-    image: "mouse.jpg",
+    name: "Rodent",
+    theme: "all",
+    strength: "fauna",
+    weakness: "flora",
+    drafts: [
+      {
+        name: "Mouse",
+        image: "mouse.jpg",
+      },
+      {
+        name: "Rat",
+        image: "rat.jpg",
+      },
+      {
+        name: "Giant Rat",
+        image: "giant-rat.jpg",
+      },
+      {
+        name: "Wombat",
+        image: "wombat.jpg",
+      },
+    ],
   },
   {
-    name: "Rat",
-    desc: "Gnawus Allus",
-    level: 2,
-    themes: ["all"],
-    weakness: ["flora"],
-    strength: ["fauna"],
-    image: "rat.jpg",
-  },
-  {
-    name: "Giant Rat",
-    desc: "Chompus Chompus",
-    level: 3,
-    themes: ["all"],
-    weakness: ["flora"],
-    strength: ["fauna"],
-    image: "giant-rat.jpg",
-  },
-
-  {
-    name: "Dog",
-    desc: "Canis Familiaris",
-    image: "dog.jpg",
-    level: 1,
-    themes: ["outside"],
-    weakness: ["food"],
-    strength: ["food"],
-  },
-  {
-    name: "Cat",
-    desc: "Felinus Scratchus",
-    level: 2,
-    themes: ["outside"],
-    weakness: ["flora"],
-    strength: ["fauna"],
-    image: "cat.jpg",
-  },
-  {
-    name: "Bee",
-    desc: "buzz buzz",
-    level: 3,
-    themes: ["outside"],
-    weakness: ["chemical"],
-    strength: ["insect"],
-    image: "bee.jpg",
-  },
-  {
-    name: "Kookaburra",
-    desc: "Laughus Laughus",
-    level: 4,
-    themes: ["outside"],
-    weakness: ["herb"],
-    strength: ["bird"],
-    image: "kookaburra.jpg",
+    name: "Friendly? Animal",
+    theme: "outside",
+    strength: "fauna",
+    weakness: "flora",
+    drafts: [
+      {
+        name: "Dog",
+        image: "dog.jpg",
+      },
+      {
+        name: "Cat",
+        image: "cat.jpg",
+      },
+      {
+        name: "Bee",
+        image: "bee.jpg",
+      },
+      {
+        name: "Kookaburra",
+        image: "kookaburra.jpg",
+      },
+    ],
   },
 
   {
-    name: "Centipede",
-    desc: "Hundred Feet",
-    level: 3,
-    themes: ["underground"],
-    weakness: ["sun"],
-    strength: ["insect"],
-    image: "centipede.jpg",
+    name: "Creepy Crawly",
+    theme: "underground",
+    strength: "bailiwick",
+    weakness: "feeling",
+    drafts: [
+      { name: "Ant", image: "ant.jpg" },
+      { name: "Millipede", image: "millipede.jpg" },
+      { name: "Centipede", image: "centipede.jpg" },
+      { name: "Scarab", image: "scarab.jpg" },
+    ],
   },
 
   {
-    name: "Fish",
-    desc: "Splishus Splashus",
-    level: 1,
-    themes: ["water"],
-    weakness: ["tool"],
-    strength: ["malacopterygian"],
-    image: "fish.jpg",
-  },
-  {
-    name: "Frog",
-    desc: "Ribbit!",
-    level: 2,
-    themes: ["water"],
-    weakness: ["flora"],
-    strength: ["chordate"],
-    image: "frog.jpg",
-  },
-  {
-    name: "Octopus",
-    desc: "Extra-Aquatical",
-    level: 3,
-    themes: ["water"],
-    weakness: ["weather"],
-    strength: ["number"],
-    image: "octopus.jpg",
+    name: "Aquatic Creature",
+    theme: "water",
+    strength: "fish",
+    weakness: "weather",
+    drafts: [
+      {
+        name: "Frog",
+        image: "frog.jpg",
+      },
+      {
+        name: "Fish",
+        image: "fish.jpg",
+      },
+      {
+        name: "Octopus",
+        image: "octopus.jpg",
+      },
+    ],
   },
 
   {
-    name: "Philosopher",
-    desc: "Nerdus Wordus",
-    level: 2,
-    themes: ["castle"],
-    weakness: ["color"],
-    strength: ["time"],
-    image: "philo.jpg",
+    name: "Villain",
+    theme: "castle",
+    strength: "disease",
+    weakness: "color",
+    drafts: [
+      {
+        name: "Philosopher",
+        image: "philo.jpg",
+      },
+      {
+        name: "Plague Doctor",
+        image: "plaguedoctor.jpg",
+      },
+      {
+        name: "Witch",
+        image: "witch.jpg",
+      },
+      {
+        name: "Vampire",
+        image: "vamp.jpg",
+      },
+    ],
   },
+
   {
-    name: "Vampire",
-    desc: "Ah ah ah!",
-    level: 3,
-    themes: ["castle"],
-    weakness: ["mineral"],
-    strength: ["misconduct"],
-    image: "vamp.jpg",
+    name: "Machine",
+    theme: "urban",
+    strength: "machine",
+    weakness: "nature",
+    drafts: [
+      {
+        name: "Automaton",
+        image: "robot.jpg",
+      },
+      {
+        name: "Locomotive",
+        image: "train.jpg",
+      },
+    ],
   },
+
   {
-    name: "Automaton",
-    desc: "Beepus Boopus",
-    level: 3,
-    themes: ["urban"],
-    weakness: ["water"],
-    strength: ["machine"],
-    image: "robot.jpg",
-  },
-  {
-    name: "Locomotive",
-    desc: "Steamus Pistonus",
-    level: 5,
-    themes: ["urban"],
-    weakness: ["nature"],
-    strength: ["transport"],
-    image: "train.jpg",
-  },
-  {
-    name: "Plague Doctor",
-    desc: "One Sick Bird",
-    level: 6,
-    themes: ["urban"],
-    weakness: ["technology"],
-    strength: ["disease"],
-    image: "plaguedoctor.jpg",
-  },
-  {
-    name: "Cloud",
-    desc: "Fluffus Fluffy",
-    level: 4,
-    themes: ["outside"],
-    weakness: ["measure"],
-    strength: ["weather"],
-    image: "cloud.jpg",
-  },
-  {
-    name: "Tea Rex",
-    desc: "Herbus Sippus",
-    level: 5,
-    themes: ["jungle"],
-    weakness: ["kindle"],
-    strength: ["herb"],
-    image: "dinosaur.jpg",
-  },
-  {
-    name: "Boss Wombat",
-    desc: "The End",
-    level: 7,
-    themes: ["all"],
-    weakness: [""],
-    strength: ["noesis"],
-    image: "wombat.jpg",
-  },
-  {
-    name: "Witch",
-    desc: "Cottage Dweller",
-    level: 3,
-    themes: ["witch"],
-    weakness: ["health"],
-    strength: ["flora"],
-    image: "witch.jpg",
+    name: "Dinosaur",
+    theme: "jungle",
+    strength: "herb",
+    weakness: "metal",
+    drafts: [
+      {
+        name: "Tea Rex",
+        image: "dinosaur.jpg",
+      },
+    ],
   },
 ];
-
-const opponentLookup = new Map<string, Opponent>(
-  opponents.map((opponent) => [opponent.name, opponent]),
-);

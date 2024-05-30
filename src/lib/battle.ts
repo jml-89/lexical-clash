@@ -139,10 +139,5 @@ export async function UpdatePlayerScore(b: Battle): Promise<Scoresheet> {
 }
 
 export async function UpdateComScore(b: Battle): Promise<Scoresheet> {
-  return await ScoreWord(
-    b.opponent.playArea.placed,
-    [],
-    [],
-    lettersToString(b.player.playArea.placed),
-  );
+  return await ScoreWord(b.opponent.playArea.placed);
 }
