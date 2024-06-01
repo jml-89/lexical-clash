@@ -96,6 +96,7 @@ export async function PlaceWordbank(g: Battler, id: string): Promise<Battler> {
 }
 
 export function AbilityChecks(b: Battler): Battler {
+  let changed = false;
   let upd = new Map<string, AbilityCard>();
   for (const [k, v] of b.player.abilities) {
     const impl = AbilityImpls.get(k);
@@ -103,19 +104,25 @@ export function AbilityChecks(b: Battler): Battler {
       console.log(`No implementation found for bonus ${k}`);
       continue;
     }
-    upd.set(k, {
-      ...v,
-      ok: v.uses > 0 && impl.pred(b.playArea),
-    });
+    const ok = v.uses > 0 && impl.pred(b.playArea);
+    if (ok != v.ok) {
+      changed = true;
+      upd.set(k, { ...v, ok: ok });
+    } else {
+      upd.set(k, v);
+    }
   }
 
-  return {
-    ...b,
-    player: {
-      ...b.player,
-      abilities: upd,
-    },
-  };
+  if (changed) {
+    return {
+      ...b,
+      player: {
+        ...b.player,
+        abilities: upd,
+      },
+    };
+  }
+  return b;
 }
 
 export function UseAbilityReal(g: Battler, key: string): Battler {
@@ -215,6 +222,26 @@ export async function UseAbility(g: Battler, key: string): Promise<Battler> {
   return res;
 }
 
+export async function SetPlayArea(
+  battler: Battler,
+  playArea: PlayArea,
+): Promise<Battler> {
+  const bigchange =
+    (battler.playArea.placed.length > 0 && playArea.placed.length === 0) ||
+    (battler.playArea.placed.length === 0 && playArea.placed.length > 0);
+
+  if (bigchange) {
+    battler = { ...battler, playArea: playArea };
+  } else {
+    battler.playArea = playArea;
+  }
+
+  if (battler.scoresheet) {
+    battler = { ...battler, scoresheet: undefined };
+  }
+  return AbilityChecks(battler);
+}
+
 export async function OnPlayArea(
   g: Battler,
   fn: (p: PlayArea) => PlayArea,
@@ -228,6 +255,10 @@ export async function OnPlayArea(
 
 export async function Checking(g: Battler): Promise<Battler> {
   return { ...g, checking: true };
+}
+
+export async function Unchecking(g: Battler): Promise<Battler> {
+  return { ...g, checking: false };
 }
 
 export async function NextHand(g: Battler): Promise<Battler> {

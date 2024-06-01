@@ -106,16 +106,24 @@ export async function Submit(g: Battle): Promise<Battle> {
   return g;
 }
 
-export async function OnBattler(
-  b: Battle,
-  fn: (p: Battler) => Promise<Battler>,
+export async function SetBattler(
+  battle: Battle,
+  battler: Battler,
 ): Promise<Battle> {
-  b = { ...b };
-  b.player = await fn(b.player);
-  if (b.player.checking) {
-    b = await UpdateScores(b);
+  const changed =
+    (!battle.player.scoresheet && battler.scoresheet) ||
+    (battle.player.scoresheet && !battler.scoresheet);
+  if (changed) {
+    battle = { ...battle, player: battler };
+  } else {
+    battle.player = battler;
   }
-  return b;
+
+  if (battle.player.checking) {
+    return await UpdateScores(battle);
+  }
+
+  return battle;
 }
 
 export async function UpdateScores(g: Battle): Promise<Battle> {

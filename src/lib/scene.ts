@@ -29,6 +29,7 @@ export interface Scene {
   intro: boolean;
   opponent?: Opponent;
   battle?: Battle;
+  lost?: boolean;
   battleloot?: LootContainer;
   loot?: LootContainer;
   exit?: string; // connection chosen to leave, also indicator that scene is done
@@ -126,29 +127,34 @@ export async function NewScene(
   };
 }
 
-export async function OnBattle(
-  scene: Scene,
-  fn: (b: Battle) => Promise<Battle>,
-): Promise<Scene> {
-  if (!scene.battle) {
+export async function SetBattle(scene: Scene, battle: Battle): Promise<Scene> {
+  if (!battle) {
     return scene;
   }
 
-  const battle = await fn(scene.battle);
-  if (battle.done) {
+  if (battle.done && battle.victory) {
     return {
       ...scene,
-      player: { ...scene.player, handSize: scene.player.handSize + 1 },
-      battle: undefined,
       battleloot: await NewLootContainer(
         scene.prng,
-        scene.battle.opponent.profile.level,
+        battle.opponent.profile.level,
         true,
       ),
+      player: { ...scene.player, handSize: (scene.player.handSize += 1) },
+      battle: undefined,
     };
   }
 
-  return { ...scene, battle: battle };
+  if (battle.done && !battle.victory) {
+    return {
+      ...scene,
+      lost: true,
+      battle: undefined,
+    };
+  }
+
+  scene.battle = battle;
+  return scene;
 }
 
 export function GetConnectedScenes(scene: Scene): Location[] {
@@ -166,10 +172,7 @@ export async function ChooseConnection(
   scene: Scene,
   key: string,
 ): Promise<Scene> {
-  return {
-    ...scene,
-    exit: key,
-  };
+  return await NewScene(scene.prng, scene.player, key);
 }
 
 //location where a scene can occur

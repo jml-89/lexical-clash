@@ -21,19 +21,13 @@ export interface GameState {
   scene: Scene;
 }
 
-export async function OnScene(
-  g: GameState,
-  fn: (s: Scene) => Promise<Scene>,
-): Promise<GameState> {
-  let scene = await fn(g.scene);
+export async function SetScene(g: GameState, scene: Scene): Promise<GameState> {
   if (scene.exit) {
-    scene = await NextScene(scene);
+    g.scene = await NextScene(scene);
+  } else {
+    g.scene = scene;
   }
-
-  return {
-    ...g,
-    scene: scene,
-  };
+  return g;
 }
 
 export async function SaveGame(g: GameState): Promise<void> {

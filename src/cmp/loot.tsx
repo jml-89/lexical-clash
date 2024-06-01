@@ -9,7 +9,7 @@ import { DrawAbility } from "./ability";
 import { DrawBonus } from "./bonus";
 import { DrawWordpack } from "./wordpack";
 
-import { ButtonX } from "@/cmp/misc";
+import { ButtonX, OnDarkGlass } from "@/cmp/misc";
 
 export function DrawLootContainer({
   loot,
@@ -36,7 +36,7 @@ function DrawClosedContainerMinimal({
   openHandler: () => void;
 }) {
   return (
-    <div className="flex-1 self-stretch flex flex-col items-center justify-center backdrop-blur-sm gap-4">
+    <div className="self-stretch flex flex-col items-center justify-center gap-4">
       <div className="flex-1 flex flex-col justify-center">
         <motion.div
           animate={{ rotate: [0, -2, 2, 0] }}
@@ -137,12 +137,11 @@ function DrawNicely({
           }}
         >
           <motion.div
-            className="backdrop-blur-xl bg-black/50 border p-2 rounded-lg"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.4 }}
           >
-            {children}
+            <OnDarkGlass className="p-4">{children}</OnDarkGlass>
           </motion.div>
         </motion.div>
       </div>

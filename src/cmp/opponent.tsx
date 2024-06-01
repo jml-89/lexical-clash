@@ -6,7 +6,8 @@ import { motion } from "framer-motion";
 import type { Opponent } from "@/lib/opponent";
 import type { ComBattler } from "@/lib/battler";
 
-import { HealthBar } from "@/cmp/misc";
+import { HealthBar, OnDarkGlass } from "@/cmp/misc";
+import { DrawScoresheet } from "@/cmp/score";
 import { DrawLetters } from "@/cmp/letter";
 
 export const DrawComBattler = memo(function DrawComBattler({
@@ -36,6 +37,8 @@ export const DrawComBattler = memo(function DrawComBattler({
     </motion.div>
   );
 });
+
+//{opp.scoresheet && opp.scoresheet.ok && <DrawScoresheet sheet={opp.scoresheet} color="text-red-300" />}
 
 const DrawProfile = memo(function DrawProfile({
   opp,

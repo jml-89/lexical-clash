@@ -46,20 +46,22 @@ export const HealthBar = memo(function HealthBar({
   );
 });
 
-export function GlassButton({
+export function OnDarkGlass({
   children,
-  onClick,
+  className,
 }: {
   children: React.ReactNode;
-  onClick: () => void;
+  className?: string;
 }) {
+  let cn =
+    "backdrop-blur-lg bg-black/50 rounded-lg border border-black shadow-lg shadow-slate-900";
+  if (className) {
+    cn = `${cn} ${className}`;
+  }
   return (
-    <button
-      className="text-black text-4xl font-light tracking-tight m-2 self-center backdrop-blur-sm bg-white/50 rounded-lg p-4 text-2xl border shadow-lg shadow-slate-900"
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <div className={cn}>
+      <div className="flex flex-row justify-center">{children}</div>
+    </div>
   );
 }
 

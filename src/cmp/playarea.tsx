@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 
 import type { PlayArea, LetterSlot } from "@/lib/playarea";
@@ -16,6 +16,21 @@ export type PlayAreaFnT = (p: PlayArea) => PlayArea;
 type StateFnT = (fn: PlayAreaFnT) => Promise<void>;
 
 export const DrawPlayArea = memo(function DrawPlayArea({
+  get,
+  set,
+}: {
+  get: () => PlayArea;
+  set: (changed: () => void, playArea: PlayArea) => Promise<void>;
+}) {
+  const [repaints, repaint] = useState(0);
+  const mystatefn = async (fn: PlayAreaFnT): Promise<void> => {
+    await set(() => repaint((x) => x + 1), await fn(get()));
+  };
+
+  return <PlayPlayArea playarea={get()} statefn={mystatefn} />;
+});
+
+function PlayPlayArea({
   playarea,
   statefn,
 }: {
@@ -30,7 +45,7 @@ export const DrawPlayArea = memo(function DrawPlayArea({
       <Hand letters={playarea.hand} statefn={statefn} />
     </>
   );
-});
+}
 
 const PlayerPlaced = memo(function PlayerPlaced({
   letters,

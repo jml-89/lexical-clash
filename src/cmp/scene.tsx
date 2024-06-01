@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { memo, useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 
@@ -12,8 +13,9 @@ import {
 } from "framer-motion";
 
 import type { Scene, Location } from "@/lib/scene";
+import type { Battle } from "@/lib/battle";
 import {
-  OnBattle,
+  SetBattle,
   GetConnectedScenes,
   ChooseConnection,
   StartBattle,
@@ -27,21 +29,26 @@ import { PlayBattle } from "@/cmp/battle";
 import { OpponentMugshotMinimal } from "@/cmp/opponent";
 import { DrawLootContainer } from "@/cmp/loot";
 
-import { ButtonX, GlassButton } from "@/cmp/misc";
+import { ButtonX, OnDarkGlass } from "@/cmp/misc";
 
 export type SceneFnT = (a: Scene) => Promise<Scene>;
 type StateFnT = (fn: SceneFnT) => Promise<void>;
 
 export function PlayScene({
-  scene,
-  statefn,
+  get,
+  set,
 }: {
-  scene: Scene;
-  statefn: StateFnT;
+  get: () => Scene;
+  set: (changed: () => void, scene: Scene) => Promise<void>;
 }) {
+  const [repaints, repaint] = useState(0);
+  const mystatefn = async (fn: SceneFnT): Promise<void> => {
+    await set(() => repaint((x) => x + 1), await fn(get()));
+  };
+
   return (
-    <DrawLocation location={scene.location}>
-      <PlaySceneContent scene={scene} statefn={statefn} />
+    <DrawLocation location={get().location}>
+      <PlaySceneContent scene={get()} statefn={mystatefn} />
     </DrawLocation>
   );
 }
@@ -54,11 +61,13 @@ function SceneLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex-1 flex flex-col justify-center items-stretch">
+    <div className="flex-1 flex flex-col">
       <div className="text-4xl font-light bg-slate-800 self-stretch p-1 flex flex-row justify-center">
         {title}
       </div>
-      {children}
+      <div className="flex-1 flex flex-col justify-center items-stretch">
+        {children}
+      </div>
     </div>
   );
 }
@@ -70,34 +79,46 @@ function PlaySceneContent({
   scene: Scene;
   statefn: StateFnT;
 }) {
-  const battlefn = useCallback(
-    (fn: BattleFnT) => statefn((g) => OnBattle(g, fn)),
-    [statefn],
-  );
-
   if (scene.intro) {
     return (
       <SceneLayout title={scene.location.title}>
         <motion.div
-          className="flex-1 flex flex-row justify-center"
+          className="flex flex-row justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 100 }}
-          transition={{ duration: 1 }}
+          transition={{ duration: 0.5 }}
         >
-          <GlassButton onClick={() => statefn(EndIntro)}>Explore!</GlassButton>
+          <button onClick={() => statefn(EndIntro)}>
+            <OnDarkGlass>
+              <div className="p-4 text-4xl text-white">Explore!</div>
+            </OnDarkGlass>
+          </button>
         </motion.div>
       </SceneLayout>
     );
   }
 
   if (scene.battle) {
-    return <PlayBattle battle={scene.battle} statefn={battlefn} />;
+    const getBattle = (): Battle => scene.battle as Battle;
+    const setBattle = async (
+      changed: () => void,
+      battle: Battle,
+    ): Promise<void> => {
+      const prev = getBattle();
+      await statefn(async (scene: Scene) => await SetBattle(scene, battle));
+      const next = getBattle();
+      if (!Object.is(prev, next)) {
+        changed();
+      }
+    };
+
+    return <PlayBattle get={getBattle} set={setBattle} />;
   }
 
   if (scene.opponent) {
     return (
       <SceneLayout title="A Foe Appears!">
-        <div className="flex-1 flex flex-col justify-center items-center gap-2">
+        <div className="flex flex-col justify-center items-center gap-2">
           <motion.div
             animate={{ x: [0, -2, 2, 0] }}
             transition={{
@@ -112,12 +133,22 @@ function PlaySceneContent({
               className="shadow-slate-900 shadow-lg"
               initial={{ scale: 0.1 }}
               animate={{ scale: 1.0 }}
-              transition={{ duration: 1.5 }}
+              transition={{ type: "spring", bounce: 0.8, duration: 0.7 }}
             >
               <OpponentMugshotMinimal opponent={scene.opponent} />
             </motion.button>
           </motion.div>
         </div>
+      </SceneLayout>
+    );
+  }
+
+  if (scene.lost) {
+    return (
+      <SceneLayout title="Your Journey Ends">
+        <Link href="/">
+          <OnDarkGlass>Run Away!</OnDarkGlass>
+        </Link>
       </SceneLayout>
     );
   }
@@ -190,7 +221,7 @@ function DrawLocationPreview({
       onClick={clickHandler}
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
-      transition={{ duration: 1 }}
+      transition={{ type: "spring", bounce: 0.4, duration: 0.5 }}
     >
       <div className="shadow-slate-900 shadow-lg">
         <Image

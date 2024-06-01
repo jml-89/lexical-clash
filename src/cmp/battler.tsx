@@ -12,18 +12,40 @@ import {
 
 import type { Scoresheet } from "@/lib/score";
 import type { Battler } from "@/lib/battler";
-import { OnPlayArea, UseAbility, PlaceWordbank, Checking } from "@/lib/battler";
+import type { PlayArea } from "@/lib/playarea";
+import {
+  SetPlayArea,
+  UseAbility,
+  PlaceWordbank,
+  Checking,
+  Unchecking,
+} from "@/lib/battler";
 
 import { AbilityCarousel } from "@/cmp/ability";
 import { BonusCarousel } from "@/cmp/bonus";
 import type { PlayAreaFnT } from "@/cmp/playarea";
 import { DrawPlayArea } from "@/cmp/playarea";
-import { HealthBar } from "@/cmp/misc";
+import { HealthBar, OnDarkGlass } from "@/cmp/misc";
 
 export type BattlerFnT = (a: Battler) => Promise<Battler>;
 type StateFnT = (fn: BattlerFnT) => Promise<void>;
 
 export const DrawBattler = memo(function DrawBattler({
+  get,
+  set,
+}: {
+  get: () => Battler;
+  set: (changed: () => void, battler: Battler) => Promise<void>;
+}) {
+  const [repaints, repaint] = useState(0);
+  const mystatefn = async (fn: BattlerFnT): Promise<void> => {
+    await set(() => repaint((x) => x + 1), await fn(get()));
+  };
+
+  return <PlayBattler battler={get()} statefn={mystatefn} />;
+});
+
+function PlayBattler({
   battler,
   statefn,
 }: {
@@ -34,27 +56,32 @@ export const DrawBattler = memo(function DrawBattler({
 
   const somebutton = useCallback(
     (alias: string, key: string): React.ReactNode => (
-      <button
-        className="p-4 text-amber-200 bg-lime-700 rounded-lg"
-        onClick={() => setView(key)}
-      >
-        {alias}
+      <button onClick={() => setView(key)}>
+        <OnDarkGlass className="bg-lime-500/50 text-white p-2">
+          {alias}
+        </OnDarkGlass>
       </button>
     ),
     [setView],
   );
 
   const closefn = useCallback(() => setView("buttons"), [setView]);
+  const abilitystatefn = (s: string) => statefn((g) => UseAbility(g, s));
 
-  const abilitystatefn = useCallback(
-    (s: string) => statefn((g) => UseAbility(g, s)),
-    [statefn],
-  );
-
-  const playfn = useCallback(
-    (fn: PlayAreaFnT) => statefn((g) => OnPlayArea(g, fn)),
-    [statefn],
-  );
+  const getPlayArea = (): PlayArea => battler.playArea;
+  const setPlayArea = async (
+    changed: () => void,
+    playArea: PlayArea,
+  ): Promise<void> => {
+    const prev = getPlayArea();
+    await statefn(
+      async (battler: Battler) => await SetPlayArea(battler, playArea),
+    );
+    const next = getPlayArea();
+    if (!Object.is(prev, next)) {
+      changed();
+    }
+  };
 
   const actionArea =
     view === "buttons" ? (
@@ -91,7 +118,7 @@ export const DrawBattler = memo(function DrawBattler({
           statefn={statefn}
         />
       )}
-      <DrawPlayArea playarea={battler.playArea} statefn={playfn} />
+      <DrawPlayArea get={getPlayArea} set={setPlayArea} />
       {actionArea}
       <div className="self-stretch">
         <HealthBar
@@ -102,7 +129,7 @@ export const DrawBattler = memo(function DrawBattler({
       </div>
     </div>
   );
-});
+}
 
 function ListWords({
   words,

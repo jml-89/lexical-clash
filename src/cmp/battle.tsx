@@ -11,40 +11,57 @@ import {
 } from "framer-motion";
 
 import type { Battle } from "@/lib/battle";
-import { Submit, OnBattler } from "@/lib/battle";
+import { Submit, SetBattler } from "@/lib/battle";
 
 import type { Scoresheet } from "@/lib/score";
 
 import { DrawScoresheet } from "@/cmp/score";
 import { DrawComBattler } from "@/cmp/opponent";
 
-import type { BattlerFnT } from "@/cmp/battler";
+import type { Battler } from "@/lib/battler";
 import { DrawBattler } from "@/cmp/battler";
+
+import { OnDarkGlass } from "@/cmp/misc";
 
 export type BattleFnT = (a: Battle) => Promise<Battle>;
 type StateFnT = (fn: BattleFnT) => Promise<void>;
 
 export function PlayBattle({
-  battle,
-  statefn,
+  get,
+  set,
 }: {
-  battle: Battle;
-  statefn: StateFnT;
+  get: () => Battle;
+  set: (changed: () => void, battle: Battle) => Promise<void>;
 }) {
-  const battlerfn = useCallback(
-    (fn: BattlerFnT) => statefn((g) => OnBattler(g, fn)),
-    [statefn],
-  );
+  const [repaints, repaint] = useState(0);
+  const mystatefn = async (fn: BattleFnT): Promise<void> => {
+    await set(() => repaint((x) => x + 1), await fn(get()));
+  };
+
+  const getBattler = (): Battler => get().player;
+  const setBattler = async (
+    changed: () => void,
+    battler: Battler,
+  ): Promise<void> => {
+    const prev = getBattler();
+    await mystatefn(
+      async (battle: Battle) => await SetBattler(battle, battler),
+    );
+    const next = getBattler();
+    if (!Object.is(prev, next)) {
+      changed();
+    }
+  };
 
   return (
-    <main className="flex-1 flex flex-col items-center p-1 gap-1 backdrop-brightness-50 backdrop-saturate-0">
-      <DrawComBattler opp={battle.opponent} />
+    <main className="flex-1 flex flex-col items-center p-1 gap-1 backdrop-blur bg-black/50">
+      <DrawComBattler opp={get().opponent} />
       <Contest
-        ps={battle.player.scoresheet}
-        os={battle.opponent.scoresheet}
-        statefn={statefn}
+        ps={get().player.scoresheet}
+        os={get().opponent.scoresheet}
+        statefn={mystatefn}
       />
-      <DrawBattler battler={battle.player} statefn={battlerfn} />
+      <DrawBattler get={getBattler} set={setBattler} />
     </main>
   );
 }
@@ -74,13 +91,14 @@ function AttackButton({ statefn }: { statefn: StateFnT }) {
   return (
     <motion.button
       key="attackbutton"
-      className="p-4 m-4 rounded-lg text-black bg-lime-500 text-2xl"
       onClick={async () => await statefn(Submit)}
       animate={{ scale: 1 }}
       initial={{ scale: 0 }}
       exit={{ scale: 0 }}
     >
-      Attack
+      <OnDarkGlass className="bg-lime-500/75 text-white text-4xl p-4">
+        Attack
+      </OnDarkGlass>
     </motion.button>
   );
 }

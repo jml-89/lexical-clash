@@ -2,65 +2,6 @@
 // Mandatory potpourri of functions that I can't find a more suitable home for
 import prand from "pure-rand";
 
-// Mutator is just the interface created by CreateMutator's return
-// CreateMutator is the interesting one
-interface SimpleMutator<T> {
-  get: () => T;
-  set: (fn: (t: T) => Promise<T>) => Promise<void>;
-}
-
-// World's simplest closure implementation
-// This closes over the parameter $g and returns a getter/setter
-// The reason this is useful is the get/set function objects do not change with g
-// So when the setter is passed in props, React sees the same function object ever render -- good for memoisation
-// This is only intended to be used for the Preamble/Battle/Outcome phases
-// That's what the less obvious $endfn parameter is for, the function called from GameState to change phase
-export function CreateSimpleMutator<T>(
-  initial: T,
-  setfn: (data: T) => void,
-): SimpleMutator<T> {
-  let data = { ...initial };
-
-  return {
-    get: () => data,
-    set: async (fn: (data: T) => Promise<T>): Promise<void> => {
-      data = await fn({ ...data });
-      setfn(data);
-    },
-  };
-}
-
-// Mutator is just the interface created by CreateMutator's return
-// CreateMutator is the interesting one
-interface Mutator<T> {
-  get: () => T;
-  set: (fn: (t: T) => Promise<void>) => Promise<void>;
-}
-
-// World's simplest closure implementation
-// This closes over the parameter $g and returns a getter/setter
-// The reason this is useful is the get/set function objects do not change with g
-// So when the setter is passed in props, React sees the same function object ever render -- good for memoisation
-// This is only intended to be used for the Preamble/Battle/Outcome phases
-// That's what the less obvious $endfn parameter is for, the function called from GameState to change phase
-export function CreateMutator<T>(
-  g: T,
-  setfn: (t: T) => void,
-  endfn: (t: T) => Promise<void>,
-): Mutator<T> {
-  let c = { ...g };
-
-  return {
-    get: () => c,
-    set: async (fn: (t: T) => Promise<void>): Promise<void> => {
-      c = { ...c };
-      await fn(c);
-      setfn(c);
-      await endfn(c);
-    },
-  };
-}
-
 export interface ScoredWord {
   word: string;
   base: number;
