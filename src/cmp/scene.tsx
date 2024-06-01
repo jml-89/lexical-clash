@@ -12,11 +12,11 @@ import {
   animate,
 } from "framer-motion";
 
-import type { Scene, Location } from "@/lib/scene";
+import type { Scene, Region } from "@/lib/scene";
 import type { Battle } from "@/lib/battle";
 import {
   SetBattle,
-  GetConnectedScenes,
+  GetConnectedLocations,
   ChooseConnection,
   StartBattle,
   EndIntro,
@@ -47,7 +47,7 @@ export function PlayScene({
   };
 
   return (
-    <DrawLocation location={get().location}>
+    <DrawLocation location={get().region.path[get().regidx]}>
       <PlaySceneContent scene={get()} statefn={mystatefn} />
     </DrawLocation>
   );
@@ -81,7 +81,7 @@ function PlaySceneContent({
 }) {
   if (scene.intro) {
     return (
-      <SceneLayout title={scene.location.title}>
+      <SceneLayout title={scene.region.name}>
         <motion.div
           className="flex flex-row justify-center"
           initial={{ opacity: 0 }}
@@ -146,9 +146,11 @@ function PlaySceneContent({
   if (scene.lost) {
     return (
       <SceneLayout title="Your Journey Ends">
-        <Link href="/">
-          <OnDarkGlass>Run Away!</OnDarkGlass>
-        </Link>
+        <div className="self-center">
+          <Link href="/">
+            <OnDarkGlass className="text-3xl p-4">Run Away!</OnDarkGlass>
+          </Link>
+        </div>
       </SceneLayout>
     );
   }
@@ -194,11 +196,11 @@ function DrawConnections({
   return (
     <SceneLayout title="Choose Your Path">
       <div className="flex-1 flex flex-col justify-evenly items-center gap-2 backdrop-blur-sm">
-        {GetConnectedScenes(scene).map((location) => (
+        {GetConnectedLocations(scene).map((location) => (
           <DrawLocationPreview
-            key={location.title}
+            key={location}
             location={location}
-            clickHandler={() => choosefn(location.title)}
+            clickHandler={() => choosefn(location)}
           />
         ))}
       </div>
@@ -210,12 +212,9 @@ function DrawLocationPreview({
   location,
   clickHandler,
 }: {
-  location: Location;
+  location: string;
   clickHandler: () => Promise<void>;
 }) {
-  //<div className="text-3xl">{location.title}</div>
-  //<div className="italic">{location.desc}</div>
-
   return (
     <motion.button
       onClick={clickHandler}
@@ -225,8 +224,8 @@ function DrawLocationPreview({
     >
       <div className="shadow-slate-900 shadow-lg">
         <Image
-          src={`/bg/${location.image}`}
-          alt={`Illustration of ${location.title}`}
+          src={`/bg/${location}`}
+          alt={`Illustration of a location`}
           height={240}
           width={240}
         />
@@ -239,14 +238,12 @@ function DrawLocation({
   location,
   children,
 }: {
-  location: Location;
+  location: string;
   children: React.ReactNode;
 }) {
   return (
     <motion.div
-      style={
-        { "--image-url": `url(/bg/${location.image})` } as React.CSSProperties
-      }
+      style={{ "--image-url": `url(/bg/${location})` } as React.CSSProperties}
       className="flex-1 flex flex-col bg-[image:var(--image-url)] bg-center bg-cover"
     >
       {children}

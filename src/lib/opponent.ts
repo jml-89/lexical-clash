@@ -9,160 +9,162 @@ export interface Opponent {
   name: string;
   memberof: string;
   level: number;
-  theme: string;
+  region: string;
   weakness: string;
   strength: string;
   image: string;
 }
 
-interface OpponentSet {
+interface Gang {
   name: string;
-  theme: string;
+  region: string;
   weakness: string;
   strength: string;
-  drafts: OpponentDraft[];
+  members: GangMember[];
+  boss: GangMember;
 }
 
-interface OpponentDraft {
+interface GangMember {
   name: string;
   image: string;
+}
+
+export async function NewBoss(
+  region: string,
+  level: number,
+): Promise<Opponent> {
+  let gang = gangs.find((gang) => gang.region === region);
+  if (!gang) {
+    gang = gangs[0];
+  }
+
+  return {
+    ...gang.boss, //name, image
+    memberof: gang.name,
+    region: gang.region,
+    strength: gang.strength,
+    weakness: gang.weakness,
+    level: level,
+  };
 }
 
 //Select the most dangerous possible opponent for a given area
 export async function NewOpponent(
   prng: PRNG,
-  level: number,
-  theme: string,
+  region: string,
+  minLevel: number,
+  maxLevel: number,
 ): Promise<Opponent> {
-  let idx = opponents.findIndex((set) => set.theme === theme);
-  if (idx === -1) {
-    if (theme === "all") {
-      throw `No theme found`;
-    }
-    return await NewOpponent(prng, level, "all");
+  let gang = gangs.find((gang) => gang.region === region);
+  if (!gang) {
+    gang = gangs[0];
   }
 
-  const li = Math.max(0, level - 1);
-  if (li >= opponents[idx].drafts.length) {
-    if (theme === "all") {
-      throw `No opponent found for ${level}`;
-    }
-    return await NewOpponent(prng, level, "all");
-  }
+  const level = prng(minLevel, maxLevel);
+  const idx = prng(0, gang.members.length - 1);
 
-  return AwakenOpponent(opponents[idx], li);
-}
-
-function AwakenOpponent(set: OpponentSet, idx: number): Opponent {
   return {
-    ...set.drafts[idx], //name, image
-    memberof: set.name,
-    theme: set.theme,
-    strength: set.strength,
-    weakness: set.weakness,
-    level: idx + 1,
+    ...gang.members[idx], //name, image
+    memberof: gang.name,
+    region: gang.region,
+    strength: gang.strength,
+    weakness: gang.weakness,
+    level: level,
   };
 }
 
-const opponents = [
+const gangs = [
   {
     name: "Rodent",
-    theme: "all",
+    region: "all",
     strength: "fauna",
     weakness: "flora",
-    drafts: [
+    members: [
       { name: "Mouse", image: "mouse.jpg" },
       { name: "Rat", image: "rat.jpg" },
       { name: "Giant Rat", image: "giant-rat.jpg" },
-      { name: "Giant Rat", image: "giant-rat.jpg" },
-      { name: "Giant Rat", image: "giant-rat.jpg" },
-      { name: "Giant Rat", image: "giant-rat.jpg" },
-      { name: "Wombat", image: "wombat.jpg" },
     ],
+    boss: { name: "Wombat", image: "wombat.jpg" },
   },
   {
-    name: "Friendly? Animal",
-    theme: "outside",
+    name: "Friendly Animal",
+    region: "Forest",
     strength: "fauna",
     weakness: "flora",
-    drafts: [
+    members: [
       { name: "Dog", image: "dog.jpg" },
       { name: "Cat", image: "cat.jpg" },
       { name: "Bee", image: "bee.jpg" },
-      { name: "Bee", image: "bee.jpg" },
-      { name: "Kookaburra", image: "kookaburra.jpg" },
     ],
+    boss: { name: "Kookaburra", image: "kookaburra.jpg" },
   },
 
   {
     name: "Creepy Crawly",
-    theme: "underground",
+    region: "Cave",
     strength: "bailiwick",
     weakness: "feeling",
-    drafts: [
+    members: [
       { name: "Ant", image: "ant.jpg" },
       { name: "Millipede", image: "millipede.jpg" },
       { name: "Centipede", image: "centipede.jpg" },
-      { name: "Scarab", image: "scarab.jpg" },
-      { name: "Scarab", image: "scarab.jpg" },
     ],
+    boss: { name: "Scarab", image: "scarab.jpg" },
+  },
+
+  {
+    name: "Mutant",
+    region: "Sewer",
+    strength: "activity",
+    weakness: "material",
+    members: [
+      { name: "Turtle", image: "turtle.jpg" },
+      { name: "Crocodile", image: "croc.jpg" },
+      { name: "Goldfish", image: "goldfish.jpg" },
+    ],
+    boss: { name: "Alligator", image: "gator.jpg" },
   },
 
   {
     name: "Aquatic Creature",
-    theme: "water",
+    region: "Sea",
     strength: "fish",
     weakness: "weather",
-    drafts: [
+    members: [
       { name: "Frog", image: "frog.jpg" },
       { name: "Fish", image: "fish.jpg" },
-      { name: "Octopus", image: "octopus.jpg" },
-      { name: "Octopus", image: "octopus.jpg" },
-      { name: "Octopus", image: "octopus.jpg" },
-      { name: "Octopus", image: "octopus.jpg" },
     ],
+    boss: { name: "Octopus", image: "octopus.jpg" },
   },
 
   {
     name: "Villain",
-    theme: "castle",
+    region: "Castle",
     strength: "disease",
     weakness: "color",
-    drafts: [
-      { name: "Philosopher", image: "philo.jpg" },
-      { name: "Philosopher", image: "philo.jpg" },
+    members: [
       { name: "Philosopher", image: "philo.jpg" },
       { name: "Plague Doctor", image: "plaguedoctor.jpg" },
       { name: "Witch", image: "witch.jpg" },
-      { name: "Vampire", image: "vamp.jpg" },
     ],
+    boss: { name: "Vampire", image: "vamp.jpg" },
   },
 
   {
     name: "Machine",
-    theme: "urban",
+    region: "City",
     strength: "machine",
     weakness: "nature",
-    drafts: [
-      { name: "Automaton", image: "robot.jpg" },
-      { name: "Automaton", image: "robot.jpg" },
-      { name: "Automaton", image: "robot.jpg" },
-      { name: "Locomotive", image: "train.jpg" },
-      { name: "Locomotive", image: "train.jpg" },
-    ],
+    members: [{ name: "Automaton", image: "robot.jpg" }],
+    boss: { name: "Locomotive", image: "train.jpg" },
   },
 
   {
     name: "Dinosaur",
-    theme: "jungle",
+    region: "Jungle",
     strength: "herb",
     weakness: "metal",
-    drafts: [
-      { name: "Tea Rex", image: "dinosaur.jpg" },
-      { name: "Tea Rex", image: "dinosaur.jpg" },
-      { name: "Tea Rex", image: "dinosaur.jpg" },
-      { name: "Tea Rex", image: "dinosaur.jpg" },
-      { name: "Tea Rex", image: "dinosaur.jpg" },
-    ],
+    members: [],
+    boss: { name: "Tea Rex", image: "dinosaur.jpg" },
   },
 ];

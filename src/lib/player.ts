@@ -29,6 +29,14 @@ export function NewPlayer(): Player {
   };
 }
 
+export function LevelUp(player: Player): Player {
+  return {
+    ...player,
+    level: player.level + 1,
+    handSize: player.handSize + 1,
+  };
+}
+
 function AddAbility(player: Player, ability: AbilityCard): Player {
   const x = player.abilities.get(ability.key);
   player.abilities.set(

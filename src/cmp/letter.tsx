@@ -65,7 +65,7 @@ export const DrawLetter = memo(function DrawLetter({
           bg,
           bo,
           "p-0.5",
-          "shadow-sm shadow-zinc-400",
+          "shadow-sm shadow-slate-800",
           "flex justify-center items-center",
         ].join(" ")}
       >
@@ -84,7 +84,7 @@ export const DrawLetter = memo(function DrawLetter({
         bo,
         "p-0.5",
         ,
-        "shadow-sm shadow-zinc-400",
+        "shadow-lg shadow-slate-800",
         "grid grid-cols-3 grid-rows-3",
       ].join(" ")}
     >

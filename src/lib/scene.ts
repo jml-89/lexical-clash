@@ -7,10 +7,10 @@
 // - more!
 
 import type { Player } from "./player";
-import { ClaimLootItem } from "./player";
+import { ClaimLootItem, LevelUp } from "./player";
 
 import type { Opponent } from "./opponent";
-import { NewOpponent } from "./opponent";
+import { NewOpponent, NewBoss } from "./opponent";
 
 import type { LootContainer } from "./loot";
 import { FirstLootContainer, NewLootContainer } from "./loot";
@@ -23,8 +23,10 @@ import type { PRNG } from "./util";
 export interface Scene {
   prng: PRNG;
 
-  location: Location;
   player: Player;
+
+  region: Region;
+  regidx: number;
 
   intro: boolean;
   opponent?: Opponent;
@@ -33,6 +35,18 @@ export interface Scene {
   battleloot?: LootContainer;
   loot?: LootContainer;
   exit?: string; // connection chosen to leave, also indicator that scene is done
+}
+
+export interface Region {
+  name: string;
+  minLevel: number;
+  maxLevel: number;
+  lootpct: number;
+  opponentpct: number;
+
+  path: string[];
+
+  connections: string[];
 }
 
 export async function EndIntro(scene: Scene): Promise<Scene> {
@@ -71,11 +85,18 @@ export async function TakeLootItem(scene: Scene): Promise<Scene> {
 export function FirstScene(prng: PRNG, player: Player): Scene {
   return {
     prng: prng,
-
     player: player,
-    location: [...locations.values()][0],
+    region: {
+      name: "Your Journey Begins",
+      minLevel: 1,
+      maxLevel: 1,
+      lootpct: 0,
+      opponentpct: 0,
+      path: ["meadow.jpg"],
+      connections: ["Cave", "Forest"],
+    },
+    regidx: 0,
     intro: true,
-
     loot: FirstLootContainer(),
   };
 }
@@ -93,35 +114,46 @@ export async function StartBattle(scene: Scene): Promise<Scene> {
 }
 
 export async function NextScene(scene: Scene): Promise<Scene> {
-  const exit = scene.exit ? scene.exit : "Meadow";
-  return await NewScene(scene.prng, scene.player, exit);
-}
-
-export async function NewScene(
-  prng: PRNG,
-  player: Player,
-  key: string,
-): Promise<Scene> {
-  const location = locations.get(key);
-  if (!location) {
-    throw `NewScene: {key} not found`;
+  let region = undefined;
+  let regidx = scene.regidx;
+  if (scene.exit) {
+    region = regions.find((region) => region.path[0] === scene.exit);
+    if (region) {
+      regidx = 0;
+    }
+  }
+  if (!region) {
+    region = scene.region;
+    regidx = regidx + 1;
   }
 
   let loot = undefined;
-  if (prng(0, 100) <= location.lootpct) {
-    loot = await NewLootContainer(prng, location.level, false);
+  if (scene.prng(0, 100) <= region.lootpct) {
+    loot = await NewLootContainer(
+      scene.prng,
+      scene.prng(region.minLevel, region.maxLevel),
+      false,
+    );
   }
 
   let opponent = undefined;
-  if (prng(0, 100) <= location.opponentpct) {
-    opponent = await NewOpponent(prng, location.level, location.theme);
+  if (regidx + 1 === region.path.length) {
+    opponent = await NewBoss(region.name, region.maxLevel + 1);
+  } else if (scene.prng(0, 100) <= region.opponentpct) {
+    opponent = await NewOpponent(
+      scene.prng,
+      region.name,
+      region.minLevel,
+      region.maxLevel,
+    );
   }
 
   return {
-    prng: prng,
-    location: location,
+    prng: scene.prng,
+    region: region,
+    regidx: regidx,
     intro: true,
-    player: player,
+    player: scene.player,
     opponent: opponent,
     loot: loot,
   };
@@ -140,7 +172,7 @@ export async function SetBattle(scene: Scene, battle: Battle): Promise<Scene> {
         battle.opponent.profile.level,
         true,
       ),
-      player: { ...scene.player, handSize: (scene.player.handSize += 1) },
+      player: LevelUp(scene.player),
       battle: undefined,
     };
   }
@@ -157,14 +189,20 @@ export async function SetBattle(scene: Scene, battle: Battle): Promise<Scene> {
   return scene;
 }
 
-export function GetConnectedScenes(scene: Scene): Location[] {
-  let res: Location[] = [];
-  for (const title of scene.location.connections) {
-    const location = locations.get(title);
-    if (location) {
-      res.push(location);
+export function GetConnectedLocations(scene: Scene): string[] {
+  const nextidx = scene.regidx + 1;
+  if (nextidx < scene.region.path.length) {
+    return [scene.region.path[nextidx]];
+  }
+
+  let res: string[] = [];
+  for (const connection of scene.region.connections) {
+    const region = regions.find((region) => region.name === connection);
+    if (region) {
+      res.push(region.path[0]);
     }
   }
+
   return res;
 }
 
@@ -172,313 +210,79 @@ export async function ChooseConnection(
   scene: Scene,
   key: string,
 ): Promise<Scene> {
-  return await NewScene(scene.prng, scene.player, key);
+  return await NextScene({ ...scene, exit: key });
 }
 
-//location where a scene can occur
-//level and theme used to guide opponent and loot selection
-export interface Location {
-  title: string;
-  image: string;
-
-  level: number;
-  theme: string;
-
-  //keys of other scenes this scene can connect to
-  connections: string[];
-
-  //value range: (0-100), representing the likelihood of loot appearing
-  lootpct: number;
-
-  //value range: (0-100), representing the likelihood of an opponent appearing
-  opponentpct: number;
-}
-
-//One could imagine this being in the database, naturally
-//However it is here in the source code, unnaturally
-const locations = new Map<string, Location>(
-  [
-    {
-      title: "Welcome",
-      image: "field.jpg",
-      level: 1,
-      theme: "outside",
-      lootpct: 0,
-      opponentpct: 0,
-      connections: ["Meadow"],
-    },
-
-    {
-      title: "Meadow",
-      image: "meadow.jpg",
-
-      level: 1,
-      theme: "outside",
-
-      lootpct: 100,
-      opponentpct: 0,
-
-      connections: ["Forest Path", "Cave Entrance"],
-    },
-
-    {
-      title: "Forest Path",
-      image: "forest-path.jpg",
-
-      level: 1,
-      theme: "outside",
-
-      lootpct: 30,
-      opponentpct: 75,
-
-      connections: ["Forest River", "Forest Steps"],
-    },
-
-    {
-      title: "Forest River",
-      image: "forest-river.jpg",
-
-      level: 1,
-      theme: "outside",
-
-      lootpct: 30,
-      opponentpct: 75,
-
-      connections: ["Forest Riverbed"],
-    },
-
-    {
-      title: "Forest Riverbed",
-      image: "forest-riverbed.jpg",
-
-      level: 2,
-      theme: "water",
-
-      lootpct: 30,
-      opponentpct: 75,
-
-      connections: ["Oyster Mouth"],
-    },
-
-    {
-      title: "Oyster Mouth",
-      image: "oyster-mouth.jpg",
-
-      level: 3,
-      theme: "water",
-
-      lootpct: 100,
-      opponentpct: 100,
-
-      connections: ["Bright Forest Path"],
-    },
-
-    {
-      title: "Forest Steps",
-      image: "forest-steps.jpg",
-
-      level: 1,
-      theme: "outside",
-
-      lootpct: 30,
-      opponentpct: 75,
-
-      connections: ["Cottage Entrance"],
-    },
-
-    {
-      title: "Cottage Entrance",
-      image: "cottage-entrance.jpg",
-
-      level: 2,
-      theme: "outside",
-
-      lootpct: 30,
-      opponentpct: 75,
-
-      connections: ["Cottage"],
-    },
-
-    {
-      title: "Cottage",
-      image: "cottage-interior.jpg",
-
-      level: 3,
-      theme: "witch",
-
-      lootpct: 100,
-      opponentpct: 100,
-
-      connections: ["Bright Forest Path"],
-    },
-
-    {
-      title: "Bright Forest Path",
-      image: "forest-bright.jpg",
-
-      level: 2,
-      theme: "outside",
-
-      lootpct: 30,
-      opponentpct: 75,
-
-      connections: ["Castle Entrance"],
-    },
-
-    {
-      title: "Cave Entrance",
-      image: "cave-entrance.jpg",
-
-      level: 1,
-      theme: "underground",
-
-      lootpct: 35,
-      opponentpct: 75,
-
-      connections: ["Forest Path", "Cave"],
-    },
-
-    {
-      title: "Cave",
-      image: "cave-inside.jpg",
-
-      level: 2,
-      theme: "underground",
-
-      lootpct: 35,
-      opponentpct: 75,
-
-      connections: ["Cave River", "Cave Camp"],
-    },
-
-    {
-      title: "Cave River",
-      image: "cave-river.jpg",
-
-      level: 2,
-      theme: "underground",
-
-      lootpct: 35,
-      opponentpct: 75,
-
-      connections: ["Cave Camp", "Cave Exit"],
-    },
-
-    {
-      title: "Cave Camp",
-      image: "cave-camp.jpg",
-
-      level: 3,
-      theme: "underground",
-
-      lootpct: 85,
-      opponentpct: 90,
-
-      connections: ["Cave Exit"],
-    },
-
-    {
-      title: "Cave Exit",
-      image: "cave-exit.jpg",
-
-      level: 3,
-      theme: "underground",
-
-      lootpct: 25,
-      opponentpct: 50,
-
-      connections: ["Castle Entrance"],
-    },
-
-    {
-      title: "Castle Entrance",
-      image: "castle-entrance.jpg",
-
-      level: 3,
-      theme: "castle",
-
-      lootpct: 25,
-      opponentpct: 60,
-
-      connections: ["Castle Room"],
-    },
-
-    {
-      title: "Castle Room",
-      image: "castle-room.jpg",
-
-      level: 4,
-      theme: "castle",
-
-      lootpct: 25,
-      opponentpct: 75,
-
-      connections: ["Castle Sitting Room", "Castle Dining Hall"],
-    },
-
-    {
-      title: "Castle Sitting Room",
-      image: "castle-sitting-room.jpg",
-
-      level: 4,
-      theme: "castle",
-
-      lootpct: 25,
-      opponentpct: 75,
-
-      connections: ["Castle Throne"],
-    },
-
-    {
-      title: "Castle Dining Hall",
-      image: "castle-dining-hall.jpg",
-
-      level: 4,
-      theme: "castle",
-
-      lootpct: 25,
-      opponentpct: 75,
-
-      connections: ["Castle Throne"],
-    },
-
-    {
-      title: "Castle Throne",
-      image: "castle-throne.jpg",
-
-      level: 5,
-      theme: "castle",
-
-      lootpct: 100,
-      opponentpct: 100,
-
-      connections: ["Castle Garden"],
-    },
-
-    {
-      title: "Castle Garden",
-      image: "castle-garden.jpg",
-
-      level: 4,
-      theme: "castle",
-
-      lootpct: 75,
-      opponentpct: 50,
-
-      connections: ["Sewer Entrance"],
-    },
-
-    {
-      title: "Sewer Entrance",
-      image: "sewer-entrance.jpg",
-
-      level: 5,
-      theme: "sewer",
-
-      lootpct: 55,
-      opponentpct: 60,
-
-      connections: ["Sewer Tunnel"],
-    },
-  ].map((location) => [location.title, location]),
-);
+const regions = [
+  {
+    name: "Forest",
+    minLevel: 1,
+    maxLevel: 2,
+    lootpct: 30,
+    opponentpct: 60,
+
+    path: [
+      "forest-path.jpg",
+      "forest-bright.jpg",
+      "forest-steps.jpg",
+      "cottage-entrance.jpg",
+      "cottage-interior.jpg",
+    ],
+
+    connections: ["Castle"],
+  },
+
+  {
+    name: "Cave",
+    minLevel: 1,
+    maxLevel: 2,
+    lootpct: 30,
+    opponentpct: 60,
+
+    path: [
+      "cave-entrance.jpg",
+      "cave-inside.jpg",
+      "cave-river.jpg",
+      "cave-camp.jpg",
+    ],
+
+    connections: ["Castle"],
+  },
+
+  {
+    name: "Castle",
+    minLevel: 3,
+    maxLevel: 5,
+    lootpct: 50,
+    opponentpct: 60,
+
+    path: [
+      "castle-entrance.jpg",
+      "castle-garden.jpg",
+      "castle-room.jpg",
+      "castle-dining-hall.jpg",
+      "castle-sitting-room.jpg",
+      "castle-throne.jpg",
+    ],
+
+    connections: ["Sewer"],
+  },
+
+  {
+    name: "Sewer",
+    minLevel: 8,
+    maxLevel: 11,
+    lootpct: 50,
+    opponentpct: 60,
+
+    path: [
+      "sewer-entrance.jpg",
+      "sewer-1.jpg",
+      "sewer-2.jpg",
+      "sewer-3.jpg",
+      "sewer-boss.jpg",
+    ],
+
+    connections: ["Forest"],
+  },
+];

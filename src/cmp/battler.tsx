@@ -187,30 +187,29 @@ const ActionButton = memo(function ActionButton({
   return checking ? (
     <motion.button
       key="checkbutton"
-      className="p-2 text-black rounded-lg bg-lime-300 text-2xl"
       animate={{ scale: 1 }}
       initial={{ scale: 0 }}
     >
-      Checking...
+      <OnDarkGlass className="text-2xl p-2">Checking...</OnDarkGlass>
     </motion.button>
   ) : !scoresheet ? (
     <motion.button
       key="checkbutton"
-      className="p-2 text-black rounded-lg bg-lime-300 text-2xl"
       onClick={async () => {
         await statefn(Checking);
       }}
       animate={{ scale: 1 }}
       initial={{ scale: 0 }}
     >
-      Check
+      <OnDarkGlass className="text-2xl bg-lime-500/50 text-white p-2">
+        Check
+      </OnDarkGlass>
     </motion.button>
   ) : !scoresheet.ok ? (
-    <motion.button
-      key="checkbutton"
-      className="p-2 text-black rounded-lg bg-red-200 text-2xl"
-    >
-      Invalid
+    <motion.button key="checkbutton">
+      <OnDarkGlass className="text-2xl bg-red-500/50 text-white p-2">
+        Invalid
+      </OnDarkGlass>
     </motion.button>
   ) : (
     <></>
