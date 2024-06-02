@@ -55,40 +55,13 @@ function DrawClosedContainerMinimal({
           >
             <Image
               src={`/items/${loot.image}`}
-              alt={`Drawing of a ${loot.title}`}
+              alt="Drawing of some loot"
               width={240}
               height={240}
             />
           </motion.button>
         </motion.div>
       </div>
-    </div>
-  );
-}
-
-function DrawClosedContainer({
-  loot,
-  openHandler,
-}: {
-  loot: LootContainer;
-  openHandler: () => void;
-}) {
-  return (
-    <div className="flex-1 self-stretch flex flex-col items-center justify-center backdrop-blur-sm gap-4">
-      <div className="flex-1 flex flex-col justify-center">
-        <div className="self-center rounded-lg p-2 bg-slate-800 flex flex-col items-center gap-1 drop-shadow-md">
-          <div className="text-2xl">{loot.title}</div>
-          <Image
-            src={`/items/${loot.image}`}
-            alt={`Drawing of a ${loot.title}`}
-            width={240}
-            height={240}
-          />
-          <div className="italic">{loot.desc}</div>
-        </div>
-      </div>
-
-      <ButtonX onClick={openHandler}>Open!</ButtonX>
     </div>
   );
 }

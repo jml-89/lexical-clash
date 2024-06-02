@@ -17,7 +17,7 @@ export function isPerm(letter: Letter): boolean {
 }
 
 export function simpleScore(word: Letter[]): number {
-  return word.reduce((xs, x) => xs + x.score, 0);
+  return word.reduce((xs, x) => xs + (x.level - 1) + x.score, 0);
 }
 
 // Hastily borrowed from Wikipedia

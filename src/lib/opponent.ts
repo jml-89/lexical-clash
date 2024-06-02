@@ -122,7 +122,7 @@ const gangs = [
       { name: "Crocodile", image: "croc.jpg" },
       { name: "Goldfish", image: "goldfish.jpg" },
     ],
-    boss: { name: "Alligator", image: "gator.jpg" },
+    boss: { name: "Alligator", image: "alligator.jpg" },
   },
 
   {

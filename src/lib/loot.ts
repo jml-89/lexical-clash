@@ -35,19 +35,13 @@ export interface LetterLoot {
 }
 
 export interface LootContainer {
-  title: string;
-  desc: string;
   image: string;
-
   contents: LootItem[];
 }
 
 export function FirstLootContainer(): LootContainer {
   return {
-    title: "Tattered Bag",
-    desc: "A strange bag overflowing with letters",
     image: "bag.jpg",
-
     contents: [{ type: "letters", item: ScrabbleDistribution() }],
   };
 }
@@ -59,8 +53,8 @@ export async function NewLootContainer(
   battle: boolean,
 ): Promise<LootContainer> {
   let container = battle
-    ? battleLootContainer(level - 1)
-    : basicLootContainer(level - 1);
+    ? battleLootContainer(level)
+    : basicLootContainer(level);
 
   for (let i = 0; i < level; i++) {
     const randresult = prng(0, 100);
@@ -95,7 +89,6 @@ export async function NewLootContainer(
           .slice(0, prng(1, 10))
           .map((letter) => ({
             ...letter,
-            score: letter.score + level,
             level: letter.level + level,
           })),
       });
@@ -106,87 +99,34 @@ export async function NewLootContainer(
 }
 
 function basicLootContainer(level: number): LootContainer {
+  const idx = Math.min(Math.max(0, level - 1), basicContainers.length - 1);
   return {
-    ...basicContainers[Math.min(level, basicContainers.length - 1)],
+    image: basicContainers[idx],
     contents: [],
   };
 }
 
 function battleLootContainer(level: number): LootContainer {
+  const idx = Math.min(Math.max(0, level - 1), battleContainers.length - 1);
   return {
-    ...battleContainers[Math.min(level, battleContainers.length - 1)],
+    image: battleContainers[idx],
     contents: [],
   };
 }
 
 const basicContainers = [
-  {
-    title: "Small Wooden Box",
-    desc: "An inconspicuous box",
-    image: "small-box.jpg",
-    contents: [],
-  },
-  {
-    title: "Simple Box",
-    desc: "",
-    image: "simple-box.jpg",
-    contents: [],
-  },
-  {
-    title: "Wooden Chest",
-    desc: "",
-    image: "small-chest.jpg",
-    contents: [],
-  },
-  {
-    title: "Rusty Chest",
-    desc: "An old worn chest",
-    image: "rusty-chest.jpg",
-    contents: [],
-  },
-  {
-    title: "Nice Chest",
-    desc: "",
-    image: "nice-chest.jpg",
-    contents: [],
-  },
-  {
-    title: "Grand Treasure Chest",
-    desc: "A gilded find!",
-    image: "grand-treasure.jpg",
-    contents: [],
-  },
+  "small-box.jpg",
+  "simple-box.jpg",
+  "small-chest.jpg",
+  "rusty-chest.jpg",
+  "nice-chest.jpg",
+  "grand-treasure.jpg",
 ];
 
 const battleContainers = [
-  {
-    title: "Rogue's Pouch",
-    desc: "Surely nothing of value contained within",
-    image: "pouch.jpg",
-    contents: [],
-  },
-  {
-    title: "Thief's Pack",
-    desc: "Stolen or not, the contents are yours now",
-    image: "sack.jpg",
-    contents: [],
-  },
-  {
-    title: "Warrior's Pack",
-    desc: "",
-    image: "big-pack.jpg",
-    contents: [],
-  },
-  {
-    title: "Wizard's Pack",
-    desc: "",
-    image: "sparkly-pack.jpg",
-    contents: [],
-  },
-  {
-    title: "Villain's Backpack",
-    desc: "Overflowing with evil!",
-    image: "backpack.jpg",
-    contents: [],
-  },
+  "pouch.jpg",
+  "sack.jpg",
+  "big-pack.jpg",
+  "sparkly-pack.jpg",
+  "backpack.jpg",
 ];

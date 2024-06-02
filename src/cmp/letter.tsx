@@ -29,32 +29,38 @@ export const DrawLetter = memo(function DrawLetter({
   letter: Letter | undefined;
   size: number;
 }) {
-  // to satisfy tailwindcss, need full classNames
+  const allDimensions = [
+    "w-12 h-12 border-4",
+    "w-8 h-8 border-2",
+    "w-5 h-5 border",
+  ];
   const dimensions =
-    size === 0
-      ? "w-12 h-12 border-4"
-      : size === 1
-        ? "w-8 h-8 border-2"
-        : "w-5 h-5 border";
+    allDimensions[Math.min(Math.max(0, size), allDimensions.length - 1)];
 
   // in a hand, present an empty slot of appropriate size
   if (!letter) {
-    return <div className={`${dimensions} border-none`} />;
+    return (
+      <div className={`${dimensions} border border-dotted border-black`} />
+    );
   }
 
   const textSize = size === 0 ? "text-3xl" : "text-xl";
 
-  const [bg, bo] =
-    letter.level === 5
-      ? ["bg-amber-300", "border-amber-400"]
-      : letter.level === 4
-        ? ["bg-purple-300", "border-purple-400"]
-        : letter.level === 3
-          ? ["bg-sky-300", "border-sky-400"]
-          : letter.level === 2
-            ? ["bg-teal-300", "border-teal-400"]
-            : // letter.level == 1 or something else who knows
-              ["bg-stone-400", "border-stone-600"];
+  const levelColors = [
+    "bg-stone-400 border-stone-600",
+    "bg-teal-500 border-teal-600",
+    "bg-teal-300 border-teal-400",
+    "bg-sky-400 border-sky-500",
+    "bg-sky-300 border-sky-400",
+    "bg-purple-500 border-purple-600",
+    "bg-purple-300 border-purple-400",
+    "bg-amber-500 border-amber-600",
+    "bg-amber-300 border-amber-400",
+  ];
+  const levelColor =
+    levelColors[
+      Math.min(Math.max(0, letter.level - 1), levelColors.length - 1)
+    ];
 
   if (size > 1) {
     return (
@@ -62,8 +68,7 @@ export const DrawLetter = memo(function DrawLetter({
         className={[
           dimensions,
           "border-solid",
-          bg,
-          bo,
+          levelColor,
           "p-0.5",
           "shadow-sm shadow-slate-800",
           "flex justify-center items-center",
@@ -80,30 +85,19 @@ export const DrawLetter = memo(function DrawLetter({
         dimensions,
         "border-solid",
         "text-black",
-        bg,
-        bo,
+        levelColor,
         "p-0.5",
-        ,
         "shadow-lg shadow-slate-800",
         "grid grid-cols-3 grid-rows-3",
       ].join(" ")}
     >
       <div
-        className={[
-          "row-start-1 col-start-1 row-span-3 col-span-2",
-          textSize,
-          "font-bold",
-        ].join(" ")}
+        className={`row-start-1 col-start-1 row-span-3 col-span-2 font-bold ${textSize}`}
       >
         {letter.char}
       </div>
-      <div
-        className={[
-          "row-start-3 col-start-3 self-end",
-          "text-xs font-light",
-        ].join(" ")}
-      >
-        {letter.score}
+      <div className="row-start-3 col-start-3 self-end text-xs font-light">
+        {letter.score + (letter.level - 1)}
       </div>
     </div>
   );
