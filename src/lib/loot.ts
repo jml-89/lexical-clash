@@ -57,7 +57,7 @@ export async function NewLootContainer(
   const randresult = prng(1, 2);
 
   if (randresult === 1) {
-    const boost = Math.round(level / 4);
+    const boost = Math.trunc(level / 4);
     for (const [k, v] of PickRandom(prng, AbilityCards, 1)) {
       container.contents.push({
         type: "ability",
@@ -67,7 +67,7 @@ export async function NewLootContainer(
   } else if (randresult === 2) {
     //Bonus
     for (const [k, v] of PickRandom(prng, BonusCards, 1)) {
-      const boost = Math.round(level / 2);
+      const boost = Math.trunc(level / 2);
       container.contents.push({
         type: "bonus",
         item: { ...v, level: v.level + boost },
@@ -101,18 +101,12 @@ export async function NewBattleLootContainer(
 
 function basicLootContainer(level: number): LootContainer {
   const idx = Math.min(Math.max(0, level - 1), basicContainers.length - 1);
-  return {
-    image: basicContainers[idx],
-    contents: [],
-  };
+  return { image: basicContainers[idx], contents: [] };
 }
 
 function battleLootContainer(level: number): LootContainer {
   const idx = Math.min(Math.max(0, level - 1), battleContainers.length - 1);
-  return {
-    image: battleContainers[idx],
-    contents: [],
-  };
+  return { image: battleContainers[idx], contents: [] };
 }
 
 const basicContainers = [

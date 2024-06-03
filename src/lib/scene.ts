@@ -238,8 +238,8 @@ const regions = [
     name: "Cave",
     minLevel: 1,
     maxLevel: 2,
-    lootpct: 30,
-    opponentpct: 60,
+    lootpct: 40,
+    opponentpct: 70,
 
     path: [
       "cave-entrance.jpg",
@@ -254,9 +254,9 @@ const regions = [
   {
     name: "Castle",
     minLevel: 3,
-    maxLevel: 5,
+    maxLevel: 4,
     lootpct: 50,
-    opponentpct: 60,
+    opponentpct: 70,
 
     path: [
       "castle-entrance.jpg",
@@ -272,10 +272,10 @@ const regions = [
 
   {
     name: "Sewer",
-    minLevel: 8,
-    maxLevel: 11,
-    lootpct: 50,
-    opponentpct: 60,
+    minLevel: 5,
+    maxLevel: 7,
+    lootpct: 40,
+    opponentpct: 80,
 
     path: [
       "sewer-entrance.jpg",
