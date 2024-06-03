@@ -13,6 +13,8 @@ import { BonusCards } from "./bonus";
 import type { Wordpack } from "./wordpack";
 import { NewWordpack } from "./wordpack";
 
+import type { Opponent } from "./opponent";
+
 import type { PRNG } from "./util";
 import { Shuffle, PickRandom } from "./util";
 
@@ -46,55 +48,52 @@ export function FirstLootContainer(): LootContainer {
   };
 }
 
-// Returns a loot container of specified level with random contents
 export async function NewLootContainer(
   prng: PRNG,
   level: number,
-  battle: boolean,
 ): Promise<LootContainer> {
-  let container = battle
-    ? battleLootContainer(level)
-    : basicLootContainer(level);
+  let container = basicLootContainer(level);
 
-  const itemCount = prng(1, 2);
+  const randresult = prng(1, 2);
 
-  for (let i = 0; i < itemCount; i++) {
-    const randresult = prng(0, 100);
-
-    if (randresult < 25) {
-      //Ability
-      for (const [k, v] of PickRandom(prng, AbilityCards, 1)) {
-        container.contents.push({
-          type: "ability",
-          item: { ...v, uses: v.uses + level },
-        });
-      }
-    } else if (randresult < 50) {
-      //Bonus
-      for (const [k, v] of PickRandom(prng, BonusCards, 1)) {
-        container.contents.push({
-          type: "bonus",
-          item: { ...v, level: v.level + level },
-        });
-      }
-    } else if (randresult < 75) {
-      //Wordpack
-      const pack = await NewWordpack(level);
+  if (randresult === 1) {
+    const boost = Math.round(level / 4);
+    for (const [k, v] of PickRandom(prng, AbilityCards, 1)) {
       container.contents.push({
-        type: "wordpack",
-        item: pack,
-      });
-    } else {
-      container.contents.push({
-        type: "letters",
-        item: Shuffle(prng, ScrabbleDistribution())
-          .slice(0, prng(3, 10))
-          .map((letter) => ({
-            ...letter,
-            level: letter.level + level,
-          })),
+        type: "ability",
+        item: { ...v, uses: v.uses + boost },
       });
     }
+  } else if (randresult === 2) {
+    //Bonus
+    for (const [k, v] of PickRandom(prng, BonusCards, 1)) {
+      const boost = Math.round(level / 2);
+      container.contents.push({
+        type: "bonus",
+        item: { ...v, level: v.level + boost },
+      });
+    }
+  }
+
+  return container;
+}
+
+export async function NewBattleLootContainer(
+  prng: PRNG,
+  opponent: Opponent,
+): Promise<LootContainer> {
+  let container = battleLootContainer(opponent.level);
+
+  if (prng(0, 1) === 1) {
+    const pack = await NewWordpack(opponent.level);
+    container.contents.push({ type: "wordpack", item: pack });
+  }
+
+  if (container.contents.length === 0 || prng(0, 1) === 1) {
+    const letters = Shuffle(prng, ScrabbleDistribution())
+      .slice(0, prng(3, 10))
+      .map((letter) => ({ ...letter, level: opponent.level }));
+    container.contents.push({ type: "letters", item: letters });
   }
 
   return container;

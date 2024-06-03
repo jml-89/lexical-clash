@@ -13,7 +13,11 @@ import type { Opponent } from "./opponent";
 import { NewOpponent, NewBoss } from "./opponent";
 
 import type { LootContainer } from "./loot";
-import { FirstLootContainer, NewLootContainer } from "./loot";
+import {
+  FirstLootContainer,
+  NewLootContainer,
+  NewBattleLootContainer,
+} from "./loot";
 
 import type { Battle } from "./battle";
 import { NewBattle } from "./battle";
@@ -132,7 +136,6 @@ export async function NextScene(scene: Scene): Promise<Scene> {
     loot = await NewLootContainer(
       scene.prng,
       scene.prng(region.minLevel, region.maxLevel),
-      false,
     );
   }
 
@@ -167,10 +170,9 @@ export async function SetBattle(scene: Scene, battle: Battle): Promise<Scene> {
   if (battle.done && battle.victory) {
     return {
       ...scene,
-      battleloot: await NewLootContainer(
+      battleloot: await NewBattleLootContainer(
         scene.prng,
-        battle.opponent.profile.level,
-        true,
+        battle.opponent.profile,
       ),
       player: LevelUp(scene.player),
       battle: undefined,
