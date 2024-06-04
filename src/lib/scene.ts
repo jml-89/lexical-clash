@@ -307,7 +307,7 @@ const regions = [
   },
 
   {
-    name: "Sewer",
+    name: "City",
     minLevel: 8,
     maxLevel: 10,
     lootpct: 60,
