@@ -151,11 +151,29 @@ const gangs = [
   },
 
   {
+    name: "Magical Creature",
+    region: "Mushroom Forest",
+    strength: "drug",
+    weakness: "good",
+    members: [
+      { name: "Gnome", image: "gnome-1.jpg" },
+      { name: "Gnome", image: "gnome-2.jpg" },
+      { name: "Goblin", image: "goblin.jpg" },
+      { name: "Fairy", image: "fairy.jpg" },
+    ],
+    boss: { name: "Elf", image: "elf.jpg" },
+  },
+
+  {
     name: "Machine",
     region: "City",
     strength: "machine",
     weakness: "nature",
-    members: [{ name: "Automaton", image: "robot.jpg" }],
+    members: [
+      { name: "Automobile", image: "car-1.jpg" },
+      { name: "Automotive", image: "car-2.jpg" },
+      { name: "Automaton", image: "robot.jpg" },
+    ],
     boss: { name: "Locomotive", image: "train.jpg" },
   },
 
@@ -164,7 +182,11 @@ const gangs = [
     region: "Jungle",
     strength: "herb",
     weakness: "metal",
-    members: [],
+    members: [
+      { name: "Allosaurus", image: "allosaurus.jpg" },
+      { name: "Iguanodon", image: "iguanodon.jpg" },
+      { name: "Pterosaur", image: "pterosaur.jpg" },
+    ],
     boss: { name: "Tea Rex", image: "dinosaur.jpg" },
   },
 ];

@@ -267,7 +267,25 @@ const regions = [
       "castle-throne.jpg",
     ],
 
-    connections: ["Sewer"],
+    connections: ["Sewer", "Mushroom Forest"],
+  },
+
+  {
+    name: "Mushroom Forest",
+    minLevel: 5,
+    maxLevel: 7,
+    lootpct: 40,
+    opponentpct: 80,
+
+    path: [
+      "mushroom-1.jpg",
+      "mushroom-3.jpg",
+      "mushroom-4.jpg",
+      "mushroom-5.jpg",
+      "mushroom-6.jpg",
+    ],
+
+    connections: ["City"],
   },
 
   {
@@ -285,6 +303,54 @@ const regions = [
       "sewer-boss.jpg",
     ],
 
-    connections: ["Forest"],
+    connections: ["City"],
+  },
+
+  {
+    name: "Sewer",
+    minLevel: 8,
+    maxLevel: 10,
+    lootpct: 60,
+    opponentpct: 80,
+
+    path: [
+      "city-1.jpg",
+      "city-2.jpg",
+      "city-3.jpg",
+      "city-4.jpg",
+      "city-5.jpg",
+    ],
+
+    connections: ["Sea", "Jungle"],
+  },
+
+  {
+    name: "Sea",
+    minLevel: 11,
+    maxLevel: 15,
+    lootpct: 60,
+    opponentpct: 80,
+
+    path: ["sea-1.jpg", "sea-2.jpg", "sea-3.jpg", "sea-4.jpg", "sea-5.jpg"],
+
+    connections: ["Jungle"],
+  },
+
+  {
+    name: "Jungle",
+    minLevel: 11,
+    maxLevel: 15,
+    lootpct: 60,
+    opponentpct: 80,
+
+    path: [
+      "jungle-1.jpg",
+      "jungle-2.jpg",
+      "jungle-3.jpg",
+      "jungle-4.jpg",
+      "jungle-5.jpg",
+    ],
+
+    connections: ["Sea"],
   },
 ];
