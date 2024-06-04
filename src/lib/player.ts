@@ -41,7 +41,7 @@ function AddAbility(player: Player, ability: AbilityCard): Player {
   const x = player.abilities.get(ability.key);
   player.abilities.set(
     ability.key,
-    x ? { ...x, uses: x.uses + 1 } : { ...ability },
+    x ? { ...x, uses: x.uses + ability.uses } : { ...ability },
   );
   return {
     ...player,
@@ -52,7 +52,7 @@ function AddBonus(player: Player, bonus: BonusCard): Player {
   const x = player.bonuses.get(bonus.key);
   player.bonuses.set(
     bonus.key,
-    x ? { ...x, level: x.level + 1 } : { ...bonus },
+    x ? { ...x, level: x.level + bonus.level } : { ...bonus },
   );
   return {
     ...player,

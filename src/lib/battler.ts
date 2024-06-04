@@ -218,7 +218,7 @@ export async function NextWord(g: ComBattler): Promise<Letter[]> {
 
 export async function UseAbility(g: Battler, key: string): Promise<Battler> {
   let res = UseAbilityReal(g, key);
-  res.wordMatches = await WordbankCheck(g);
+  res.wordMatches = await WordbankCheck(res);
   return res;
 }
 

@@ -91,13 +91,17 @@ function PlayBattler({
         {battler.wordMatches.length > 0 && somebutton("Wordbank", "wordbank")}
       </div>
     ) : view === "abilities" ? (
-      <AbilityCarousel
-        abilities={battler.player.abilities}
-        statefn={abilitystatefn}
-        closefn={closefn}
-      />
+      <div className="self-stretch">
+        <AbilityCarousel
+          abilities={battler.player.abilities}
+          statefn={abilitystatefn}
+          closefn={closefn}
+        />
+      </div>
     ) : view === "bonuses" ? (
-      <BonusCarousel bonuses={battler.player.bonuses} closefn={closefn} />
+      <div className="self-stretch">
+        <BonusCarousel bonuses={battler.player.bonuses} closefn={closefn} />
+      </div>
     ) : view === "wordbank" ? (
       <ListWords
         words={battler.wordMatches}
