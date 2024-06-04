@@ -25,6 +25,9 @@ export function PlayGame({
 
   const getScene = (): Scene => ref.current.scene;
   const setScene = async (changed: () => void, scene: Scene): Promise<void> => {
+    // To simulate poor responsiveness
+    // await delay(1500);
+
     const prev = ref.current.scene;
     ref.current = await SetScene(ref.current, scene);
     const next = ref.current.scene;
@@ -34,4 +37,8 @@ export function PlayGame({
   };
 
   return <PlayScene get={getScene} set={setScene} />;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

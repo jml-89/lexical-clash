@@ -38,7 +38,7 @@ export interface Battler {
   health: number;
   healthMax: number;
   playArea: PlayArea;
-  checking: boolean;
+  scoreplease: boolean;
   player: Player;
   scoresheet?: Scoresheet;
   wordMatches: string[];
@@ -59,7 +59,7 @@ export function NewBattler(prng: PRNG, player: Player): Battler {
 
     player: player,
 
-    checking: false,
+    scoreplease: false,
     scoresheet: undefined,
     wordMatches: [],
 
@@ -91,7 +91,7 @@ export function NewComBattler(prng: PRNG, profile: Opponent): ComBattler {
 
 export async function PlaceWordbank(g: Battler, id: string): Promise<Battler> {
   let res = await OnPlayArea(g, (p) => PlaceWord(UnplaceAll(p), id));
-  res.checking = true;
+  res.scoreplease = true;
   return res;
 }
 
@@ -253,12 +253,8 @@ export async function OnPlayArea(
   });
 }
 
-export async function Checking(g: Battler): Promise<Battler> {
-  return { ...g, checking: true };
-}
-
-export async function Unchecking(g: Battler): Promise<Battler> {
-  return { ...g, checking: false };
+export async function RequestScore(g: Battler): Promise<Battler> {
+  return { ...g, scoreplease: true };
 }
 
 export async function NextHand(g: Battler): Promise<Battler> {

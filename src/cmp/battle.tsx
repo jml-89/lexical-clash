@@ -95,6 +95,7 @@ function AttackButton({ statefn }: { statefn: StateFnT }) {
       animate={{ scale: 1 }}
       initial={{ scale: 0 }}
       exit={{ scale: 0 }}
+      whileTap={{ scale: 0.9 }}
     >
       <OnDarkGlass className="bg-lime-500/75 text-white text-4xl p-4">
         Attack

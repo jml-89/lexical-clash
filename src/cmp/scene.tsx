@@ -2,15 +2,7 @@ import Link from "next/link";
 import { memo, useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 
-import {
-  motion,
-  AnimatePresence,
-  useMotionValue,
-  useMotionValueEvent,
-  useTransform,
-  useAnimate,
-  animate,
-} from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import type { Scene, Region } from "@/lib/scene";
 import type { Battle } from "@/lib/battle";
@@ -72,6 +64,95 @@ function SceneLayout({
   );
 }
 
+function SceneLoot({ children }: { children: React.ReactNode }) {}
+
+function SceneExplore({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
+  const [clicked, setClicked] = useState(false);
+  const clickfn = () => {
+    if (clicked) {
+      return;
+    }
+    setClicked(true);
+    statefn(EndIntro);
+  };
+
+  return (
+    <SceneLayout title={scene.region.name}>
+      <AnimatePresence>
+        {!clicked && (
+          <motion.button
+            key="explore-button"
+            className="flex flex-row self-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 100 }}
+            exit={{ opacity: 0 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={clickfn}
+          >
+            <OnDarkGlass>
+              <div className="p-4 text-4xl text-white">Explore!</div>
+            </OnDarkGlass>
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </SceneLayout>
+  );
+}
+
+function SceneOpponent({
+  scene,
+  statefn,
+}: {
+  scene: Scene;
+  statefn: StateFnT;
+}) {
+  const [clicked, setClicked] = useState(false);
+  const clickfn = () => {
+    if (clicked) {
+      return;
+    }
+
+    setClicked(true);
+    statefn(StartBattle);
+  };
+
+  if (!scene.opponent) {
+    return <></>;
+  }
+
+  return (
+    <SceneLayout title="A Foe Appears!">
+      <div className="flex flex-col justify-center items-center gap-2">
+        <AnimatePresence>
+          {!clicked && (
+            <motion.div
+              animate={{ x: [0, -2, 2, 0] }}
+              exit={{ scale: 2, opacity: 0.2 }}
+              transition={{
+                when: "afterChildren",
+                duration: 0.2,
+                repeat: Infinity,
+                repeatDelay: 1.5,
+              }}
+            >
+              <motion.button
+                onClick={clickfn}
+                className="shadow-slate-900 shadow-lg"
+                initial={{ scale: 0.1 }}
+                animate={{ scale: 1.0 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: "spring", bounce: 0.8, duration: 0.7 }}
+              >
+                <OpponentMugshotMinimal opponent={scene.opponent} />
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </SceneLayout>
+  );
+}
+
 function PlaySceneContent({
   scene,
   statefn,
@@ -80,22 +161,7 @@ function PlaySceneContent({
   statefn: StateFnT;
 }) {
   if (scene.intro) {
-    return (
-      <SceneLayout title={scene.region.name}>
-        <motion.div
-          className="flex flex-row justify-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 100 }}
-          transition={{ duration: 0.5 }}
-        >
-          <button onClick={() => statefn(EndIntro)}>
-            <OnDarkGlass>
-              <div className="p-4 text-4xl text-white">Explore!</div>
-            </OnDarkGlass>
-          </button>
-        </motion.div>
-      </SceneLayout>
-    );
+    return <SceneExplore scene={scene} statefn={statefn} />;
   }
 
   if (scene.battle) {
@@ -116,31 +182,7 @@ function PlaySceneContent({
   }
 
   if (scene.opponent) {
-    return (
-      <SceneLayout title="A Foe Appears!">
-        <div className="flex flex-col justify-center items-center gap-2">
-          <motion.div
-            animate={{ x: [0, -2, 2, 0] }}
-            transition={{
-              when: "afterChildren",
-              duration: 0.2,
-              repeat: Infinity,
-              repeatDelay: 1.5,
-            }}
-          >
-            <motion.button
-              onClick={() => statefn(StartBattle)}
-              className="shadow-slate-900 shadow-lg"
-              initial={{ scale: 0.1 }}
-              animate={{ scale: 1.0 }}
-              transition={{ type: "spring", bounce: 0.8, duration: 0.7 }}
-            >
-              <OpponentMugshotMinimal opponent={scene.opponent} />
-            </motion.button>
-          </motion.div>
-        </div>
-      </SceneLayout>
-    );
+    return <SceneOpponent scene={scene} statefn={statefn} />;
   }
 
   if (scene.lost) {
@@ -193,16 +235,36 @@ function DrawConnections({
   scene: Scene;
   choosefn: (key: string) => Promise<void>;
 }) {
+  const [clicked, setClicked] = useState("");
+  const clickfn = async (location: string) => {
+    if (clicked != "") {
+      return;
+    }
+
+    await setClicked(location);
+    await choosefn(location);
+  };
+
   return (
     <SceneLayout title="Choose Your Path">
       <div className="flex-1 flex flex-col justify-evenly items-center gap-2 backdrop-blur-sm">
-        {GetConnectedLocations(scene).map((location) => (
-          <DrawLocationPreview
-            key={location}
-            location={location}
-            clickHandler={() => choosefn(location)}
-          />
-        ))}
+        <AnimatePresence>
+          {(clicked === "" &&
+            GetConnectedLocations(scene).map((location) => (
+              <DrawLocationPreview
+                key={location}
+                location={location}
+                clickHandler={() => clickfn(location)}
+              />
+            ))) || (
+            <DrawLocationPreview
+              key={clicked}
+              location={clicked}
+              clickHandler={() => clickfn(clicked)}
+              picked
+            />
+          )}
+        </AnimatePresence>
       </div>
     </SceneLayout>
   );
@@ -211,15 +273,20 @@ function DrawConnections({
 function DrawLocationPreview({
   location,
   clickHandler,
+  picked,
 }: {
   location: string;
   clickHandler: () => Promise<void>;
+  picked?: boolean;
 }) {
   return (
     <motion.button
+      layoutId={location}
       onClick={clickHandler}
       initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
+      animate={{ scale: picked ? 1.5 : 1 }}
+      whileTap={{ scale: 0.9 }}
+      exit={{ opacity: 0 }}
       transition={{ type: "spring", bounce: 0.4, duration: 0.5 }}
     >
       <div className="shadow-slate-900 shadow-lg">
@@ -237,9 +304,11 @@ function DrawLocationPreview({
 function DrawLocation({
   location,
   children,
+  picked,
 }: {
   location: string;
   children: React.ReactNode;
+  picked?: boolean;
 }) {
   return (
     <motion.div

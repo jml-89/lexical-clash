@@ -17,8 +17,7 @@ import {
   SetPlayArea,
   UseAbility,
   PlaceWordbank,
-  Checking,
-  Unchecking,
+  RequestScore,
 } from "@/lib/battler";
 
 import { AbilityCarousel } from "@/cmp/ability";
@@ -56,11 +55,11 @@ function PlayBattler({
 
   const somebutton = useCallback(
     (alias: string, key: string): React.ReactNode => (
-      <button onClick={() => setView(key)}>
+      <motion.button onClick={() => setView(key)} whileTap={{ scale: 0.9 }}>
         <OnDarkGlass className="bg-lime-500/50 text-white p-2">
           {alias}
         </OnDarkGlass>
-      </button>
+      </motion.button>
     ),
     [setView],
   );
@@ -112,11 +111,7 @@ function PlayBattler({
   return (
     <div className="self-stretch flex-1 flex flex-col gap-2 items-center px-1">
       {battler.playArea.placed.length > 0 && (
-        <ActionButton
-          checking={battler.checking}
-          scoresheet={battler.scoresheet}
-          statefn={statefn}
-        />
+        <ActionButton scoresheet={battler.scoresheet} statefn={statefn} />
       )}
       <DrawPlayArea get={getPlayArea} set={setPlayArea} />
       {actionArea}
@@ -176,30 +171,37 @@ function ListWords({
 }
 
 const ActionButton = memo(function ActionButton({
-  checking,
   scoresheet,
   statefn,
 }: {
-  checking: boolean;
   scoresheet: Scoresheet | undefined;
   statefn: StateFnT;
 }) {
-  return checking ? (
+  const [amcheck, setcheck] = useState(false);
+  if (amcheck && scoresheet) {
+    setcheck(false);
+  }
+
+  return amcheck ? (
     <motion.button
       key="checkbutton"
       animate={{ scale: 1 }}
       initial={{ scale: 0 }}
     >
-      <OnDarkGlass className="text-2xl p-2">Checking...</OnDarkGlass>
+      <OnDarkGlass className="text-2xl bg-lime-500/50 text-white p-2">
+        Checking...
+      </OnDarkGlass>
     </motion.button>
   ) : !scoresheet ? (
     <motion.button
       key="checkbutton"
       onClick={async () => {
-        await statefn(Checking);
+        setcheck(true);
+        statefn(RequestScore);
       }}
       animate={{ scale: 1 }}
       initial={{ scale: 0 }}
+      whileTap={{ scale: 0.9 }}
     >
       <OnDarkGlass className="text-2xl bg-lime-500/50 text-white p-2">
         Check

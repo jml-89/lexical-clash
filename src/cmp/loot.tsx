@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import type { LootContainer } from "@/lib/loot";
 
@@ -35,32 +35,48 @@ function DrawClosedContainerMinimal({
   loot: LootContainer;
   openHandler: () => void;
 }) {
+  const [clicked, setClicked] = useState(false);
+  const clickfn = () => {
+    if (clicked) {
+      return;
+    }
+    setClicked(true);
+    openHandler();
+  };
+
   return (
     <div className="self-stretch flex flex-col items-center justify-center gap-4">
       <div className="flex-1 flex flex-col justify-center">
-        <motion.div
-          animate={{ rotate: [0, -2, 2, 0] }}
-          transition={{
-            when: "afterChildren",
-            duration: 0.2,
-            repeat: Infinity,
-            repeatDelay: 1.5,
-          }}
-        >
-          <motion.button
-            onClick={openHandler}
-            className="shadow-slate-900 shadow-lg"
-            initial={{ y: -150 }}
-            animate={{ y: 0 }}
-          >
-            <Image
-              src={`/items/${loot.image}`}
-              alt="Drawing of some loot"
-              width={240}
-              height={240}
-            />
-          </motion.button>
-        </motion.div>
+        <AnimatePresence>
+          {!clicked && (
+            <motion.button
+              key="loot-image"
+              animate={{ rotate: [0, -2, 2, 0] }}
+              whileTap={{ scale: 0.5 }}
+              exit={{ scale: 2 }}
+              transition={{
+                when: "afterChildren",
+                duration: 0.2,
+                repeat: Infinity,
+                repeatDelay: 1.5,
+              }}
+              onClick={clickfn}
+            >
+              <motion.div
+                initial={{ y: -150 }}
+                animate={{ y: 0 }}
+                className="shadow-slate-900 shadow-lg"
+              >
+                <Image
+                  src={`/items/${loot.image}`}
+                  alt="Drawing of some loot"
+                  width={240}
+                  height={240}
+                />
+              </motion.div>
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -80,20 +96,29 @@ function DrawOpenContainer({
       }
       className="flex-1 flex flex-col bg-[image:var(--image-url)] bg-center bg-cover"
     >
-      <button className="flex-1 flex flex-col justify-center" onClick={claimfn}>
-        <DrawNextLoot loot={loot} />
-      </button>
+      <DrawNextLoot loot={loot} claimfn={claimfn} />
     </div>
   );
 }
 
 function DrawNicely({
   title,
+  claimfn,
   children,
 }: {
   title: string;
+  claimfn: () => void;
   children: React.ReactNode;
 }) {
+  const [clicked, setClicked] = useState(false);
+  const clickfn = () => {
+    if (clicked) {
+      return;
+    }
+    setClicked(true);
+    claimfn();
+  };
+
   return (
     <div className="flex-1 self-stretch flex flex-col gap-2 justify-center items-center">
       <div className="self-stretch text-2xl bg-slate-800 flex flex-row justify-center">
@@ -113,8 +138,11 @@ function DrawNicely({
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.4 }}
+            whileTap={{ scale: 0.9 }}
+            className="flex-1 flex flex-col justify-center"
+            onClick={clickfn}
           >
-            <OnDarkGlass className="p-4">{children}</OnDarkGlass>
+            <OnDarkGlass className="text-white p-2">{children}</OnDarkGlass>
           </motion.div>
         </motion.div>
       </div>
@@ -122,33 +150,43 @@ function DrawNicely({
   );
 }
 
-function DrawNextLoot({ loot }: { loot: LootContainer }) {
+function DrawNextLoot({
+  loot,
+  claimfn,
+}: {
+  loot: LootContainer;
+  claimfn: () => void;
+}) {
   const next = loot.contents[0];
   switch (next.type) {
     case "ability":
       return (
-        <DrawNicely title="An Ability">
+        <DrawNicely key={next.type} title="An Ability" claimfn={claimfn}>
           <DrawAbility ability={next.item} />
         </DrawNicely>
       );
 
     case "bonus":
       return (
-        <DrawNicely title="A Boon">
+        <DrawNicely key={next.type} title="A Boon" claimfn={claimfn}>
           <DrawBonus bonus={next.item} />
         </DrawNicely>
       );
 
     case "wordpack":
       return (
-        <DrawNicely title="A Word Pack">
+        <DrawNicely key={next.type} title="A Word Pack" claimfn={claimfn}>
           <DrawWordpack wordpack={next.item} />
         </DrawNicely>
       );
 
     case "letters":
       return (
-        <DrawNicely title={`${next.item.length} Letters`}>
+        <DrawNicely
+          key={next.type}
+          title={`${next.item.length} Letters`}
+          claimfn={claimfn}
+        >
           <DrawLetters letters={next.item} />
         </DrawNicely>
       );

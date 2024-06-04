@@ -69,7 +69,7 @@ const PlayerPlaced = memo(function PlayerPlaced({
         </OnDarkGlass>
       </button>
 
-      <ul className={`flex flex-row flex-wrap ${gap}`}>
+      <div className={`flex flex-row flex-wrap ${gap}`}>
         {letters.map((letter) => (
           <PlacedLetter
             key={letter.id}
@@ -78,7 +78,7 @@ const PlayerPlaced = memo(function PlayerPlaced({
             size={size}
           />
         ))}
-      </ul>
+      </div>
 
       <button onClick={async () => await statefn(UnplaceLast)}>
         <OnDarkGlass className="text-lg text-black p-1 bg-red-500/50">
@@ -99,15 +99,16 @@ const PlacedLetter = memo(function PlacedLetter({
   size: number;
 }) {
   return (
-    <motion.li layoutId={letter.id} key={letter.id}>
-      <button
-        onClick={async () =>
-          await statefn((p: PlayArea) => UnplaceById(p, letter.id))
-        }
-      >
-        <DrawLetter letter={letter} size={size} />
-      </button>
-    </motion.li>
+    <motion.button
+      layoutId={letter.id}
+      key={letter.id}
+      onClick={async () =>
+        await statefn((p: PlayArea) => UnplaceById(p, letter.id))
+      }
+      whileTap={{ scale: 0.9 }}
+    >
+      <DrawLetter letter={letter} size={size} />
+    </motion.button>
   );
 });
 
@@ -125,7 +126,7 @@ const Hand = memo(function Hand({
   );
 
   return (
-    <ul className="flex flex-row gap-1 flex-wrap place-content-center">
+    <div className="flex flex-row gap-1 flex-wrap place-content-center">
       {letters.map((letter, idx) => (
         <HandLetter
           key={letter ? letter.id : `empty-${idx}`}
@@ -133,7 +134,7 @@ const Hand = memo(function Hand({
           onClick={placefn}
         />
       ))}
-    </ul>
+    </div>
   );
 });
 
@@ -149,10 +150,13 @@ const HandLetter = memo(function HandLetter({
   }
 
   return (
-    <motion.li layoutId={letter.id} key={letter.id}>
-      <button onClick={() => onClick(letter)}>
-        <DrawLetter letter={letter} size={0} />
-      </button>
-    </motion.li>
+    <motion.button
+      layoutId={letter.id}
+      key={letter.id}
+      onClick={() => onClick(letter)}
+      whileTap={{ scale: 0.9 }}
+    >
+      <DrawLetter letter={letter} size={0} />
+    </motion.button>
   );
 });

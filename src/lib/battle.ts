@@ -119,7 +119,7 @@ export async function SetBattler(
     battle.player = battler;
   }
 
-  if (battle.player.checking) {
+  if (battle.player.scoreplease) {
     return await UpdateScores(battle);
   }
 
@@ -131,7 +131,7 @@ export async function UpdateScores(g: Battle): Promise<Battle> {
     ...g,
     player: {
       ...g.player,
-      checking: false,
+      scoreplease: false,
       scoresheet: await UpdatePlayerScore(g),
     },
   };
