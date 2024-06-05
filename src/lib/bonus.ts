@@ -47,35 +47,35 @@ const base: BonusBase[] = [
     key: "double",
     name: "Double Letter",
     desc: "Same letter occurs twice in a row, e.g. gli[mm]er, h[oo]t",
-    weight: 2,
+    weight: 1,
     query: `word ~* '.*(.)\\1.*'`,
   },
   {
     key: "thth",
     name: "No Lisp",
     desc: "Word contains the sequence [th]",
-    weight: 5,
+    weight: 2,
     query: `word ilike '%th%'`,
   },
   {
     key: "short",
     name: "Short and Sweet",
     desc: "Word length is less than 4",
-    weight: 3,
+    weight: 1,
     query: `char_length(word) < 4`,
   },
   {
     key: "long",
     name: "Lettermaxing",
     desc: "Word length is greater than 5",
-    weight: 2,
+    weight: 1,
     query: `char_length(word) > 5`,
   },
   {
     key: "numbers",
     name: "Numbers Rock!",
     desc: "Word is a number e.g. fifty",
-    weight: 4,
+    weight: 2,
     query: `word in (
         select hypo from simplerelations where hyper = 'number'
       )`,
@@ -84,7 +84,7 @@ const base: BonusBase[] = [
     key: "fauna",
     name: "Animal Knower",
     desc: "Word is an animal e.g. wombat",
-    weight: 3,
+    weight: 2,
     query: `word in (
         select hypo from simplerelations where hyper = 'fauna'
       )`,
@@ -93,7 +93,7 @@ const base: BonusBase[] = [
     key: "flora",
     name: "Green Thumb",
     desc: "Word is a plant e.g. ivy",
-    weight: 3,
+    weight: 2,
     query: `word in (
         select hypo from simplerelations where hyper = 'flora'
       )`,
