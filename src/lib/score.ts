@@ -19,7 +19,7 @@ import { lettersToString, simpleScore } from "./letter";
 import type { BonusCard, BonusImpl } from "./bonus";
 import { BonusImpls } from "./bonus";
 
-import { IsWordValid, AreWordsRelated, GuessScores } from "./wordnet";
+import { IsWordValid, AreWordsRelated, ApplyBonuses } from "./wordnet";
 
 // score = totalAdd+totalMul = sum(adds) + sum(muls)
 // Redundant, yes; convenient, very yes
@@ -72,7 +72,7 @@ export async function ScoreWord(
 
   if (bonuses) {
     for (const bonus of bonuses) {
-      const val = await GuessScores(
+      const val = await ApplyBonuses(
         [{ word: word, base: simpleScore(placed), score: 0 }],
         [bonus],
       );

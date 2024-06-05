@@ -6,10 +6,15 @@
 export interface Letter {
   id: string;
   char: string;
-  score: number;
-  level: number;
+
+  base: number;
+  bonus: number;
 
   temporary: boolean;
+}
+
+export function LetterScore(letter: Letter): number {
+  return letter.base + letter.bonus;
 }
 
 export function isPerm(letter: Letter): boolean {
@@ -17,7 +22,7 @@ export function isPerm(letter: Letter): boolean {
 }
 
 export function simpleScore(word: Letter[]): number {
-  return word.reduce((xs, x) => xs + (x.level - 1) + x.score, 0);
+  return word.reduce((xs, x) => xs + LetterScore(x), 0);
 }
 
 // Hastily borrowed from Wikipedia
@@ -63,15 +68,15 @@ const scrabbleMaterial = [
 export function ScrabbleDistribution(): Letter[] {
   return scrabbleMaterial
     .flatMap((tile) => {
-      let ys = new Array(tile.count);
+      let ys: Letter[] = [];
       for (let i = 0; i < tile.count; i++) {
-        ys[i] = {
+        ys.push({
           id: "",
           char: tile.letter,
-          score: tile.score,
-          level: 1,
+          base: tile.score,
+          bonus: 0,
           temporary: false,
-        };
+        });
       }
       return ys;
     })
@@ -97,8 +102,8 @@ export function stringToLetters(pref: string, word: string): Letter[] {
     xs.push({
       id: `${pref}-${word}-${i}`,
       char: mat.letter,
-      score: mat.score,
-      level: 1,
+      base: mat.score,
+      bonus: 0,
       temporary: false,
     });
     i++;

@@ -54,8 +54,8 @@ const AbilitiesBase: AbilityBase[] = [
         xs.push({
           id: `vowel-magic-${num}-${c}`,
           char: c,
-          score: 1,
-          level: 2,
+          base: 1,
+          bonus: 1,
           temporary: true,
         });
       }

@@ -8,11 +8,12 @@
 // Letters just get recycled into the letter bag
 
 import type { Letter } from "./letter";
-import { isPerm } from "./letter";
+import { LetterScore, isPerm } from "./letter";
 
 import type { PRNG } from "./util";
 import { Shuffle } from "./util";
 
+//TODO: LetterStack
 export type LetterSlot = Letter | undefined;
 
 export function letterSlotsToString(slots: LetterSlot[]): string {
@@ -184,7 +185,7 @@ export function SortHand(g: PlayArea): PlayArea {
 export function PlaceByChar(g: PlayArea, c: string): PlayArea {
   const matches = HandLetters(g.hand)
     .filter((letter) => letter.char === c.toUpperCase())
-    .sort((a, b) => a.score - b.score);
+    .sort((a, b) => LetterScore(a) - LetterScore(b));
   if (matches.length === 0) {
     return g;
   }

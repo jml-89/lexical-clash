@@ -12,7 +12,12 @@ import fetch from "node-fetch";
 import type { ScoredWord } from "./util";
 
 import type { Letter } from "./letter";
-import { stringToLetters, lettersToString, simpleScore } from "./letter";
+import {
+  stringToLetters,
+  lettersToString,
+  simpleScore,
+  LetterScore,
+} from "./letter";
 
 import type { BonusCard } from "./bonus";
 import { BonusImpls } from "./bonus";
@@ -80,7 +85,7 @@ export async function SuggestWords(
 
   const res = playableWords(lettersToString(letters), [...bank.values()]);
   let blargh = res.map((x) => letterScore(letters, x));
-  blargh = await GuessScores(blargh, bonuses);
+  blargh = await ApplyBonuses(blargh, bonuses);
   blargh.sort((a, b) => b.score - a.score);
 
   return blargh.slice(0, num);
@@ -88,7 +93,7 @@ export async function SuggestWords(
 
 function letterScore(letters: Letter[], word: string): ScoredWord {
   let myLetters = [...letters];
-  myLetters.sort((a, b) => b.score - a.score);
+  myLetters.sort((a, b) => LetterScore(b) - LetterScore(a));
 
   let score = 0;
   for (const c of word) {
@@ -98,7 +103,7 @@ function letterScore(letters: Letter[], word: string): ScoredWord {
     if (idx < 0) {
       continue;
     }
-    score += myLetters[idx].score;
+    score += LetterScore(myLetters[idx]);
     myLetters = [...myLetters.slice(0, idx), ...myLetters.slice(idx + 1)];
   }
 
@@ -144,7 +149,7 @@ function letterMap(word: string): Map<string, number> {
   return res;
 }
 
-export async function GuessScores(
+export async function ApplyBonuses(
   words: ScoredWord[],
   bonuses: BonusCard[],
 ): Promise<ScoredWord[]> {

@@ -1,7 +1,8 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
 
-import { Letter } from "@/lib/letter";
+import type { Letter } from "@/lib/letter";
+import { LetterScore } from "@/lib/letter";
 
 export const DrawLetters = memo(function DrawLetters({
   letters,
@@ -58,9 +59,7 @@ export const DrawLetter = memo(function DrawLetter({
     "bg-amber-300 border-amber-400",
   ];
   const levelColor =
-    levelColors[
-      Math.min(Math.max(0, letter.level - 1), levelColors.length - 1)
-    ];
+    levelColors[Math.min(Math.max(0, letter.bonus), levelColors.length - 1)];
 
   if (size > 1) {
     return (
@@ -97,7 +96,7 @@ export const DrawLetter = memo(function DrawLetter({
         {letter.char}
       </div>
       <div className="row-start-3 col-start-3 self-end text-xs font-light">
-        {letter.score + (letter.level - 1)}
+        {LetterScore(letter)}
       </div>
     </div>
   );
