@@ -14,6 +14,7 @@ import {
   EndIntro,
   TakeLootItem,
   TakeBattleLootItem,
+  EndShop,
 } from "@/lib/scene";
 
 import type { BattleFnT } from "@/cmp/battle";
@@ -107,6 +108,8 @@ function SceneOpponent({
   statefn: StateFnT;
 }) {
   const [clicked, setClicked] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
   const clickfn = () => {
     if (clicked) {
       return;
@@ -125,30 +128,89 @@ function SceneOpponent({
       <div className="flex flex-col justify-center items-center gap-2">
         <AnimatePresence>
           {!clicked && (
-            <motion.div
-              animate={{ x: [0, -2, 2, 0] }}
-              exit={{ scale: 2, opacity: 0.2 }}
-              transition={{
-                when: "afterChildren",
-                duration: 0.2,
-                repeat: Infinity,
-                repeatDelay: 1.5,
+            <motion.button
+              onClick={clickfn}
+              variants={{
+                hidden: { x: [0] },
+                visible: {
+                  x: [0, -2, 2, 0],
+                  transition: {
+                    when: "afterChildren",
+                    duration: 0.2,
+                    repeat: Infinity,
+                    repeatDelay: 1.5,
+                  },
+                },
               }}
+              whileTap={{ scale: 0.9 }}
+              exit={{ scale: 2, opacity: 0.2 }}
+              initial="hidden"
+              animate={loaded ? "visible" : "hidden"}
             >
-              <motion.button
-                onClick={clickfn}
+              <motion.div
+                variants={{
+                  hidden: { scale: 0, opacity: 0 },
+                  visible: {
+                    scale: 1,
+                    opacity: 1,
+                    transition: { duration: 0.3 },
+                  },
+                }}
                 className="shadow-slate-900 shadow-lg"
-                initial={{ scale: 0.1 }}
-                animate={{ scale: 1.0 }}
-                whileTap={{ scale: 0.9 }}
-                transition={{ type: "spring", bounce: 0.8, duration: 0.7 }}
               >
-                <OpponentMugshotMinimal opponent={scene.opponent} />
-              </motion.button>
-            </motion.div>
+                <OpponentMugshotMinimal
+                  opponent={scene.opponent}
+                  onLoad={() => setLoaded(true)}
+                />
+              </motion.div>
+            </motion.button>
           )}
         </AnimatePresence>
       </div>
+    </SceneLayout>
+  );
+}
+
+function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
+  const [clicked, setClicked] = useState(false);
+
+  const clickfn = () => {
+    if (clicked) {
+      return;
+    }
+
+    setClicked(true);
+    statefn(EndShop);
+  };
+
+  if (!scene.shop) {
+    return <></>;
+  }
+
+  return (
+    <SceneLayout title="A Trader">
+      <AnimatePresence>
+        {!clicked && (
+          <motion.button
+            key="explore-button"
+            className="flex flex-row self-center justify-center"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 1.5 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={clickfn}
+          >
+            <OnDarkGlass>
+              <Image
+                src={`/portrait/dark/${scene.shop.image}`}
+                alt="Picture of a trader"
+                width={320}
+                height={320}
+              />
+            </OnDarkGlass>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </SceneLayout>
   );
 }
@@ -221,6 +283,10 @@ function PlaySceneContent({
         />
       </SceneLayout>
     );
+  }
+
+  if (scene.shop) {
+    return <SceneShop key="shop" scene={scene} statefn={statefn} />;
   }
 
   const choose = (key: string) =>

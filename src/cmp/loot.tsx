@@ -36,6 +36,8 @@ function DrawClosedContainerMinimal({
   openHandler: () => void;
 }) {
   const [clicked, setClicked] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
   const clickfn = () => {
     if (clicked) {
       return;
@@ -51,28 +53,54 @@ function DrawClosedContainerMinimal({
           {!clicked && (
             <motion.button
               key="loot-image"
-              animate={{ rotate: [0, -2, 2, 0] }}
+              variants={{
+                hidden: {},
+                visible: {
+                  rotate: [0, -2, 2, 0],
+                  transition: {
+                    when: "afterChildren",
+                    duration: 0.2,
+                    repeat: Infinity,
+                    repeatDelay: 1.5,
+                  },
+                },
+              }}
+              initial="hidden"
+              animate={loaded ? "visible" : "hidden"}
               whileTap={{ scale: 0.5 }}
               exit={{ scale: 2 }}
-              transition={{
-                when: "afterChildren",
-                duration: 0.2,
-                repeat: Infinity,
-                repeatDelay: 1.5,
-              }}
               onClick={clickfn}
             >
               <motion.div
-                initial={{ y: -150 }}
-                animate={{ y: 0 }}
-                className="shadow-slate-900 shadow-lg"
+                variants={{
+                  hidden: { y: -150 },
+                  visible: {
+                    y: [-150, 0],
+                    transition: {
+                      when: "afterChildren",
+                    },
+                  },
+                }}
               >
-                <Image
-                  src={`/items/${loot.image}`}
-                  alt="Drawing of some loot"
-                  width={240}
-                  height={240}
-                />
+                <motion.div
+                  variants={{
+                    hidden: { scale: 0, opacity: 0 },
+                    visible: {
+                      scale: 1,
+                      opacity: 1,
+                      transition: { duration: 0.5 },
+                    },
+                  }}
+                  className="shadow-slate-900 shadow-lg"
+                >
+                  <Image
+                    src={`/items/${loot.image}`}
+                    alt="Drawing of some loot"
+                    width={320}
+                    height={320}
+                    onLoad={() => setLoaded(true)}
+                  />
+                </motion.div>
               </motion.div>
             </motion.button>
           )}

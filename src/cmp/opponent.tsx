@@ -123,13 +123,20 @@ export function OpponentMugshotHorizontal({
   );
 }
 
-export function OpponentMugshotMinimal({ opponent }: { opponent: Opponent }) {
+export function OpponentMugshotMinimal({
+  opponent,
+  onLoad,
+}: {
+  opponent: Opponent;
+  onLoad?: React.ReactEventHandler<HTMLImageElement>;
+}) {
   return (
     <Image
       src={`/portrait/dark/${opponent.image}`}
       width={320}
       height={320}
       alt={`Mugshot of ${opponent.name}`}
+      onLoad={onLoad}
     />
   );
 }
