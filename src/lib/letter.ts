@@ -13,16 +13,16 @@ export interface Letter {
   temporary: boolean;
 }
 
-export function LetterScore(letter: Letter): number {
-  return letter.base + letter.bonus;
+export function LetterScore(letters: Letter | Letter[]): number {
+  if (!Array.isArray(letters)) {
+    return letters.base + letters.bonus;
+  }
+
+  return letters.reduce((xs, x) => xs + LetterScore(x), 0);
 }
 
 export function isPerm(letter: Letter): boolean {
   return !letter.temporary;
-}
-
-export function simpleScore(word: Letter[]): number {
-  return word.reduce((xs, x) => xs + LetterScore(x), 0);
 }
 
 // Hastily borrowed from Wikipedia

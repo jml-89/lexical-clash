@@ -7,7 +7,7 @@
 // - more!
 
 import type { Player } from "./player";
-import { ClaimLootItem, LevelUp } from "./player";
+import { AddShopItem, ClaimLootItem, LevelUp } from "./player";
 
 import type { Opponent } from "./opponent";
 import { NewOpponent, NewBoss } from "./opponent";
@@ -18,6 +18,9 @@ import {
   NewLootContainer,
   NewBattleLootContainer,
 } from "./loot";
+
+import type { Shop } from "./shop";
+import { NewShop } from "./shop";
 
 import type { Battle } from "./battle";
 import { NewBattle } from "./battle";
@@ -33,11 +36,16 @@ export interface Scene {
   regidx: number;
 
   intro: boolean;
+
   opponent?: Opponent;
   battle?: Battle;
   lost?: boolean;
   battleloot?: LootContainer;
+
   loot?: LootContainer;
+
+  shop?: Shop;
+
   exit?: string; // connection chosen to leave, also indicator that scene is done
 }
 
@@ -140,6 +148,7 @@ export async function NextScene(scene: Scene): Promise<Scene> {
   }
 
   let opponent = undefined;
+  /*
   if (regidx + 1 === region.path.length) {
     opponent = await NewBoss(region.name, region.maxLevel + 1);
   } else if (scene.prng(0, 100) <= region.opponentpct) {
@@ -150,6 +159,13 @@ export async function NextScene(scene: Scene): Promise<Scene> {
       region.maxLevel,
     );
   }
+  */
+
+  let shop = undefined;
+  if (true) {
+    //scene.prng(0, 100) < region.lootpct) {
+    shop = await NewShop(scene.prng, region.maxLevel, scene.player.bag);
+  }
 
   return {
     prng: scene.prng,
@@ -159,6 +175,26 @@ export async function NextScene(scene: Scene): Promise<Scene> {
     player: scene.player,
     opponent: opponent,
     loot: loot,
+    shop: shop,
+  };
+}
+
+export async function SetShop(scene: Scene, shop: Shop): Promise<Scene> {
+  if (!shop.done) {
+    scene.shop = shop;
+    return scene;
+  }
+
+  let player = { ...scene.player };
+  for (const item of shop.bought) {
+    player = AddShopItem(player, item);
+  }
+  player.bag = [...shop.playArea.bag];
+
+  return {
+    ...scene,
+    player: player,
+    shop: undefined,
   };
 }
 

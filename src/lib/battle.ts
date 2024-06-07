@@ -8,7 +8,6 @@ import {
   ScrabbleDistribution,
   lettersToString,
   stringToLetters,
-  simpleScore,
 } from "./letter";
 
 import type { Player } from "./player";

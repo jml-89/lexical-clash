@@ -13,7 +13,7 @@ import { LetterScore, isPerm } from "./letter";
 import type { PRNG } from "./util";
 import { Shuffle } from "./util";
 
-//TODO: LetterStack
+//TODO: LetterStack, multiples of the same letter in one slot
 export type LetterSlot = Letter | undefined;
 
 export function letterSlotsToString(slots: LetterSlot[]): string {
@@ -26,17 +26,45 @@ export function letterSlotsToString(slots: LetterSlot[]): string {
   return chars.join("").toLowerCase();
 }
 
-// hand field should be addressed, why complicate it?
-// Really each array element is a slot that can be empty or have a letter
-// To simulate gaps in the hand when placing a letter
-// Nicer than having the hand jiggling every time a letter is removed too
 export interface PlayArea {
   handSize: number;
   prng: PRNG;
 
   placed: Letter[];
   hand: LetterSlot[];
+
   bag: Letter[];
+}
+
+export function NewPlayArea(
+  prng: PRNG,
+  handSize: number,
+  bag: Letter[],
+): PlayArea {
+  return {
+    handSize: handSize,
+    prng: prng,
+    bag: bag,
+    placed: [],
+    hand: [],
+  };
+}
+
+export function PackUp(g: PlayArea): PlayArea {
+  return {
+    ...g,
+    hand: [],
+    placed: [],
+    bag: [...g.bag, ...HandLetters(g.hand), ...g.placed],
+  };
+}
+
+export function LiquidatePlaced(g: PlayArea): PlayArea {
+  return {
+    ...g,
+    hand: g.hand.filter((letter) => letter !== undefined),
+    placed: [],
+  };
 }
 
 export function DiscardPlaced(g: PlayArea): PlayArea {
@@ -56,6 +84,10 @@ export function DiscardAll(g: PlayArea): PlayArea {
     placed: [],
     hand: [],
   };
+}
+
+export function DrawAll(g: PlayArea): PlayArea {
+  return DrawN(g, g.bag.length);
 }
 
 // Draw enough to fill up hand, keeping existing hand

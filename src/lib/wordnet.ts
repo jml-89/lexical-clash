@@ -12,12 +12,7 @@ import fetch from "node-fetch";
 import type { ScoredWord } from "./util";
 
 import type { Letter } from "./letter";
-import {
-  stringToLetters,
-  lettersToString,
-  simpleScore,
-  LetterScore,
-} from "./letter";
+import { stringToLetters, lettersToString, LetterScore } from "./letter";
 
 import type { BonusCard } from "./bonus";
 import { BonusImpls } from "./bonus";
@@ -434,7 +429,7 @@ export async function InitialiseDatabase(): Promise<void> {
 					 on conflict do nothing;`,
           [
             attrs.writtenForm,
-            simpleScore(stringToLetters("tmp", attrs.writtenForm)),
+            LetterScore(stringToLetters("tmp", attrs.writtenForm)),
           ],
         );
       }

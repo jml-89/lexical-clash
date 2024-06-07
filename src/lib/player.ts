@@ -3,6 +3,7 @@ import type { BonusCard } from "./bonus";
 import type { AbilityCard } from "./ability";
 import type { Wordpack } from "./wordpack";
 import type { LootContainer } from "./loot";
+import type { ShopItem } from "./shop";
 
 export interface Player {
   level: number;
@@ -78,6 +79,19 @@ function AddLetters(player: Player, letters: Letter[]): Player {
       id: `bag-${idx}`,
     })),
   };
+}
+
+export function AddShopItem(player: Player, item: ShopItem): Player {
+  switch (item.type) {
+    case "ability":
+      return AddAbility(player, item.item);
+    case "bonus":
+      return AddBonus(player, item.item);
+    case "wordpack":
+      return AddWordpack(player, item.item);
+    case "letters":
+      return AddLetters(player, item.item);
+  }
 }
 
 //Takes 1 (one) item from a loot container

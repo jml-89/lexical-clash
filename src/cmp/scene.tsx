@@ -5,7 +5,6 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 import type { Scene, Region } from "@/lib/scene";
-import type { Battle } from "@/lib/battle";
 import {
   SetBattle,
   GetConnectedLocations,
@@ -14,13 +13,17 @@ import {
   EndIntro,
   TakeLootItem,
   TakeBattleLootItem,
-  EndShop,
+  SetShop,
 } from "@/lib/scene";
+
+import type { Battle } from "@/lib/battle";
+import type { Shop } from "@/lib/shop";
 
 import type { BattleFnT } from "@/cmp/battle";
 import { PlayBattle } from "@/cmp/battle";
 import { OpponentMugshotMinimal } from "@/cmp/opponent";
 import { DrawLootContainer } from "@/cmp/loot";
+import { PlayShop } from "@/cmp/shop";
 
 import { ButtonX, OnDarkGlass } from "@/cmp/misc";
 
@@ -38,6 +41,8 @@ export function PlayScene({
   const mystatefn = async (fn: SceneFnT): Promise<void> => {
     await set(() => repaint((x) => x + 1), await fn(get()));
   };
+
+  console.log("Scene", get());
 
   return (
     <DrawLocation location={get().region.path[get().regidx]}>
@@ -174,46 +179,90 @@ function SceneOpponent({
 function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
   const [clicked, setClicked] = useState(false);
 
+  if (!scene.shop) {
+    return <></>;
+  }
+
   const clickfn = () => {
     if (clicked) {
       return;
     }
 
     setClicked(true);
-    statefn(EndShop);
   };
 
-  if (!scene.shop) {
-    return <></>;
-  }
+  const getShop = (): Shop => scene.shop as Shop;
+  const setShop = async (changed: () => void, shop: Shop): Promise<void> => {
+    const prev = getShop();
+    await statefn(async (scene: Scene) => await SetShop(scene, shop));
+    const next = getShop();
+    if (!Object.is(prev, next)) {
+      changed();
+    }
+  };
 
   return (
     <SceneLayout title="A Trader">
-      <AnimatePresence>
-        {!clicked && (
-          <motion.button
-            key="explore-button"
-            className="flex flex-row self-center justify-center"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 1.5 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={clickfn}
-          >
-            <OnDarkGlass>
-              <Image
-                src={`/portrait/dark/${scene.shop.image}`}
-                alt="Picture of a trader"
-                width={320}
-                height={320}
-              />
-            </OnDarkGlass>
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {(!clicked && (
+        <motion.button
+          key="explore-button"
+          className="flex flex-row self-center justify-center"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          exit={{ scale: 1.5 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={clickfn}
+        >
+          <OnDarkGlass>
+            <Image
+              src={`/portrait/dark/${scene.shop.image}`}
+              alt="Picture of a trader"
+              width={320}
+              height={320}
+            />
+          </OnDarkGlass>
+        </motion.button>
+      )) || <PlayShop get={getShop} set={setShop} />}
     </SceneLayout>
   );
 }
+
+function SceneBattle({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
+  const getBattle = (): Battle => scene.battle as Battle;
+  const setBattle = async (
+    changed: () => void,
+    battle: Battle,
+  ): Promise<void> => {
+    const prev = getBattle();
+    await statefn(async (scene: Scene) => await SetBattle(scene, battle));
+    const next = getBattle();
+    if (!Object.is(prev, next)) {
+      changed();
+    }
+  };
+
+  return <PlayBattle get={getBattle} set={setBattle} />;
+}
+
+function SceneLost({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
+  return (
+    <SceneLayout title="Your Journey Ends">
+      <div className="self-center">
+        <Link href="/">
+          <OnDarkGlass className="text-3xl p-4">Run Away!</OnDarkGlass>
+        </Link>
+      </div>
+    </SceneLayout>
+  );
+}
+
+function SceneBattleLoot({
+  scene,
+  statefn,
+}: {
+  scene: Scene;
+  statefn: StateFnT;
+}) {}
 
 function PlaySceneContent({
   scene,
@@ -227,20 +276,7 @@ function PlaySceneContent({
   }
 
   if (scene.battle) {
-    const getBattle = (): Battle => scene.battle as Battle;
-    const setBattle = async (
-      changed: () => void,
-      battle: Battle,
-    ): Promise<void> => {
-      const prev = getBattle();
-      await statefn(async (scene: Scene) => await SetBattle(scene, battle));
-      const next = getBattle();
-      if (!Object.is(prev, next)) {
-        changed();
-      }
-    };
-
-    return <PlayBattle get={getBattle} set={setBattle} />;
+    return <SceneBattle scene={scene} statefn={statefn} />;
   }
 
   if (scene.opponent) {
@@ -248,15 +284,7 @@ function PlaySceneContent({
   }
 
   if (scene.lost) {
-    return (
-      <SceneLayout title="Your Journey Ends">
-        <div className="self-center">
-          <Link href="/">
-            <OnDarkGlass className="text-3xl p-4">Run Away!</OnDarkGlass>
-          </Link>
-        </div>
-      </SceneLayout>
-    );
+    return <SceneLost scene={scene} statefn={statefn} />;
   }
 
   if (scene.battleloot) {

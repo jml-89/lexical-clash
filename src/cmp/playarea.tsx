@@ -24,11 +24,11 @@ export const DrawPlayArea = memo(function DrawPlayArea({
   set: (changed: () => void, playArea: PlayArea) => Promise<void>;
 }) {
   const [repaints, repaint] = useState(0);
-  const mystatefn = async (fn: PlayAreaFnT): Promise<void> => {
+  const statefn = async (fn: PlayAreaFnT): Promise<void> => {
     await set(() => repaint((x) => x + 1), await fn(get()));
   };
 
-  return <PlayPlayArea playarea={get()} statefn={mystatefn} />;
+  return <PlayPlayArea playarea={get()} statefn={statefn} />;
 });
 
 function PlayPlayArea({

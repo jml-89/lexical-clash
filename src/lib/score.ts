@@ -14,7 +14,7 @@
 "use server";
 
 import type { Letter } from "./letter";
-import { lettersToString, simpleScore } from "./letter";
+import { lettersToString, LetterScore } from "./letter";
 
 import type { BonusCard, BonusImpl } from "./bonus";
 import { BonusImpls } from "./bonus";
@@ -56,7 +56,7 @@ export async function ScoreWord(
 
   sheet.adds.push({
     source: "Letter Score Sum",
-    value: simpleScore(placed),
+    value: LetterScore(placed),
   });
 
   sheet.muls.push({
@@ -73,7 +73,7 @@ export async function ScoreWord(
   if (bonuses) {
     for (const bonus of bonuses) {
       const val = await ApplyBonuses(
-        [{ word: word, base: simpleScore(placed), score: 0 }],
+        [{ word: word, base: LetterScore(placed), score: 0 }],
         [bonus],
       );
       if (val[0].score > val[0].base) {
