@@ -58,11 +58,7 @@ export function OnDarkGlass({
   if (className) {
     cn = `${cn} ${className}`;
   }
-  return (
-    <div className={cn}>
-      <div className="flex flex-row justify-center">{children}</div>
-    </div>
-  );
+  return <div className={cn}>{children}</div>;
 }
 
 export function ButtonX({

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import type { PlayArea } from "@/lib/playarea";
@@ -31,22 +31,25 @@ export function PlayShop({
   set: (changed: () => void, shop: Shop) => Promise<void>;
 }) {
   const [repaints, repaint] = useState(0);
-  const statefn = async (fn: ShopFnT): Promise<void> => {
-    await set(() => repaint((x) => x + 1), await fn(get()));
-  };
+  const statefn = useCallback(
+    async (fn: ShopFnT): Promise<void> => {
+      await set(() => repaint((x) => x + 1), await fn(get()));
+    },
+    [get, set, repaint],
+  );
 
-  const getPlayArea = (): PlayArea => get().playArea;
-  const setPlayArea = async (
-    changed: () => void,
-    playArea: PlayArea,
-  ): Promise<void> => {
-    const prev = getPlayArea();
-    await statefn(async (shop: Shop) => await UpdatePlayArea(shop, playArea));
-    const next = getPlayArea();
-    if (!Object.is(prev, next)) {
-      changed();
-    }
-  };
+  const getPlayArea = useCallback((): PlayArea => get().playArea, [get]);
+  const setPlayArea = useCallback(
+    async (changed: () => void, playArea: PlayArea): Promise<void> => {
+      const prev = getPlayArea();
+      await statefn(async (shop: Shop) => await UpdatePlayArea(shop, playArea));
+      const next = getPlayArea();
+      if (!Object.is(prev, next)) {
+        changed();
+      }
+    },
+    [getPlayArea, statefn],
+  );
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center gap-2">

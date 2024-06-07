@@ -1,7 +1,7 @@
 import { memo, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 
-import type { PlayArea, LetterSlot } from "@/lib/playarea";
+import type { PlayArea, LetterStack } from "@/lib/playarea";
 import {
   PlaceById,
   UnplaceById,
@@ -24,9 +24,12 @@ export const DrawPlayArea = memo(function DrawPlayArea({
   set: (changed: () => void, playArea: PlayArea) => Promise<void>;
 }) {
   const [repaints, repaint] = useState(0);
-  const statefn = async (fn: PlayAreaFnT): Promise<void> => {
-    await set(() => repaint((x) => x + 1), await fn(get()));
-  };
+  const statefn = useCallback(
+    async (fn: PlayAreaFnT): Promise<void> => {
+      await set(() => repaint((x) => x + 1), await fn(get()));
+    },
+    [get, set, repaint],
+  );
 
   return <PlayPlayArea playarea={get()} statefn={statefn} />;
 });
@@ -116,7 +119,7 @@ const Hand = memo(function Hand({
   letters,
   statefn,
 }: {
-  letters: LetterSlot[];
+  letters: LetterStack[];
   statefn: StateFnT;
 }) {
   const placefn = useCallback(
@@ -126,11 +129,11 @@ const Hand = memo(function Hand({
   );
 
   return (
-    <div className="flex flex-row gap-1 flex-wrap place-content-center">
-      {letters.map((letter, idx) => (
-        <HandLetter
-          key={letter ? letter.id : `empty-${idx}`}
-          letter={letter}
+    <div className="flex flex-row gap-1 flex-wrap items-end">
+      {letters.map((stack, idx) => (
+        <HandStack
+          key={stack.length > 0 ? stack[0].id : `empty-${idx}`}
+          stack={stack}
           onClick={placefn}
         />
       ))}
@@ -138,25 +141,61 @@ const Hand = memo(function Hand({
   );
 });
 
-const HandLetter = memo(function HandLetter({
-  letter,
+const HandStack = memo(function HandStack({
+  stack,
   onClick,
 }: {
-  letter: Letter | undefined;
+  stack: LetterStack;
   onClick: (letter: Letter) => void;
 }) {
-  if (!letter) {
-    return <DrawLetter letter={letter} size={0} />;
+  if (stack.length === 0) {
+    return <DrawLetter size={0} />;
   }
+
+  const startRow = (n: number) => {
+    if (n < 1) {
+      return "row-start-1 z-40";
+    }
+    if (n < 3) {
+      return "row-start-2 z-30";
+    }
+    if (n < 5) {
+      return "row-start-3 z-20";
+    }
+    return "row-start-4 z-10";
+  };
+
+  const rowCount = (n: number) => {
+    if (n < 2) {
+      return "grid-rows-10";
+    }
+    if (n < 4) {
+      return "grid-rows-11";
+    }
+    if (n < 6) {
+      return "grid-rows-12";
+    }
+    return "grid-rows-13";
+  };
 
   return (
     <motion.button
-      layoutId={letter.id}
-      key={letter.id}
-      onClick={() => onClick(letter)}
+      key={stack[0].id}
+      onClick={() => onClick(stack[0])}
       whileTap={{ scale: 0.9 }}
     >
-      <DrawLetter letter={letter} size={0} />
+      <div className={`grid ${rowCount(stack.length)}`}>
+        {stack.map((letter, idx) => (
+          <div
+            key={letter.id}
+            className={`col-start-1 ${startRow(idx)} row-span-10`}
+          >
+            <motion.div layoutId={letter.id}>
+              <DrawLetter letter={letter} size={0} />
+            </motion.div>
+          </div>
+        ))}
+      </div>
     </motion.button>
   );
 });

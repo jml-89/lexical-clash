@@ -148,7 +148,6 @@ export async function NextScene(scene: Scene): Promise<Scene> {
   }
 
   let opponent = undefined;
-  /*
   if (regidx + 1 === region.path.length) {
     opponent = await NewBoss(region.name, region.maxLevel + 1);
   } else if (scene.prng(0, 100) <= region.opponentpct) {
@@ -159,13 +158,13 @@ export async function NextScene(scene: Scene): Promise<Scene> {
       region.maxLevel,
     );
   }
-  */
+  opponent = undefined;
 
   let shop = undefined;
-  if (true) {
-    //scene.prng(0, 100) < region.lootpct) {
+  if (scene.prng(0, 100) < region.lootpct) {
     shop = await NewShop(scene.prng, region.maxLevel, scene.player.bag);
   }
+  shop = await NewShop(scene.prng, region.maxLevel, scene.player.bag);
 
   return {
     prng: scene.prng,

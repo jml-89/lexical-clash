@@ -38,15 +38,16 @@ export function PlayScene({
   set: (changed: () => void, scene: Scene) => Promise<void>;
 }) {
   const [repaints, repaint] = useState(0);
-  const mystatefn = async (fn: SceneFnT): Promise<void> => {
-    await set(() => repaint((x) => x + 1), await fn(get()));
-  };
-
-  console.log("Scene", get());
+  const statefn = useCallback(
+    async (fn: SceneFnT): Promise<void> => {
+      await set(() => repaint((x) => x + 1), await fn(get()));
+    },
+    [get, set, repaint],
+  );
 
   return (
     <DrawLocation location={get().region.path[get().regidx]}>
-      <PlaySceneContent scene={get()} statefn={mystatefn} />
+      <PlaySceneContent scene={get()} statefn={statefn} />
     </DrawLocation>
   );
 }

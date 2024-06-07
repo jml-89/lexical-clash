@@ -27,13 +27,13 @@ export const DrawLetter = memo(function DrawLetter({
   letter,
   size,
 }: {
-  letter: Letter | undefined;
+  letter?: Letter;
   size: number;
 }) {
   const allDimensions = [
-    "w-12 h-12 border-4",
-    "w-8 h-8 border-2",
-    "w-5 h-5 border",
+    "w-10 h-10 border-r-2 border-b-2",
+    "w-8 h-8 border-1",
+    "w-5 h-5 border-0",
   ];
   const dimensions =
     allDimensions[Math.min(Math.max(0, size), allDimensions.length - 1)];
@@ -86,7 +86,7 @@ export const DrawLetter = memo(function DrawLetter({
         "text-black",
         levelColor,
         "p-0.5",
-        "shadow-lg shadow-slate-800",
+        "shadow-md shadow-slate-800",
         "grid grid-cols-3 grid-rows-3",
       ].join(" ")}
     >

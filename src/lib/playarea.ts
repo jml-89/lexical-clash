@@ -13,25 +13,14 @@ import { LetterScore, isPerm } from "./letter";
 import type { PRNG } from "./util";
 import { Shuffle } from "./util";
 
-//TODO: LetterStack, multiples of the same letter in one slot
-export type LetterSlot = Letter | undefined;
-
-export function letterSlotsToString(slots: LetterSlot[]): string {
-  let chars = [];
-  for (const slot of slots) {
-    if (slot) {
-      chars.push(slot.char);
-    }
-  }
-  return chars.join("").toLowerCase();
-}
+export type LetterStack = Letter[];
 
 export interface PlayArea {
   handSize: number;
   prng: PRNG;
 
   placed: Letter[];
-  hand: LetterSlot[];
+  hand: LetterStack[];
 
   bag: Letter[];
 }
@@ -55,14 +44,14 @@ export function PackUp(g: PlayArea): PlayArea {
     ...g,
     hand: [],
     placed: [],
-    bag: [...g.bag, ...HandLetters(g.hand), ...g.placed],
+    bag: [...g.bag, ...handLetters(g.hand), ...g.placed],
   };
 }
 
 export function LiquidatePlaced(g: PlayArea): PlayArea {
   return {
     ...g,
-    hand: g.hand.filter((letter) => letter !== undefined),
+    hand: g.hand.filter((stack) => stack.length > 0),
     placed: [],
   };
 }
@@ -70,7 +59,7 @@ export function LiquidatePlaced(g: PlayArea): PlayArea {
 export function DiscardPlaced(g: PlayArea): PlayArea {
   return {
     ...g,
-    hand: g.hand.filter((letter) => letter !== undefined),
+    hand: g.hand.filter((stack) => stack.length > 0),
     bag: g.bag.concat(g.placed).filter(isPerm),
     placed: [],
   };
@@ -80,7 +69,7 @@ export function DiscardPlaced(g: PlayArea): PlayArea {
 export function DiscardAll(g: PlayArea): PlayArea {
   return {
     ...g,
-    bag: g.bag.concat(HandLetters(g.hand)).concat(g.placed).filter(isPerm),
+    bag: g.bag.concat(handLetters(g.hand)).concat(g.placed).filter(isPerm),
     placed: [],
     hand: [],
   };
@@ -108,7 +97,7 @@ export function DrawN(g: PlayArea, n: number): PlayArea {
   const shaken = Shuffle(g.prng, g.bag.filter(isPerm));
   return {
     ...g,
-    hand: g.hand.concat(shaken.slice(0, n)),
+    hand: sortStacks(stackIn(g.hand, shaken.slice(0, n))),
     bag: shaken.slice(n),
   };
 }
@@ -126,7 +115,7 @@ export function DrawById(g: PlayArea, id: string): PlayArea {
 export function DrawByIndex(g: PlayArea, idx: number): PlayArea {
   return {
     ...g,
-    hand: g.hand.concat([g.bag[idx]]),
+    hand: stackIn(g.hand, [g.bag[idx]]),
     bag: g.bag
       .slice(0, idx)
       .concat(g.bag.slice(idx + 1))
@@ -134,38 +123,49 @@ export function DrawByIndex(g: PlayArea, idx: number): PlayArea {
   };
 }
 
-function SlotIn(hand: LetterSlot[], letters: Letter[]): LetterSlot[] {
-  let li = 0;
-  let xs: LetterSlot[] = [];
-  for (const letter of hand) {
-    if (letter !== undefined) {
-      xs.push(letter);
-      continue;
-    }
-
-    if (li < letters.length) {
-      xs.push(letters[li]);
-      li += 1;
-      continue;
-    }
-
-    xs.push(letter);
-  }
-
-  for (let i = li; i < letters.length; i++) {
-    xs.push(letters[i]);
-  }
-
+function sortStacks(stacks: LetterStack[]): LetterStack[] {
+  const xs = [...stacks];
+  xs.sort((a: LetterStack, b: LetterStack) => a.length - b.length);
+  //(a.length === 0 ? 0 : a[0].base) - (b.length === 0 ? 0 : b[0].base)
   return xs;
 }
 
-function HandLetters(hand: LetterSlot[]): Letter[] {
-  let xs: Letter[] = [];
-  for (const letter of hand) {
-    if (!letter) {
+function stackIn(hand: LetterStack[], letters: Letter[]): LetterStack[] {
+  let xs: LetterStack[] = [...hand];
+  for (const letter of letters) {
+    let idx = xs.findIndex(
+      (stack) => stack.length > 0 && stack[0].char === letter.char,
+    );
+    if (idx >= 0) {
+      xs[idx].push(letter);
       continue;
     }
-    xs.push(letter);
+
+    idx = xs.findIndex((stack) => stack.length === 0);
+    if (idx >= 0) {
+      xs[idx].push(letter);
+      continue;
+    }
+
+    xs.push([letter]);
+  }
+
+  xs.forEach((stack: LetterStack) =>
+    stack.sort((a: Letter, b: Letter) => b.bonus - a.bonus),
+  );
+  return xs;
+}
+
+export function LettersInPlay(g: PlayArea): Letter[] {
+  return [...g.placed, ...handLetters(g.hand)];
+}
+
+function handLetters(hand: LetterStack[]): Letter[] {
+  let xs: Letter[] = [];
+  for (const stack of hand) {
+    for (const letter of stack) {
+      xs.push(letter);
+    }
   }
   return xs;
 }
@@ -177,7 +177,7 @@ export function UnplaceById(g: PlayArea, id: string): PlayArea {
   return {
     ...g,
     placed: g.placed.slice(0, pi).concat(g.placed.slice(pi + 1)),
-    hand: SlotIn(g.hand, [g.placed[pi]]),
+    hand: stackIn(g.hand, [g.placed[pi]]),
   };
 }
 
@@ -190,7 +190,7 @@ export function UnplaceLast(g: PlayArea): PlayArea {
 
   return {
     ...g,
-    hand: SlotIn(g.hand, [g.placed[li]]),
+    hand: stackIn(g.hand, [g.placed[li]]),
     placed: g.placed.slice(0, li),
   };
 }
@@ -203,7 +203,7 @@ export function UnplaceAll(g: PlayArea): PlayArea {
   return {
     ...g,
     placed: [],
-    hand: SlotIn(g.hand, g.placed),
+    hand: stackIn(g.hand, g.placed),
   };
 }
 
@@ -215,7 +215,7 @@ export function SortHand(g: PlayArea): PlayArea {
 }
 
 export function PlaceByChar(g: PlayArea, c: string): PlayArea {
-  const matches = HandLetters(g.hand)
+  const matches = handLetters(g.hand)
     .filter((letter) => letter.char === c.toUpperCase())
     .sort((a, b) => LetterScore(a) - LetterScore(b));
   if (matches.length === 0) {
@@ -234,29 +234,21 @@ export function PlaceWord(g: PlayArea, word: string): PlayArea {
 }
 
 export function PlaceById(g: PlayArea, id: string): PlayArea {
-  const idx = g.hand.findIndex((letter) => letter && letter.id === id);
+  const idx = g.hand.findIndex(
+    (stack) => stack.length > 0 && stack[0].id === id,
+  );
   if (idx === -1) {
     return g;
   }
 
-  const letter = g.hand[idx] as Letter;
+  const letter = g.hand[idx][0];
 
   let nextHand = [...g.hand];
-  nextHand[idx] = undefined;
+  nextHand[idx] = nextHand[idx].slice(1);
 
   return {
     ...g,
     placed: g.placed.concat([letter]),
     hand: nextHand,
   };
-}
-
-export function usableLetters(g: PlayArea): Letter[] {
-  let res = [...g.placed];
-  for (const letter of g.hand) {
-    if (letter) {
-      res.push(letter);
-    }
-  }
-  return res;
 }

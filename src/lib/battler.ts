@@ -8,13 +8,7 @@ import {
 } from "./letter";
 
 import type { PlayArea } from "./playarea";
-import {
-  usableLetters,
-  letterSlotsToString,
-  PlaceWord,
-  UnplaceAll,
-  NewHand,
-} from "./playarea";
+import { PlaceWord, UnplaceAll, NewHand, LettersInPlay } from "./playarea";
 
 import type { Opponent } from "./opponent";
 
@@ -161,12 +155,7 @@ export function UseAbilityReal(g: Battler, key: string): Battler {
 }
 
 export async function WordbankCheck(g: Battler): Promise<string[]> {
-  let letters = [...g.playArea.placed];
-  for (const letter of g.playArea.hand) {
-    if (letter) {
-      letters.push(letter);
-    }
-  }
+  let letters = LettersInPlay(g.playArea);
 
   const suggestedWords = await SuggestWords(
     letters,
@@ -188,7 +177,7 @@ export async function NextComHand(g: ComBattler): Promise<ComBattler> {
 
 export async function NextWord(g: ComBattler): Promise<Letter[]> {
   const suggestedWords = await SuggestWords(
-    usableLetters(g.playArea),
+    LettersInPlay(g.playArea),
     [g.profile.strength],
     [],
     [],
@@ -201,7 +190,7 @@ export async function NextWord(g: ComBattler): Promise<Letter[]> {
   }
 
   const fallbackWords = await SuggestWords(
-    usableLetters(g.playArea),
+    LettersInPlay(g.playArea),
     ["letter"],
     [],
     [],

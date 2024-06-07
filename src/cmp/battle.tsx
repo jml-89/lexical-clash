@@ -34,9 +34,12 @@ export function PlayBattle({
   set: (changed: () => void, battle: Battle) => Promise<void>;
 }) {
   const [repaints, repaint] = useState(0);
-  const mystatefn = async (fn: BattleFnT): Promise<void> => {
-    await set(() => repaint((x) => x + 1), await fn(get()));
-  };
+  const statefn = useCallback(
+    async (fn: BattleFnT): Promise<void> => {
+      await set(() => repaint((x) => x + 1), await fn(get()));
+    },
+    [get, set, repaint],
+  );
 
   const getBattler = (): Battler => get().player;
   const setBattler = async (
@@ -44,9 +47,7 @@ export function PlayBattle({
     battler: Battler,
   ): Promise<void> => {
     const prev = getBattler();
-    await mystatefn(
-      async (battle: Battle) => await SetBattler(battle, battler),
-    );
+    await statefn(async (battle: Battle) => await SetBattler(battle, battler));
     const next = getBattler();
     if (!Object.is(prev, next)) {
       changed();
@@ -59,7 +60,7 @@ export function PlayBattle({
       <Contest
         ps={get().player.scoresheet}
         os={get().opponent.scoresheet}
-        statefn={mystatefn}
+        statefn={statefn}
       />
       <DrawBattler get={getBattler} set={setBattler} />
     </main>

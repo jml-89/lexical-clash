@@ -37,11 +37,14 @@ export const DrawBattler = memo(function DrawBattler({
   set: (changed: () => void, battler: Battler) => Promise<void>;
 }) {
   const [repaints, repaint] = useState(0);
-  const mystatefn = async (fn: BattlerFnT): Promise<void> => {
-    await set(() => repaint((x) => x + 1), await fn(get()));
-  };
+  const statefn = useCallback(
+    async (fn: BattlerFnT): Promise<void> => {
+      await set(() => repaint((x) => x + 1), await fn(get()));
+    },
+    [get, set, repaint],
+  );
 
-  return <PlayBattler battler={get()} statefn={mystatefn} />;
+  return <PlayBattler battler={get()} statefn={statefn} />;
 });
 
 function PlayBattler({
