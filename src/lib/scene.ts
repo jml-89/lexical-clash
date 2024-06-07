@@ -158,13 +158,11 @@ export async function NextScene(scene: Scene): Promise<Scene> {
       region.maxLevel,
     );
   }
-  opponent = undefined;
 
   let shop = undefined;
   if (scene.prng(0, 100) < region.lootpct) {
     shop = await NewShop(scene.prng, region.maxLevel, scene.player.bag);
   }
-  shop = await NewShop(scene.prng, region.maxLevel, scene.player.bag);
 
   return {
     prng: scene.prng,
