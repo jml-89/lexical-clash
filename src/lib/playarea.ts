@@ -130,6 +130,13 @@ function sortStacks(stacks: LetterStack[]): LetterStack[] {
   return xs;
 }
 
+export function AddToHand(g: PlayArea, letters: Letter[]): PlayArea {
+  return {
+    ...g,
+    hand: stackIn(g.hand, letters),
+  };
+}
+
 function stackIn(hand: LetterStack[], letters: Letter[]): LetterStack[] {
   let xs: LetterStack[] = [...hand];
   for (const letter of letters) {
@@ -234,21 +241,29 @@ export function PlaceWord(g: PlayArea, word: string): PlayArea {
 }
 
 export function PlaceById(g: PlayArea, id: string): PlayArea {
-  const idx = g.hand.findIndex(
-    (stack) => stack.length > 0 && stack[0].id === id,
+  const idxStack = g.hand.findIndex((stack) =>
+    stack.some((letter) => letter.id === id),
   );
-  if (idx === -1) {
+  if (idxStack < 0) {
     return g;
   }
 
-  const letter = g.hand[idx][0];
+  const idxLetter = g.hand[idxStack].findIndex((letter) => letter.id === id);
+  if (idxLetter < 0) {
+    return g;
+  }
+
+  const letter = g.hand[idxStack][idxLetter];
 
   let nextHand = [...g.hand];
-  nextHand[idx] = nextHand[idx].slice(1);
+  nextHand[idxStack] = [
+    ...nextHand[idxStack].slice(0, idxLetter),
+    ...nextHand[idxStack].slice(idxLetter + 1),
+  ];
 
   return {
     ...g,
-    placed: g.placed.concat([letter]),
+    placed: [...g.placed, letter],
     hand: nextHand,
   };
 }

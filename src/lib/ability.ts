@@ -12,6 +12,7 @@ import {
   DrawByIndex,
   Draw,
   DrawN,
+  AddToHand,
   UnplaceLast,
   UnplaceById,
   PlaceById,
@@ -59,10 +60,7 @@ const AbilitiesBase: AbilityBase[] = [
           temporary: true,
         });
       }
-      return {
-        ...pr,
-        hand: pr.hand.concat(xs),
-      };
+      return AddToHand(pr, xs);
     },
   },
 

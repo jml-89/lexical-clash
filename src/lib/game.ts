@@ -3,7 +3,7 @@
 import prand from "pure-rand";
 
 import type { Scene } from "./scene";
-import { FirstScene, NextScene } from "./scene";
+import { FirstScene, FirstSceneCheat, NextScene } from "./scene";
 
 import type { Player } from "./player";
 import { NewPlayer } from "./player";
@@ -89,6 +89,6 @@ export function NewGame(sessionid: string, seed: number): GameState {
     rs: rs,
     prng: prng,
 
-    scene: FirstScene(prng, NewPlayer()),
+    scene: sessionid === "test" ? FirstSceneCheat(prng) : FirstScene(prng),
   };
 }

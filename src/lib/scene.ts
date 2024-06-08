@@ -7,7 +7,13 @@
 // - more!
 
 import type { Player } from "./player";
-import { AddShopItem, ClaimLootItem, LevelUp } from "./player";
+import {
+  NewPlayer,
+  NewPlayerCheat,
+  AddShopItem,
+  ClaimLootItem,
+  LevelUp,
+} from "./player";
 
 import type { Opponent } from "./opponent";
 import { NewOpponent, NewBoss } from "./opponent";
@@ -94,10 +100,29 @@ export async function TakeLootItem(scene: Scene): Promise<Scene> {
   };
 }
 
-export function FirstScene(prng: PRNG, player: Player): Scene {
+export function FirstSceneCheat(prng: PRNG): Scene {
   return {
     prng: prng,
-    player: player,
+    player: NewPlayerCheat(),
+    region: {
+      name: "Your Journey Begins",
+      minLevel: 1,
+      maxLevel: 1,
+      lootpct: 0,
+      opponentpct: 0,
+      path: ["meadow.jpg"],
+      connections: ["Cave", "Forest"],
+    },
+    regidx: 0,
+    intro: true,
+    loot: FirstLootContainer(),
+  };
+}
+
+export function FirstScene(prng: PRNG): Scene {
+  return {
+    prng: prng,
+    player: NewPlayer(),
     region: {
       name: "Your Journey Begins",
       minLevel: 1,

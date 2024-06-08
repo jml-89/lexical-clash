@@ -1,9 +1,12 @@
 import type { Letter } from "./letter";
 import type { BonusCard } from "./bonus";
+import { BonusCards } from "./bonus";
 import type { AbilityCard } from "./ability";
+import { AbilityCards } from "./ability";
 import type { Wordpack } from "./wordpack";
 import type { LootContainer } from "./loot";
 import type { ShopItem } from "./shop";
+import { CopyMap } from "./util";
 
 export interface Player {
   level: number;
@@ -27,6 +30,18 @@ export function NewPlayer(): Player {
     wordbank: [],
     abilities: new Map<string, AbilityCard>(),
     bonuses: new Map<string, BonusCard>(),
+  };
+}
+
+export function NewPlayerCheat(): Player {
+  return {
+    level: 10,
+    handSize: 20,
+    bag: [],
+    wordpacks: [],
+    wordbank: [],
+    abilities: CopyMap(AbilityCards),
+    bonuses: CopyMap(BonusCards),
   };
 }
 
