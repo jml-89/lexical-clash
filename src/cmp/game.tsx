@@ -35,13 +35,11 @@ function GameScene({
   setGame: (g: GameState) => void;
 }) {
   const [scene, returnHandler] = useStateShim(
-    game,
     game.scene,
-    async (game: GameState, scene: Scene): Promise<GameState> => {
+    async (scene: Scene) => {
       game.scene = scene;
-      return game;
+      setGame(game);
     },
-    async (game: GameState) => setGame(game),
   );
 
   return <PlayScene scene={scene} handleReturn={returnHandler} />;

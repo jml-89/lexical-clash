@@ -124,10 +124,8 @@ function PlayAreaState({
   statefn: StateFnT;
 }) {
   const [playArea, returnHandler] = useStateShim(
-    battler,
     battler.playArea,
-    SetPlayArea,
-    statefn,
+    async (x: PlayArea) => await statefn(await SetPlayArea(battler, x)),
   );
 
   return <DrawPlayArea playArea={playArea} handleReturn={returnHandler} />;

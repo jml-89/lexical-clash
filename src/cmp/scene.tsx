@@ -176,10 +176,8 @@ function SceneOpponent({
 function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
   const [clicked, setClicked] = useState(false);
   const [shop, returnHandler] = useStateShim(
-    scene,
     scene.shop as Shop,
-    SetShop,
-    statefn,
+    async (x: Shop) => await statefn(await SetShop(scene, x)),
   );
 
   if (!scene.shop) {
@@ -222,10 +220,8 @@ function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
 
 function SceneBattle({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
   const [battle, returnHandler] = useStateShim(
-    scene,
     scene.battle as Battle,
-    SetBattle,
-    statefn,
+    async (x: Battle) => await statefn(await SetBattle(scene, x)),
   );
 
   if (!battle) {

@@ -85,29 +85,25 @@ export function ButtonX({
   );
 }
 
-export function useStateShim<Parent, Child>(
-  parent: Parent,
-  child: Child,
-  setChild: (parent: Parent, child: Child) => Promise<Parent>,
-  setParent: (parent: Parent) => Promise<void>,
-): [Child, (child: Child) => Promise<void>] {
-  interface Shim {
-    parent: Parent;
-    local?: Child;
+export function useStateShim<Thing>(
+  thing: Thing,
+  setThing: (thing: Thing) => Promise<void>,
+): [Thing, (thing: Thing) => Promise<void>] {
+  interface History {
+    param: Thing;
+    local?: Thing;
   }
-  const [shim, setShim] = useState<Shim>({ parent: parent });
-  if (!Object.is(parent, shim.parent)) {
-    setShim({ parent: parent });
+  const [shim, setShim] = useState<History>({ param: thing });
+  if (!Object.is(thing, shim.param)) {
+    setShim({ param: thing });
   }
 
-  const returnHandler = async (newChild: Child): Promise<void> => {
-    setShim({ ...shim, local: newChild });
-
-    const next = await setChild(parent, newChild);
-    if (!Object.is(parent, next)) {
-      await setParent(next);
+  const returnHandler = async (next: Thing): Promise<void> => {
+    if (!(shim.local && Object.is(shim.local, next))) {
+      setShim({ ...shim, local: next });
     }
+    await setThing(next);
   };
 
-  return [shim.local ? shim.local : child, returnHandler];
+  return [shim.local ? shim.local : thing, returnHandler];
 }

@@ -63,10 +63,8 @@ function BattlerState({
   statefn: StateFnT;
 }) {
   const [battler, returnHandler] = useStateShim(
-    battle,
     battle.player,
-    SetBattler,
-    statefn,
+    async (x: Battler) => await statefn(await SetBattler(battle, x)),
   );
 
   if (!battler) {

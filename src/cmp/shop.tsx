@@ -88,10 +88,8 @@ export function PlayShop({
 
 function PlayAreaState({ shop, statefn }: { shop: Shop; statefn: StateFnT }) {
   const [playArea, returnHandler] = useStateShim(
-    shop,
     shop.playArea,
-    UpdatePlayArea,
-    statefn,
+    async (x: PlayArea) => await statefn(await UpdatePlayArea(shop, x)),
   );
 
   return <DrawPlayArea playArea={playArea} handleReturn={returnHandler} />;
