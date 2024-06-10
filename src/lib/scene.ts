@@ -39,6 +39,10 @@ export interface Scene {
   player: Player;
   cheatmode: boolean;
 
+  nextShop: number;
+  nextLoot: number;
+  nextOpponent: number;
+
   region: Region;
   regidx: number;
 
@@ -60,8 +64,6 @@ export interface Region {
   name: string;
   minLevel: number;
   maxLevel: number;
-  lootpct: number;
-  opponentpct: number;
 
   path: string[];
 
@@ -106,12 +108,13 @@ export function FirstSceneCheat(prng: PRNG): Scene {
     prng: prng,
     player: NewPlayerCheat(),
     cheatmode: true,
+    nextShop: 1,
+    nextLoot: 1,
+    nextOpponent: 1,
     region: {
       name: "Your Journey Begins",
       minLevel: 1,
       maxLevel: 1,
-      lootpct: 0,
-      opponentpct: 0,
       path: ["meadow.jpg"],
       connections: ["Cave", "Forest"],
     },
@@ -126,12 +129,13 @@ export function FirstScene(prng: PRNG): Scene {
     prng: prng,
     player: NewPlayer(),
     cheatmode: false,
+    nextShop: prng(3, 5),
+    nextLoot: 1,
+    nextOpponent: prng(1, 3),
     region: {
       name: "Your Journey Begins",
       minLevel: 1,
       maxLevel: 1,
-      lootpct: 0,
-      opponentpct: 0,
       path: ["meadow.jpg"],
       connections: ["Cave", "Forest"],
     },
@@ -167,35 +171,46 @@ export async function NextScene(scene: Scene): Promise<Scene> {
     regidx = regidx + 1;
   }
 
+  let nextLoot = scene.nextLoot - 1;
   let loot = undefined;
-  if (scene.cheatmode || scene.prng(0, 100) <= region.lootpct) {
+  if (scene.cheatmode || nextLoot < 1) {
     loot = await NewLootContainer(
       scene.prng,
       scene.prng(region.minLevel, region.maxLevel),
     );
+    nextLoot = scene.prng(1, 3);
   }
 
+  let nextOpponent = scene.nextOpponent - 1;
   let opponent = undefined;
   if (regidx + 1 === region.path.length) {
     opponent = await NewBoss(region.name, region.maxLevel + 1);
-  } else if (scene.cheatmode || scene.prng(0, 100) <= region.opponentpct) {
+  } else if (scene.cheatmode || nextOpponent < 1) {
     opponent = await NewOpponent(
       scene.prng,
       region.name,
       region.minLevel,
       region.maxLevel,
     );
+    nextOpponent = scene.prng(1, 3);
   }
 
+  let nextShop = scene.nextShop - 1;
   let shop = undefined;
-  if (scene.cheatmode || scene.prng(0, 100) < region.lootpct) {
+  if (scene.cheatmode || nextShop < 1) {
     shop = await NewShop(scene.prng, region.maxLevel, scene.player.bag);
+    nextShop = scene.prng(2, 4);
   }
 
   return {
     ...scene,
     region: region,
     regidx: regidx,
+
+    nextShop: nextShop,
+    nextLoot: nextLoot,
+    nextOpponent: nextOpponent,
+
     intro: true,
     opponent: opponent,
     loot: loot,
@@ -279,8 +294,6 @@ const regions = [
     name: "Forest",
     minLevel: 1,
     maxLevel: 2,
-    lootpct: 30,
-    opponentpct: 60,
 
     path: [
       "forest-path.jpg",
@@ -297,8 +310,6 @@ const regions = [
     name: "Cave",
     minLevel: 1,
     maxLevel: 2,
-    lootpct: 40,
-    opponentpct: 70,
 
     path: [
       "cave-entrance.jpg",
@@ -314,8 +325,6 @@ const regions = [
     name: "Castle",
     minLevel: 3,
     maxLevel: 4,
-    lootpct: 50,
-    opponentpct: 70,
 
     path: [
       "castle-entrance.jpg",
@@ -333,8 +342,6 @@ const regions = [
     name: "Mushroom Forest",
     minLevel: 5,
     maxLevel: 7,
-    lootpct: 40,
-    opponentpct: 80,
 
     path: [
       "mushroom-1.jpg",
@@ -351,8 +358,6 @@ const regions = [
     name: "Sewer",
     minLevel: 5,
     maxLevel: 7,
-    lootpct: 40,
-    opponentpct: 80,
 
     path: [
       "sewer-entrance.jpg",
@@ -369,8 +374,6 @@ const regions = [
     name: "City",
     minLevel: 8,
     maxLevel: 10,
-    lootpct: 60,
-    opponentpct: 80,
 
     path: [
       "city-1.jpg",
@@ -387,8 +390,6 @@ const regions = [
     name: "Sea",
     minLevel: 11,
     maxLevel: 15,
-    lootpct: 60,
-    opponentpct: 80,
 
     path: ["sea-1.jpg", "sea-2.jpg", "sea-3.jpg", "sea-4.jpg", "sea-5.jpg"],
 
@@ -399,8 +400,6 @@ const regions = [
     name: "Jungle",
     minLevel: 11,
     maxLevel: 15,
-    lootpct: 60,
-    opponentpct: 80,
 
     path: [
       "jungle-1.jpg",
