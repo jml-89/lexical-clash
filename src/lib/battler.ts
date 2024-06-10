@@ -163,7 +163,7 @@ export async function WordbankCheck(g: Battler): Promise<string[]> {
     g.player.wordpacks.map((pack) => pack.hypernym),
     g.player.wordbank,
     [...g.player.bonuses.values()],
-    20,
+    10,
   );
 
   return suggestedWords.map((a) => a.word);

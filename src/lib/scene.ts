@@ -178,7 +178,7 @@ export async function NextScene(scene: Scene): Promise<Scene> {
       scene.prng,
       scene.prng(region.minLevel, region.maxLevel),
     );
-    nextLoot = scene.prng(1, 3);
+    nextLoot = scene.cheatmode ? 1 : scene.prng(1, 3);
   }
 
   let nextOpponent = scene.nextOpponent - 1;
@@ -192,14 +192,14 @@ export async function NextScene(scene: Scene): Promise<Scene> {
       region.minLevel,
       region.maxLevel,
     );
-    nextOpponent = scene.prng(1, 3);
+    nextOpponent = scene.cheatmode ? 1 : scene.prng(1, 3);
   }
 
   let nextShop = scene.nextShop - 1;
   let shop = undefined;
   if (scene.cheatmode || nextShop < 1) {
     shop = await NewShop(scene.prng, region.maxLevel, scene.player.bag);
-    nextShop = scene.prng(2, 4);
+    nextShop = scene.cheatmode ? 1 : scene.prng(2, 4);
   }
 
   return {

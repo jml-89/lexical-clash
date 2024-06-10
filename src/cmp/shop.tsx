@@ -36,8 +36,7 @@ export function PlayShop({
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center gap-2">
-      <div>
-        <OnDarkGlass className="p-2 text-white">Available</OnDarkGlass>
+      <div className="flex flex-col gap-2">
         {shop.available.map((item, idx) => (
           <DrawShopItem
             key={idx}
@@ -47,11 +46,11 @@ export function PlayShop({
         ))}
       </div>
 
-      <div>
-        <OnDarkGlass className="p-2 text-white">Basket</OnDarkGlass>
+      <div className="flex flex-col gap-2">
         {shop.basket.map((item, idx) => (
           <DrawShopItem
             key={idx}
+            className="bg-lime-500/50"
             item={item}
             onClick={async () => statefn(await RemoveFromBasket(shop, idx))}
           />
@@ -61,18 +60,18 @@ export function PlayShop({
             Price: {shop.price}
           </OnDarkGlass>
         )}
-      </div>
 
-      {shop.payment > 0 && (
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={async () => statefn(await BuyItems(shop))}
-        >
-          <OnDarkGlass className="p-2 text-lime-300">
-            Pay ({shop.payment})
-          </OnDarkGlass>
-        </motion.button>
-      )}
+        {shop.payment > 0 && (
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={async () => statefn(await BuyItems(shop))}
+          >
+            <OnDarkGlass className="p-2 text-lime-300">
+              Pay ({shop.payment})
+            </OnDarkGlass>
+          </motion.button>
+        )}
+      </div>
 
       <PlayAreaState shop={shop} statefn={statefn} />
 
@@ -80,7 +79,7 @@ export function PlayShop({
         onClick={async () => statefn(await EndShopping(shop))}
         whileTap={{ scale: 0.9 }}
       >
-        <OnDarkGlass className="p-2 text-white">Leave</OnDarkGlass>
+        <OnDarkGlass className="p-2 text-red-400">Leave</OnDarkGlass>
       </motion.button>
     </div>
   );
@@ -98,13 +97,15 @@ function PlayAreaState({ shop, statefn }: { shop: Shop; statefn: StateFnT }) {
 function DrawShopItem({
   item,
   onClick,
+  className,
 }: {
   item: ShopItem;
   onClick?: () => void;
+  className?: string;
 }) {
   return (
     <motion.button onClick={onClick} whileTap={{ scale: 0.9 }}>
-      <OnDarkGlass className="p-2 text-white">
+      <OnDarkGlass className={`p-2 text-white ${className ? className : ""}`}>
         <div className="flex-1 flex flex-row">
           <DrawShopItemContent item={item} />
           <div>${item.price}</div>

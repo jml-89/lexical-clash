@@ -101,7 +101,11 @@ function PlayBattler({
   return (
     <div className="self-stretch flex-1 flex flex-col gap-2 items-center px-1">
       {battler.playArea.placed.length > 0 && (
-        <ActionButton scoresheet={battler.scoresheet} requestfn={requestfn} />
+        <ActionButton
+          scoresheet={battler.scoresheet}
+          checking={battler.scoreplease}
+          requestfn={requestfn}
+        />
       )}
       <PlayAreaState battler={battler} statefn={statefn} />
       {actionArea}
@@ -168,17 +172,14 @@ function ListWords({
 
 const ActionButton = memo(function ActionButton({
   scoresheet,
+  checking,
   requestfn,
 }: {
   scoresheet: Scoresheet | undefined;
+  checking: boolean;
   requestfn: () => Promise<void>;
 }) {
-  const [amcheck, setcheck] = useState(false);
-  if (amcheck && scoresheet) {
-    setcheck(false);
-  }
-
-  return amcheck ? (
+  return checking ? (
     <motion.button
       key="checkbutton"
       animate={{ scale: 1 }}
@@ -192,7 +193,6 @@ const ActionButton = memo(function ActionButton({
     <motion.button
       key="checkbutton"
       onClick={async () => {
-        setcheck(true);
         await requestfn();
       }}
       animate={{ scale: 1 }}
