@@ -21,60 +21,69 @@ import { DrawComBattler } from "@/cmp/opponent";
 import type { Battler } from "@/lib/battler";
 import { DrawBattler } from "@/cmp/battler";
 
-import { OnDarkGlass } from "@/cmp/misc";
+import { OnDarkGlass, useStateShim } from "@/cmp/misc";
 
 export type BattleFnT = (a: Battle) => Promise<Battle>;
-type StateFnT = (fn: BattleFnT) => Promise<void>;
+type StateFnT = (battle: Battle) => Promise<void>;
 
 export function PlayBattle({
-  get,
-  set,
+  battle,
+  handleReturn,
 }: {
-  get: () => Battle;
-  set: (changed: () => void, battle: Battle) => Promise<void>;
+  battle: Battle;
+  handleReturn: (battle: Battle) => Promise<void>;
 }) {
-  const [repaints, repaint] = useState(0);
-  const statefn = useCallback(
-    async (fn: BattleFnT): Promise<void> => {
-      await set(() => repaint((x) => x + 1), await fn(get()));
-    },
-    [get, set, repaint],
-  );
+  const statefn = async (battle: Battle): Promise<void> => {
+    handleReturn(battle);
+  };
 
-  const getBattler = (): Battler => get().player;
-  const setBattler = async (
-    changed: () => void,
-    battler: Battler,
-  ): Promise<void> => {
-    const prev = getBattler();
-    await statefn(async (battle: Battle) => await SetBattler(battle, battler));
-    const next = getBattler();
-    if (!Object.is(prev, next)) {
-      changed();
-    }
+  const attackfn = async (): Promise<void> => {
+    const next = await Submit(battle);
+    await handleReturn(next);
   };
 
   return (
     <main className="flex-1 flex flex-col items-center p-1 gap-1 backdrop-blur bg-black/50">
-      <DrawComBattler opp={get().opponent} />
+      <DrawComBattler opp={battle.opponent} />
       <Contest
-        ps={get().player.scoresheet}
-        os={get().opponent.scoresheet}
-        statefn={statefn}
+        ps={battle.player.scoresheet}
+        os={battle.opponent.scoresheet}
+        attackfn={attackfn}
       />
-      <DrawBattler get={getBattler} set={setBattler} />
+      <BattlerState battle={battle} statefn={statefn} />
     </main>
   );
+}
+
+function BattlerState({
+  battle,
+  statefn,
+}: {
+  battle: Battle;
+  statefn: StateFnT;
+}) {
+  const [battler, returnHandler] = useStateShim(
+    battle,
+    battle.player,
+    SetBattler,
+    statefn,
+  );
+
+  if (!battler) {
+    return <></>;
+  }
+
+  return <DrawBattler battler={battler} handleReturn={returnHandler} />;
 }
 
 const Contest = memo(function Contest({
   ps,
   os,
-  statefn,
+  attackfn,
 }: {
   ps: Scoresheet | undefined;
   os: Scoresheet | undefined;
-  statefn: StateFnT;
+  attackfn: () => Promise<void>;
 }) {
   return (
     <div className="flex flex-row justify-center gap-2">
@@ -83,16 +92,16 @@ const Contest = memo(function Contest({
         {ps && ps.ok && <DrawScoresheet sheet={ps} color="text-lime-400" />}
       </div>
 
-      {ps && ps.ok && <AttackButton statefn={statefn} />}
+      {ps && ps.ok && <AttackButton attackfn={attackfn} />}
     </div>
   );
 });
 
-function AttackButton({ statefn }: { statefn: StateFnT }) {
+function AttackButton({ attackfn }: { attackfn: () => Promise<void> }) {
   return (
     <motion.button
       key="attackbutton"
-      onClick={async () => await statefn(Submit)}
+      onClick={attackfn}
       animate={{ scale: 1 }}
       initial={{ scale: 0 }}
       exit={{ scale: 0 }}

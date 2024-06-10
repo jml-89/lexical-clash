@@ -116,6 +116,7 @@ export function AbilityChecks(b: Battler): Battler {
       },
     };
   }
+
   return b;
 }
 
@@ -228,6 +229,7 @@ export async function SetPlayArea(
   if (battler.scoresheet) {
     battler = { ...battler, scoresheet: undefined };
   }
+
   return AbilityChecks(battler);
 }
 

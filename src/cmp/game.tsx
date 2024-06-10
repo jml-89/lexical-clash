@@ -5,12 +5,14 @@ import { memo, useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import type { GameState } from "@/lib/game";
-import { NewGame, LoadGame, SetScene } from "@/lib/game";
+import { NewGame, LoadGame } from "@/lib/game";
 
 import type { Scene } from "@/lib/scene";
 
 import type { SceneFnT } from "@/cmp/scene";
 import { PlayScene } from "@/cmp/scene";
+
+import { useStateShim } from "./misc";
 
 export function PlayGame({
   sid,
@@ -21,22 +23,28 @@ export function PlayGame({
   seed: number;
   save: Object | undefined;
 }) {
-  const ref = useRef(save ? LoadGame(save) : NewGame(sid, seed));
+  const [game, setGame] = useState(save ? LoadGame(save) : NewGame(sid, seed));
+  return <GameScene game={game} setGame={setGame} />;
+}
 
-  const getScene = (): Scene => ref.current.scene;
-  const setScene = async (changed: () => void, scene: Scene): Promise<void> => {
-    // To simulate poor responsiveness
-    // await delay(1500);
+function GameScene({
+  game,
+  setGame,
+}: {
+  game: GameState;
+  setGame: (g: GameState) => void;
+}) {
+  const [scene, returnHandler] = useStateShim(
+    game,
+    game.scene,
+    async (game: GameState, scene: Scene): Promise<GameState> => {
+      game.scene = scene;
+      return game;
+    },
+    async (game: GameState) => setGame(game),
+  );
 
-    const prev = ref.current.scene;
-    ref.current = await SetScene(ref.current, scene);
-    const next = ref.current.scene;
-    if (!Object.is(prev, next)) {
-      changed();
-    }
-  };
-
-  return <PlayScene get={getScene} set={setScene} />;
+  return <PlayScene scene={scene} handleReturn={returnHandler} />;
 }
 
 function delay(ms: number): Promise<void> {

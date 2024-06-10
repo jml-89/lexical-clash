@@ -18,89 +18,83 @@ import { DrawBonus } from "./bonus";
 import { DrawWordpack } from "./wordpack";
 import { DrawPlayArea } from "./playarea";
 
-import { OnDarkGlass } from "./misc";
+import { OnDarkGlass, useStateShim } from "./misc";
 
 export type ShopFnT = (shop: Shop) => Promise<Shop>;
-type StateFnT = (fn: ShopFnT) => Promise<void>;
+type StateFnT = (shop: Shop) => Promise<void>;
 
 export function PlayShop({
-  get,
-  set,
+  shop,
+  handleReturn,
 }: {
-  get: () => Shop;
-  set: (changed: () => void, shop: Shop) => Promise<void>;
+  shop: Shop;
+  handleReturn: (shop: Shop) => Promise<void>;
 }) {
-  const [repaints, repaint] = useState(0);
-  const statefn = useCallback(
-    async (fn: ShopFnT): Promise<void> => {
-      await set(() => repaint((x) => x + 1), await fn(get()));
-    },
-    [get, set, repaint],
-  );
-
-  const getPlayArea = useCallback((): PlayArea => get().playArea, [get]);
-  const setPlayArea = useCallback(
-    async (changed: () => void, playArea: PlayArea): Promise<void> => {
-      const prev = getPlayArea();
-      await statefn(async (shop: Shop) => await UpdatePlayArea(shop, playArea));
-      const next = getPlayArea();
-      if (!Object.is(prev, next)) {
-        changed();
-      }
-    },
-    [getPlayArea, statefn],
-  );
+  const statefn = async (shop: Shop): Promise<void> => {
+    await handleReturn(shop);
+  };
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center gap-2">
       <div>
         <OnDarkGlass className="p-2 text-white">Available</OnDarkGlass>
-        {get().available.map((item, idx) => (
+        {shop.available.map((item, idx) => (
           <DrawShopItem
             key={idx}
             item={item}
-            onClick={() => statefn((shop: Shop) => AddToBasket(shop, idx))}
+            onClick={async () => statefn(await AddToBasket(shop, idx))}
           />
         ))}
       </div>
 
       <div>
         <OnDarkGlass className="p-2 text-white">Basket</OnDarkGlass>
-        {get().basket.map((item, idx) => (
+        {shop.basket.map((item, idx) => (
           <DrawShopItem
             key={idx}
             item={item}
-            onClick={() => statefn((shop: Shop) => RemoveFromBasket(shop, idx))}
+            onClick={async () => statefn(await RemoveFromBasket(shop, idx))}
           />
         ))}
-        {get().price > 0 && (
+        {shop.price > 0 && (
           <OnDarkGlass className="p-2 text-red-300">
-            Price: {get().price}
+            Price: {shop.price}
           </OnDarkGlass>
         )}
       </div>
 
-      {get().payment > 0 && (
+      {shop.payment > 0 && (
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => statefn(BuyItems)}
+          onClick={async () => statefn(await BuyItems(shop))}
         >
           <OnDarkGlass className="p-2 text-lime-300">
-            Pay ({get().payment})
+            Pay ({shop.payment})
           </OnDarkGlass>
         </motion.button>
       )}
 
-      <DrawPlayArea get={getPlayArea} set={setPlayArea} />
+      <PlayAreaState shop={shop} statefn={statefn} />
 
       <motion.button
-        onClick={() => statefn(EndShopping)}
+        onClick={async () => statefn(await EndShopping(shop))}
         whileTap={{ scale: 0.9 }}
       >
         <OnDarkGlass className="p-2 text-white">Leave</OnDarkGlass>
       </motion.button>
     </div>
   );
+}
+
+function PlayAreaState({ shop, statefn }: { shop: Shop; statefn: StateFnT }) {
+  const [playArea, returnHandler] = useStateShim(
+    shop,
+    shop.playArea,
+    UpdatePlayArea,
+    statefn,
+  );
+
+  return <DrawPlayArea playArea={playArea} handleReturn={returnHandler} />;
 }
 
 function DrawShopItem({

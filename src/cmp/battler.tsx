@@ -24,27 +24,22 @@ import { AbilityCarousel } from "@/cmp/ability";
 import { BonusCarousel } from "@/cmp/bonus";
 import type { PlayAreaFnT } from "@/cmp/playarea";
 import { DrawPlayArea } from "@/cmp/playarea";
-import { HealthBar, OnDarkGlass } from "@/cmp/misc";
+import { HealthBar, OnDarkGlass, useStateShim } from "@/cmp/misc";
 
 export type BattlerFnT = (a: Battler) => Promise<Battler>;
-type StateFnT = (fn: BattlerFnT) => Promise<void>;
+type StateFnT = (battler: Battler) => Promise<void>;
 
 export const DrawBattler = memo(function DrawBattler({
-  get,
-  set,
+  battler,
+  handleReturn,
 }: {
-  get: () => Battler;
-  set: (changed: () => void, battler: Battler) => Promise<void>;
+  battler: Battler;
+  handleReturn: (battler: Battler) => Promise<void>;
 }) {
-  const [repaints, repaint] = useState(0);
-  const statefn = useCallback(
-    async (fn: BattlerFnT): Promise<void> => {
-      await set(() => repaint((x) => x + 1), await fn(get()));
-    },
-    [get, set, repaint],
-  );
-
-  return <PlayBattler battler={get()} statefn={statefn} />;
+  const statefn = async (next: Battler): Promise<void> => {
+    await handleReturn(next);
+  };
+  return <PlayBattler battler={battler} statefn={statefn} />;
 });
 
 function PlayBattler({
@@ -68,22 +63,10 @@ function PlayBattler({
   );
 
   const closefn = useCallback(() => setView("buttons"), [setView]);
-  const abilitystatefn = (s: string) => statefn((g) => UseAbility(g, s));
-
-  const getPlayArea = (): PlayArea => battler.playArea;
-  const setPlayArea = async (
-    changed: () => void,
-    playArea: PlayArea,
-  ): Promise<void> => {
-    const prev = getPlayArea();
-    await statefn(
-      async (battler: Battler) => await SetPlayArea(battler, playArea),
-    );
-    const next = getPlayArea();
-    if (!Object.is(prev, next)) {
-      changed();
-    }
-  };
+  const abilitystatefn = async (s: string) =>
+    statefn(await UseAbility(battler, s));
+  const placefn = async (s: string) => statefn(await PlaceWordbank(battler, s));
+  const requestfn = async () => statefn(await RequestScore(battler));
 
   const actionArea =
     view === "buttons" ? (
@@ -108,7 +91,7 @@ function PlayBattler({
     ) : view === "wordbank" ? (
       <ListWords
         words={battler.wordMatches}
-        statefn={statefn}
+        placefn={placefn}
         closefn={closefn}
       />
     ) : (
@@ -118,9 +101,9 @@ function PlayBattler({
   return (
     <div className="self-stretch flex-1 flex flex-col gap-2 items-center px-1">
       {battler.playArea.placed.length > 0 && (
-        <ActionButton scoresheet={battler.scoresheet} statefn={statefn} />
+        <ActionButton scoresheet={battler.scoresheet} requestfn={requestfn} />
       )}
-      <DrawPlayArea get={getPlayArea} set={setPlayArea} />
+      <PlayAreaState battler={battler} statefn={statefn} />
       {actionArea}
       <div className="self-stretch">
         <HealthBar
@@ -133,24 +116,32 @@ function PlayBattler({
   );
 }
 
+function PlayAreaState({
+  battler,
+  statefn,
+}: {
+  battler: Battler;
+  statefn: StateFnT;
+}) {
+  const [playArea, returnHandler] = useStateShim(
+    battler,
+    battler.playArea,
+    SetPlayArea,
+    statefn,
+  );
+
+  return <DrawPlayArea playArea={playArea} handleReturn={returnHandler} />;
+}
+
 function ListWords({
   words,
-  statefn,
+  placefn,
   closefn,
 }: {
   words: string[];
-  statefn: StateFnT;
+  placefn: (s: string) => Promise<void>;
   closefn: () => void;
 }) {
-  const placefn = useCallback(
-    (id: string): (() => Promise<void>) => {
-      return async () => {
-        await statefn((g: Battler) => PlaceWordbank(g, id));
-      };
-    },
-    [statefn],
-  );
-
   return (
     <div className="flex flex-col gap-1 text-black">
       <ul className="flex-1 flex flex-row font-bold gap-1 flex-wrap-reverse">
@@ -165,7 +156,7 @@ function ListWords({
         {words.map((word, letters) => (
           <li key={word}>
             <button
-              onClick={placefn(word)}
+              onClick={async () => await placefn(word)}
               className="bg-orange-200 px-2 py-0.5 rounded-lg"
             >
               {word}
@@ -179,10 +170,10 @@ function ListWords({
 
 const ActionButton = memo(function ActionButton({
   scoresheet,
-  statefn,
+  requestfn,
 }: {
   scoresheet: Scoresheet | undefined;
-  statefn: StateFnT;
+  requestfn: () => Promise<void>;
 }) {
   const [amcheck, setcheck] = useState(false);
   if (amcheck && scoresheet) {
@@ -204,7 +195,7 @@ const ActionButton = memo(function ActionButton({
       key="checkbutton"
       onClick={async () => {
         setcheck(true);
-        statefn(RequestScore);
+        await requestfn();
       }}
       animate={{ scale: 1 }}
       initial={{ scale: 0 }}

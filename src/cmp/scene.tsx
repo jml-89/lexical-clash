@@ -25,29 +25,25 @@ import { OpponentMugshotMinimal } from "@/cmp/opponent";
 import { DrawLootContainer } from "@/cmp/loot";
 import { PlayShop } from "@/cmp/shop";
 
-import { ButtonX, OnDarkGlass } from "@/cmp/misc";
+import { OnDarkGlass, useStateShim } from "@/cmp/misc";
 
 export type SceneFnT = (a: Scene) => Promise<Scene>;
-type StateFnT = (fn: SceneFnT) => Promise<void>;
+type StateFnT = (scene: Scene) => Promise<void>;
 
 export function PlayScene({
-  get,
-  set,
+  scene,
+  handleReturn,
 }: {
-  get: () => Scene;
-  set: (changed: () => void, scene: Scene) => Promise<void>;
+  scene: Scene;
+  handleReturn: (scene: Scene) => Promise<void>;
 }) {
-  const [repaints, repaint] = useState(0);
-  const statefn = useCallback(
-    async (fn: SceneFnT): Promise<void> => {
-      await set(() => repaint((x) => x + 1), await fn(get()));
-    },
-    [get, set, repaint],
-  );
+  const statefn = async (scene: Scene): Promise<void> => {
+    handleReturn(scene);
+  };
 
   return (
-    <DrawLocation location={get().region.path[get().regidx]}>
-      <PlaySceneContent scene={get()} statefn={statefn} />
+    <DrawLocation location={scene.region.path[scene.regidx]}>
+      <PlaySceneContent scene={scene} statefn={statefn} />
     </DrawLocation>
   );
 }
@@ -75,12 +71,12 @@ function SceneLoot({ children }: { children: React.ReactNode }) {}
 
 function SceneExplore({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
   const [clicked, setClicked] = useState(false);
-  const clickfn = () => {
+  const clickfn = async () => {
     if (clicked) {
       return;
     }
     setClicked(true);
-    statefn(EndIntro);
+    statefn(await EndIntro(scene));
   };
 
   return (
@@ -116,13 +112,13 @@ function SceneOpponent({
   const [clicked, setClicked] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const clickfn = () => {
+  const clickfn = async () => {
     if (clicked) {
       return;
     }
 
     setClicked(true);
-    statefn(StartBattle);
+    statefn(await StartBattle(scene));
   };
 
   if (!scene.opponent) {
@@ -179,6 +175,12 @@ function SceneOpponent({
 
 function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
   const [clicked, setClicked] = useState(false);
+  const [shop, returnHandler] = useStateShim(
+    scene,
+    scene.shop as Shop,
+    SetShop,
+    statefn,
+  );
 
   if (!scene.shop) {
     return <></>;
@@ -190,16 +192,6 @@ function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
     }
 
     setClicked(true);
-  };
-
-  const getShop = (): Shop => scene.shop as Shop;
-  const setShop = async (changed: () => void, shop: Shop): Promise<void> => {
-    const prev = getShop();
-    await statefn(async (scene: Scene) => await SetShop(scene, shop));
-    const next = getShop();
-    if (!Object.is(prev, next)) {
-      changed();
-    }
   };
 
   return (
@@ -223,26 +215,24 @@ function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
             />
           </OnDarkGlass>
         </motion.button>
-      )) || <PlayShop get={getShop} set={setShop} />}
+      )) || <PlayShop shop={scene.shop} handleReturn={returnHandler} />}
     </SceneLayout>
   );
 }
 
 function SceneBattle({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
-  const getBattle = (): Battle => scene.battle as Battle;
-  const setBattle = async (
-    changed: () => void,
-    battle: Battle,
-  ): Promise<void> => {
-    const prev = getBattle();
-    await statefn(async (scene: Scene) => await SetBattle(scene, battle));
-    const next = getBattle();
-    if (!Object.is(prev, next)) {
-      changed();
-    }
-  };
+  const [battle, returnHandler] = useStateShim(
+    scene,
+    scene.battle as Battle,
+    SetBattle,
+    statefn,
+  );
 
-  return <PlayBattle get={getBattle} set={setBattle} />;
+  if (!battle) {
+    return <></>;
+  }
+
+  return <PlayBattle battle={battle} handleReturn={returnHandler} />;
 }
 
 function SceneLost({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
@@ -295,7 +285,7 @@ function PlaySceneContent({
         <DrawLootContainer
           key="battleloot"
           loot={scene.battleloot}
-          claimfn={() => statefn(TakeBattleLootItem)}
+          claimfn={async () => await statefn(await TakeBattleLootItem(scene))}
         />
       </SceneLayout>
     );
@@ -308,7 +298,7 @@ function PlaySceneContent({
         <DrawLootContainer
           key="locationloot"
           loot={scene.loot}
-          claimfn={() => statefn(TakeLootItem)}
+          claimfn={async () => await statefn(await TakeLootItem(scene))}
         />
       </SceneLayout>
     );
@@ -318,8 +308,8 @@ function PlaySceneContent({
     return <SceneShop key="shop" scene={scene} statefn={statefn} />;
   }
 
-  const choose = (key: string) =>
-    statefn((scene) => ChooseConnection(scene, key));
+  const choose = async (key: string) =>
+    await statefn(await ChooseConnection(scene, key));
   return <DrawConnections scene={scene} choosefn={choose} />;
 }
 

@@ -84,3 +84,30 @@ export function ButtonX({
     </button>
   );
 }
+
+export function useStateShim<Parent, Child>(
+  parent: Parent,
+  child: Child,
+  setChild: (parent: Parent, child: Child) => Promise<Parent>,
+  setParent: (parent: Parent) => Promise<void>,
+): [Child, (child: Child) => Promise<void>] {
+  interface Shim {
+    parent: Parent;
+    local?: Child;
+  }
+  const [shim, setShim] = useState<Shim>({ parent: parent });
+  if (!Object.is(parent, shim.parent)) {
+    setShim({ parent: parent });
+  }
+
+  const returnHandler = async (newChild: Child): Promise<void> => {
+    setShim({ ...shim, local: newChild });
+
+    const next = await setChild(parent, newChild);
+    if (!Object.is(parent, next)) {
+      await setParent(next);
+    }
+  };
+
+  return [shim.local ? shim.local : child, returnHandler];
+}

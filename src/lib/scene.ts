@@ -37,6 +37,7 @@ export interface Scene {
   prng: PRNG;
 
   player: Player;
+  cheatmode: boolean;
 
   region: Region;
   regidx: number;
@@ -104,6 +105,7 @@ export function FirstSceneCheat(prng: PRNG): Scene {
   return {
     prng: prng,
     player: NewPlayerCheat(),
+    cheatmode: true,
     region: {
       name: "Your Journey Begins",
       minLevel: 1,
@@ -123,6 +125,7 @@ export function FirstScene(prng: PRNG): Scene {
   return {
     prng: prng,
     player: NewPlayer(),
+    cheatmode: false,
     region: {
       name: "Your Journey Begins",
       minLevel: 1,
@@ -165,7 +168,7 @@ export async function NextScene(scene: Scene): Promise<Scene> {
   }
 
   let loot = undefined;
-  if (scene.prng(0, 100) <= region.lootpct) {
+  if (scene.cheatmode || scene.prng(0, 100) <= region.lootpct) {
     loot = await NewLootContainer(
       scene.prng,
       scene.prng(region.minLevel, region.maxLevel),
@@ -175,7 +178,7 @@ export async function NextScene(scene: Scene): Promise<Scene> {
   let opponent = undefined;
   if (regidx + 1 === region.path.length) {
     opponent = await NewBoss(region.name, region.maxLevel + 1);
-  } else if (scene.prng(0, 100) <= region.opponentpct) {
+  } else if (scene.cheatmode || scene.prng(0, 100) <= region.opponentpct) {
     opponent = await NewOpponent(
       scene.prng,
       region.name,
@@ -185,16 +188,15 @@ export async function NextScene(scene: Scene): Promise<Scene> {
   }
 
   let shop = undefined;
-  if (scene.prng(0, 100) < region.lootpct) {
+  if (scene.cheatmode || scene.prng(0, 100) < region.lootpct) {
     shop = await NewShop(scene.prng, region.maxLevel, scene.player.bag);
   }
 
   return {
-    prng: scene.prng,
+    ...scene,
     region: region,
     regidx: regidx,
     intro: true,
-    player: scene.player,
     opponent: opponent,
     loot: loot,
     shop: shop,
@@ -211,7 +213,6 @@ export async function SetShop(scene: Scene, shop: Shop): Promise<Scene> {
   for (const item of shop.bought) {
     player = AddShopItem(player, item);
   }
-  player.bag = [...shop.playArea.bag];
 
   return {
     ...scene,
