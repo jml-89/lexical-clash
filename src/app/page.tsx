@@ -12,9 +12,11 @@ export default async function Intro() {
   }
 
   return (
-    <main className="text-amber-400 text-sm flex flex-col justify-between items-center gap-2 p-1">
-      <FatLink href={sesh}>Adventure</FatLink>
-      <FatLink href="/about">About</FatLink>
+    <main className="flex-1 flex flex-col bg-[url('/bg/main.jpg')] bg-center bg-cover">
+      <div className="flex-1 flex flex-col self-stretch justify-center items-center gap-4 backdrop-blur-sm backdrop-brightness-50">
+        <FatLink href={sesh}>Adventure</FatLink>
+        <FatLink href="/about">About</FatLink>
+      </div>
     </main>
   );
 }
@@ -28,7 +30,7 @@ function FatLink({
 }) {
   return (
     <Link
-      className="m-4 text-6xl font-light tracking-tighter shadow-amber-500 shadow bg-red-800 rounded-lg p-4"
+      className="p-4 text-6xl text-white font-light tracking-tight backdrop-blur-lg bg-black/50 rounded-lg border border-black shadow-lg shadow-slate-900"
       href={href}
     >
       {children}

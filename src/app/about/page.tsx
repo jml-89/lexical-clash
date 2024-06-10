@@ -1,9 +1,5 @@
 import Link from "next/link";
 
-// Need this to be dynamic for the random session id generation
-// (really should be done somewhere else... in time)
-export const dynamic = "force-dynamic";
-
 interface Ramble {
   title: string;
   body: string;
@@ -11,20 +7,25 @@ interface Ramble {
 
 const basics: Ramble[] = [
   {
-    title: "How to Play",
+    title: "How to Aventure",
     body: `
-		You are entering a word battle.
+    There's not much to it, just tap the buttons that appear.
+    Sometimes there's even a choice.
+	`,
+  },
+
+  {
+    title: "How to Battle",
+    body: `
+    It's simple, put together better words than your opponent.
+
 		Each round your opponent will place down a word.
 		You must place a better word, or lose health.
 		The battle will continue until you or your opponent run out of health.
 
-		Tap letters to arrange them into a word.
-		Tap the check word button to see if your word is valid.
-		If the word is valid, a word score will be presented.
-		If the word score is satisfactory to you, press attack!
-
 		Use abilities to improve your word building capability.
 		Embrace bonuses to improve your word scores.
+    Use the wordbank to get suggestions.
 	`,
   },
 
@@ -42,7 +43,7 @@ const basics: Ramble[] = [
   },
 
   {
-    title: "Wordnet Weirdness",
+    title: "Wordnet?",
     body: `
 		The word database used for this game is WordNet® 
 		Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept.
@@ -55,8 +56,9 @@ const basics: Ramble[] = [
 		Second, WordNet labels the semantic relations among words, whereas the groupings of words in a thesaurus does not follow any explicit pattern other than meaning similarity.
 
 		There are loads of words that WordNet just doesn't have. 
-		'where' for example.
-		Just not a WordNet type of word. 
+    You can generally rely it on to have nouns, verbs, adjectives.
+    Any other class of word, don't be surprised if WordNet does not have it
+    After all, how would those words be worked into a hypernym/hyponym relationship?
 	`,
   },
 ];
