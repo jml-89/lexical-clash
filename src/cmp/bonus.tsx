@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { BonusCard } from "@/lib/bonus";
 
+import { SquishyButton, OnDarkGlass } from "./misc";
+
 export function BonusCarousel({
   bonuses,
   closefn,
@@ -19,41 +21,32 @@ export function BonusCarousel({
   }
   const bonus = bonuses.get(keys[idx]) as BonusCard;
   return (
-    <div className="flex flex-col gap-1 text-black">
-      <div className="flex-1 flex flex-col items-baseline bg-orange-200 p-1">
-        <div className="flex flex-row items-baseline gap-1">
-          <h1 className="text-xl">{bonus.name}</h1>
-          <div className="italic">
-            Level {bonus.level} (+{bonus.level * bonus.weight} points)
-          </div>
-        </div>
-        <p className="">{bonus.desc}</p>
-      </div>
+    <div className="flex flex-col gap-1 text-white">
+      <OnDarkGlass className="p-1 bg-green-400/50 shadow-none">
+        <DrawBonus bonus={bonus} />
+      </OnDarkGlass>
 
-      <div className="self-stretch grid grid-cols-5 gap-1">
-        <button
-          className="col-start-1 bg-red-500 py-0.5 px-2 rounded-lg"
-          onClick={closefn}
-        >
-          Back
-        </button>
+      <div className="self-stretch grid grid-cols-3 gap-1">
+        <div className="col-start-1 grid">
+          <SquishyButton onClick={closefn}>
+            <OnDarkGlass className="bg-red-400/50">Back</OnDarkGlass>
+          </SquishyButton>
+        </div>
 
         {idx > 0 && (
-          <button
-            className="col-start-2 bg-amber-300 py-0.5 px-2 rounded-lg"
-            onClick={() => setIdx(idx - 1)}
-          >
-            Prev
-          </button>
+          <div className="col-start-2 grid">
+            <SquishyButton onClick={() => setIdx(idx - 1)} manyClick>
+              <OnDarkGlass className="bg-yellow-300/50">Prev</OnDarkGlass>
+            </SquishyButton>
+          </div>
         )}
 
         {idx + 1 !== keys.length && (
-          <button
-            className="col-start-3 bg-amber-300 py-0.5 px-2 rounded-lg"
-            onClick={() => setIdx(idx + 1)}
-          >
-            Next
-          </button>
+          <div className="col-start-3 grid">
+            <SquishyButton onClick={() => setIdx(idx + 1)} manyClick>
+              <OnDarkGlass className="bg-yellow-300/50">Next</OnDarkGlass>
+            </SquishyButton>
+          </div>
         )}
       </div>
     </div>
@@ -62,13 +55,16 @@ export function BonusCarousel({
 
 export function DrawBonus({ bonus }: { bonus: BonusCard }) {
   return (
-    <div key={bonus.name} className="flex flex-col gap-1">
-      <h1 className="text-xl font-bold">{bonus.name}</h1>
-      <div className="italic">{bonus.desc}</div>
-      <div>
-        <span className="font-bold">Level {bonus.level}:</span>{" "}
-        {bonus.weight * bonus.level} points
+    <div key={bonus.name} className="flex flex-col">
+      <div className="flex flex-row justify-between items-baseline">
+        <div className="text-xl font-bold">{bonus.name}</div>
+        <div className="text-sm">
+          <span className="font-bold">Level {bonus.level}:</span>
+          {" +"}
+          {bonus.weight * bonus.level} points
+        </div>
       </div>
+      <div className="text-sm italic">{bonus.desc}</div>
     </div>
   );
 }

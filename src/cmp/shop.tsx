@@ -18,7 +18,7 @@ import { DrawBonus } from "./bonus";
 import { DrawWordpack } from "./wordpack";
 import { DrawPlayArea } from "./playarea";
 
-import { OnDarkGlass, useStateShim } from "./misc";
+import { SquishyButton, OnDarkGlass, useStateShim } from "./misc";
 
 export type ShopFnT = (shop: Shop) => Promise<Shop>;
 type StateFnT = (shop: Shop) => Promise<void>;
@@ -64,12 +64,9 @@ export function PlayShop({
           )}
 
           {shop.price > 0 && shop.payment >= shop.price && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={async () => statefn(await BuyItems(shop))}
-            >
+            <SquishyButton onClick={async () => statefn(await BuyItems(shop))}>
               <OnDarkGlass className="p-2 text-lime-300">Buy!</OnDarkGlass>
-            </motion.button>
+            </SquishyButton>
           )}
 
           {shop.payment > 0 && (
@@ -82,12 +79,9 @@ export function PlayShop({
 
       <PlayAreaState shop={shop} statefn={statefn} />
 
-      <motion.button
-        onClick={async () => statefn(await EndShopping(shop))}
-        whileTap={{ scale: 0.9 }}
-      >
+      <SquishyButton onClick={async () => statefn(await EndShopping(shop))}>
         <OnDarkGlass className="p-2 text-red-400 text-2xl">Leave</OnDarkGlass>
-      </motion.button>
+      </SquishyButton>
     </div>
   );
 }

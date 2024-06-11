@@ -25,7 +25,12 @@ import { OpponentMugshotMinimal } from "@/cmp/opponent";
 import { DrawLootContainer } from "@/cmp/loot";
 import { PlayShop } from "@/cmp/shop";
 
-import { OnBackground, OnDarkGlass, useStateShim } from "@/cmp/misc";
+import {
+  OnBackground,
+  SquishyButton,
+  OnDarkGlass,
+  useStateShim,
+} from "@/cmp/misc";
 
 export type SceneFnT = (a: Scene) => Promise<Scene>;
 type StateFnT = (scene: Scene) => Promise<void>;
@@ -69,20 +74,7 @@ function SceneLayout({
 
 function SceneLoot({ children }: { children: React.ReactNode }) {}
 
-function SceneExplore({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
-  const [clicked, setClicked] = useState(false);
-  const clickfn = async () => {
-    if (clicked) {
-      return;
-    }
-    setClicked(true);
-    statefn(await EndIntro(scene));
-  };
-
-  return (
-    <SceneLayout title={scene.region.name}>
-      <AnimatePresence>
-        {!clicked && (
+/*
           <motion.button
             key="explore-button"
             className="flex flex-row self-center justify-center"
@@ -92,12 +84,21 @@ function SceneExplore({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
             whileTap={{ scale: 0.9 }}
             onClick={clickfn}
           >
-            <OnDarkGlass>
-              <div className="p-4 text-4xl text-white">Explore!</div>
-            </OnDarkGlass>
-          </motion.button>
-        )}
-      </AnimatePresence>
+*/
+
+function SceneExplore({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
+  return (
+    <SceneLayout title={scene.region.name}>
+      <div className="self-center">
+        <SquishyButton
+          key="explore"
+          onClick={async () => statefn(await EndIntro(scene))}
+        >
+          <OnDarkGlass className="p-4 text-4xl text-white">
+            Explore!
+          </OnDarkGlass>
+        </SquishyButton>
+      </div>
     </SceneLayout>
   );
 }

@@ -21,7 +21,7 @@ import { DrawComBattler } from "@/cmp/opponent";
 import type { Battler } from "@/lib/battler";
 import { DrawBattler } from "@/cmp/battler";
 
-import { OnDarkGlass, useStateShim } from "@/cmp/misc";
+import { SquishyButton, OnDarkGlass, useStateShim } from "@/cmp/misc";
 
 export type BattleFnT = (a: Battle) => Promise<Battle>;
 type StateFnT = (battle: Battle) => Promise<void>;
@@ -84,7 +84,7 @@ const Contest = memo(function Contest({
   attackfn: () => Promise<void>;
 }) {
   return (
-    <div className="flex flex-row justify-center gap-2">
+    <div className="flex flex-row justify-center items-center gap-2">
       <div className="flex flex-col justify-center text-sm font-light">
         {os && os.ok && <DrawScoresheet sheet={os} color="text-red-300" />}
         {ps && ps.ok && <DrawScoresheet sheet={ps} color="text-lime-400" />}
@@ -97,17 +97,10 @@ const Contest = memo(function Contest({
 
 function AttackButton({ attackfn }: { attackfn: () => Promise<void> }) {
   return (
-    <motion.button
-      key="attackbutton"
-      onClick={attackfn}
-      animate={{ scale: 1 }}
-      initial={{ scale: 0 }}
-      exit={{ scale: 0 }}
-      whileTap={{ scale: 0.9 }}
-    >
+    <SquishyButton key="attackbutton" onClick={attackfn}>
       <OnDarkGlass className="bg-lime-500/75 text-white text-4xl p-4">
         Attack
       </OnDarkGlass>
-    </motion.button>
+    </SquishyButton>
   );
 }

@@ -2,6 +2,8 @@ import { useState } from "react";
 
 import type { AbilityCard } from "@/lib/ability";
 
+import { TapGlass, SquishyButton, OnDarkGlass } from "./misc";
+
 type AbilityFnT = (s: string) => Promise<void>;
 
 export function AbilityCarousel({
@@ -28,55 +30,45 @@ export function AbilityCarousel({
 
   const buttoncn = "py-0.5 px-2 rounded-lg";
   return (
-    <div className="flex flex-col gap-1 text-black">
-      <div className="flex-1 flex flex-col bg-orange-200 p-1">
-        <div className="flex flex-row gap-1 items-baseline">
-          <h1 className="text-2xl">{ability.name}</h1>
-          <div className="italic">{ability.uses} uses remaining</div>
-        </div>
-        <p className="">{ability.desc}</p>
-      </div>
+    <div className="flex flex-col gap-1 text-white">
+      <OnDarkGlass className="p-1 bg-green-400/50 shadow-none">
+        <DrawAbility ability={ability} />
+      </OnDarkGlass>
 
-      <div className="self-stretch grid grid-cols-5 gap-1">
-        <button
-          className={`${buttoncn} col-start-1 bg-red-500`}
-          onClick={closefn}
-        >
-          Back
-        </button>
+      <div className="self-stretch grid grid-cols-4 gap-1">
+        <div className="col-start-1 grid">
+          <TapGlass onClick={closefn} className="bg-red-400/50">
+            Back
+          </TapGlass>
+        </div>
 
         {idx > 0 && (
-          <button
-            className={`${buttoncn} col-start-2 bg-amber-300`}
-            onClick={() => setIdx(idx - 1)}
-          >
-            Prev
-          </button>
+          <div className="col-start-2 grid">
+            <SquishyButton onClick={() => setIdx(idx - 1)} manyClick>
+              <OnDarkGlass className="bg-yellow-300/50">Prev</OnDarkGlass>
+            </SquishyButton>
+          </div>
         )}
 
         {idx + 1 !== keys.length && (
-          <button
-            className={`${buttoncn} col-start-3 bg-amber-300`}
-            onClick={() => setIdx(idx + 1)}
-          >
-            Next
-          </button>
+          <div className="col-start-3 grid">
+            <SquishyButton onClick={() => setIdx(idx + 1)} manyClick>
+              <OnDarkGlass className="bg-yellow-300/50">Next</OnDarkGlass>
+            </SquishyButton>
+          </div>
         )}
 
-        {canuse ? (
-          <button
-            className={`${buttoncn} col-start-4 col-span-2 bg-lime-500`}
-            onClick={use}
-          >
-            Use
-          </button>
-        ) : (
-          <button
-            className={`${buttoncn} col-start-4 col-span-2 bg-neutral-500`}
-          >
-            Use
-          </button>
-        )}
+        <div className="col-start-4 grid">
+          {canuse ? (
+            <SquishyButton onClick={use} manyClick>
+              <OnDarkGlass className="bg-lime-300/75">Use</OnDarkGlass>
+            </SquishyButton>
+          ) : (
+            <SquishyButton>
+              <OnDarkGlass className="bg-neutral-300/50">Use</OnDarkGlass>
+            </SquishyButton>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -84,9 +76,12 @@ export function AbilityCarousel({
 
 export function DrawAbility({ ability }: { ability: AbilityCard }) {
   return (
-    <div key={ability.name} className="flex flex-col gap-1">
-      <h1 className="text-xl font-bold">{ability.name}</h1>
-      <div className="italic">{ability.desc}</div>
+    <div key={ability.name} className="flex flex-col">
+      <div className="flex flex-row justify-between items-baseline">
+        <h1 className="text-xl font-bold">{ability.name}</h1>
+        <div>{ability.uses} uses remaining</div>
+      </div>
+      <div className="text-sm italic">{ability.desc}</div>
     </div>
   );
 }

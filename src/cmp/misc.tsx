@@ -48,6 +48,24 @@ export const HealthBar = memo(function HealthBar({
   );
 });
 
+export function TapGlass({
+  children,
+  className,
+  onClick,
+  repeat,
+}: {
+  children?: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+  repeat?: boolean;
+}) {
+  return (
+    <SquishyButton onClick={onClick} manyClick={repeat}>
+      <OnDarkGlass className={className}>{children}</OnDarkGlass>
+    </SquishyButton>
+  );
+}
+
 export function OnDarkGlass({
   children,
   className,
@@ -55,12 +73,50 @@ export function OnDarkGlass({
   children: React.ReactNode;
   className?: string;
 }) {
-  let cn =
-    "backdrop-blur-lg bg-black/50 rounded-lg border border-black shadow-lg shadow-slate-900";
+  let cn = "backdrop-blur-lg bg-black/50 border border-black";
   if (className) {
     cn = `${cn} ${className}`;
   }
   return <div className={cn}>{children}</div>;
+}
+
+export function SquishyButton({
+  children,
+  onClick,
+  className,
+  manyClick,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+  manyClick?: boolean;
+}) {
+  const [clicked, setClicked] = useState(false);
+
+  const done = !manyClick && clicked;
+
+  const myOnClick = onClick
+    ? () => {
+        if (done) {
+          return;
+        }
+        setClicked(true);
+        onClick();
+      }
+    : undefined;
+
+  return (
+    <motion.button
+      onClick={myOnClick}
+      whileTap={{ scale: 0.9 }}
+      initial={{ scale: 0 }}
+      animate={done ? { scale: 0 } : { scale: [1.0, 0.95, 1.0] }}
+      transition={done ? { duration: 1 } : { repeat: Infinity, duration: 3 }}
+      className="shadow-lg shadow-slate-900"
+    >
+      {children}
+    </motion.button>
+  );
 }
 
 export function ButtonX({

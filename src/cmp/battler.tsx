@@ -24,7 +24,12 @@ import { AbilityCarousel } from "@/cmp/ability";
 import { BonusCarousel } from "@/cmp/bonus";
 import type { PlayAreaFnT } from "@/cmp/playarea";
 import { DrawPlayArea } from "@/cmp/playarea";
-import { HealthBar, OnDarkGlass, useStateShim } from "@/cmp/misc";
+import {
+  HealthBar,
+  SquishyButton,
+  OnDarkGlass,
+  useStateShim,
+} from "@/cmp/misc";
 
 export type BattlerFnT = (a: Battler) => Promise<Battler>;
 type StateFnT = (battler: Battler) => Promise<void>;
@@ -53,11 +58,11 @@ function PlayBattler({
 
   const somebutton = useCallback(
     (alias: string, key: string): React.ReactNode => (
-      <motion.button onClick={() => setView(key)} whileTap={{ scale: 0.9 }}>
+      <SquishyButton onClick={() => setView(key)}>
         <OnDarkGlass className="bg-lime-500/50 text-white p-2">
           {alias}
         </OnDarkGlass>
-      </motion.button>
+      </SquishyButton>
     ),
     [setView],
   );
@@ -180,35 +185,29 @@ const ActionButton = memo(function ActionButton({
   requestfn: () => Promise<void>;
 }) {
   return checking ? (
-    <motion.button
-      key="checkbutton"
-      animate={{ scale: 1 }}
-      initial={{ scale: 0 }}
-    >
+    <SquishyButton key="checkbutton" manyClick>
       <OnDarkGlass className="text-2xl bg-lime-500/50 text-white p-2">
         Checking...
       </OnDarkGlass>
-    </motion.button>
+    </SquishyButton>
   ) : !scoresheet ? (
-    <motion.button
+    <SquishyButton
       key="checkbutton"
       onClick={async () => {
         await requestfn();
       }}
-      animate={{ scale: 1 }}
-      initial={{ scale: 0 }}
-      whileTap={{ scale: 0.9 }}
+      manyClick
     >
       <OnDarkGlass className="text-2xl bg-lime-500/50 text-white p-2">
         Check
       </OnDarkGlass>
-    </motion.button>
+    </SquishyButton>
   ) : !scoresheet.ok ? (
-    <motion.button key="checkbutton">
+    <SquishyButton key="checkbutton" manyClick>
       <OnDarkGlass className="text-2xl bg-red-500/50 text-white p-2">
         Invalid
       </OnDarkGlass>
-    </motion.button>
+    </SquishyButton>
   ) : (
     <></>
   );

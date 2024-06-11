@@ -11,7 +11,7 @@ import {
 
 import type { Letter } from "@/lib/letter";
 import { DrawLetter } from "@/cmp/letter";
-import { OnDarkGlass } from "@/cmp/misc";
+import { TapGlass, OnDarkGlass } from "@/cmp/misc";
 
 export type PlayAreaFnT = (p: PlayArea) => PlayArea;
 type StateFnT = (fn: PlayAreaFnT) => Promise<void>;
@@ -66,11 +66,12 @@ const PlayerPlaced = memo(function PlayerPlaced({
 
   return (
     <div className="self-stretch flex flex-row items-center justify-between gap-1">
-      <button onClick={async () => await statefn(UnplaceAll)}>
-        <OnDarkGlass className="text-lg text-black p-1 bg-red-500/50">
-          Clear
-        </OnDarkGlass>
-      </button>
+      <TapGlass
+        onClick={async () => await statefn(UnplaceAll)}
+        className="text-lg text-white p-1 bg-red-500/50"
+      >
+        Clear
+      </TapGlass>
 
       <div className={`flex flex-row flex-wrap ${gap}`}>
         {letters.map((letter) => (
@@ -80,11 +81,13 @@ const PlayerPlaced = memo(function PlayerPlaced({
         ))}
       </div>
 
-      <button onClick={async () => await statefn(UnplaceLast)}>
-        <OnDarkGlass className="text-lg text-black p-1 bg-red-500/50">
-          ⌫
-        </OnDarkGlass>
-      </button>
+      <TapGlass
+        onClick={async () => await statefn(UnplaceLast)}
+        className="text-lg text-white p-1 bg-red-500/50"
+        repeat
+      >
+        ⌫
+      </TapGlass>
     </div>
   );
 });
