@@ -144,22 +144,20 @@ function stackIn(hand: LetterStack[], letters: Letter[]): LetterStack[] {
       (stack) => stack.length > 0 && stack[0].char === letter.char,
     );
     if (idx >= 0) {
-      xs[idx].push(letter);
+      xs[idx] = [letter, ...xs[idx]];
+      xs[idx].sort((a: Letter, b: Letter) => b.bonus - a.bonus);
       continue;
     }
 
     idx = xs.findIndex((stack) => stack.length === 0);
     if (idx >= 0) {
-      xs[idx].push(letter);
+      xs[idx] = [letter];
       continue;
     }
 
     xs.push([letter]);
   }
 
-  xs.forEach((stack: LetterStack) =>
-    stack.sort((a: Letter, b: Letter) => b.bonus - a.bonus),
-  );
   return xs;
 }
 
@@ -183,7 +181,7 @@ export function UnplaceById(g: PlayArea, id: string): PlayArea {
 
   return {
     ...g,
-    placed: g.placed.slice(0, pi).concat(g.placed.slice(pi + 1)),
+    placed: [...g.placed.slice(0, pi), ...g.placed.slice(pi + 1)],
     hand: stackIn(g.hand, [g.placed[pi]]),
   };
 }
