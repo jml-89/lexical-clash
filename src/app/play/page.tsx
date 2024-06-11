@@ -12,8 +12,5 @@ export default async function Home({
     session: string;
   };
 }) {
-  const session = await GetSession(params.session);
-  return (
-    <PlayGame sid={params.session} seed={await ServerSeed()} save={session} />
-  );
+  return <PlayGame seed={await ServerSeed()} />;
 }

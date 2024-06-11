@@ -14,16 +14,8 @@ import { PlayScene } from "@/cmp/scene";
 
 import { useStateShim } from "./misc";
 
-export function PlayGame({
-  sid,
-  seed,
-  save,
-}: {
-  sid: string;
-  seed: number;
-  save: Object | undefined;
-}) {
-  const [game, setGame] = useState(save ? LoadGame(save) : NewGame(sid, seed));
+export function PlayGame({ seed, save }: { seed: number; save?: Object }) {
+  const [game, setGame] = useState(save ? LoadGame(save) : NewGame(seed));
   return <GameScene game={game} setGame={setGame} />;
 }
 

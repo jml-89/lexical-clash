@@ -72,14 +72,29 @@ export function LoadGame(o: Object): GameState {
   return ox;
 }
 
-export function NewGame(sessionid: string, seed: number): GameState {
+function genSessionId(seed: number, len: number): string {
   let [rs, prng] = CreateStatefulRand(seed);
+
+  const s = "qwertyuiopasdfghjklzxcvbnm1234567890";
+  let res: string[] = [];
+  for (let i = 0; i < len; i++) {
+    const idx = prng(0, s.length - 1);
+    res.push(s[idx]);
+  }
+
+  return res.join("");
+}
+
+export function NewGame(seed: number, cheatmode?: boolean): GameState {
+  const [rs, prng] = CreateStatefulRand(seed);
+  const sessionId = genSessionId(seed, 9);
+
   return {
-    sessionid: sessionid,
+    sessionid: sessionId,
 
     rs: rs,
     prng: prng,
 
-    scene: sessionid === "test" ? FirstSceneCheat(prng) : FirstScene(prng),
+    scene: cheatmode ? FirstSceneCheat(prng) : FirstScene(prng),
   };
 }
