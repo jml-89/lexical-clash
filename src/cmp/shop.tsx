@@ -55,22 +55,29 @@ export function PlayShop({
             onClick={async () => statefn(await RemoveFromBasket(shop, idx))}
           />
         ))}
-        {shop.price > 0 && (
-          <OnDarkGlass className="p-2 text-red-300">
-            Price: {shop.price}
-          </OnDarkGlass>
-        )}
 
-        {shop.payment > 0 && (
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={async () => statefn(await BuyItems(shop))}
-          >
-            <OnDarkGlass className="p-2 text-lime-300">
-              Pay ({shop.payment})
+        <div className="flex flex-row justify-center items-baseline gap-2">
+          {shop.price > 0 && (
+            <OnDarkGlass className="p-2 text-red-300">
+              Asking Price: {shop.price}
             </OnDarkGlass>
-          </motion.button>
-        )}
+          )}
+
+          {shop.price > 0 && shop.payment >= shop.price && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={async () => statefn(await BuyItems(shop))}
+            >
+              <OnDarkGlass className="p-2 text-lime-300">Buy!</OnDarkGlass>
+            </motion.button>
+          )}
+
+          {shop.payment > 0 && (
+            <OnDarkGlass className="p-2 text-lime-300">
+              Letter Value: {shop.payment}
+            </OnDarkGlass>
+          )}
+        </div>
       </div>
 
       <PlayAreaState shop={shop} statefn={statefn} />
@@ -79,7 +86,7 @@ export function PlayShop({
         onClick={async () => statefn(await EndShopping(shop))}
         whileTap={{ scale: 0.9 }}
       >
-        <OnDarkGlass className="p-2 text-red-400">Leave</OnDarkGlass>
+        <OnDarkGlass className="p-2 text-red-400 text-2xl">Leave</OnDarkGlass>
       </motion.button>
     </div>
   );
@@ -106,9 +113,11 @@ function DrawShopItem({
   return (
     <motion.button onClick={onClick} whileTap={{ scale: 0.9 }}>
       <OnDarkGlass className={`p-2 text-white ${className ? className : ""}`}>
-        <div className="flex-1 flex flex-row">
+        <div className="flex-1 flex flex-row justify-between items-center gap-2">
           <DrawShopItemContent item={item} />
-          <div>${item.price}</div>
+          <div className="text-4xl font-light tracking-tight text-lime-200">
+            ${item.price}
+          </div>
         </div>
       </OnDarkGlass>
     </motion.button>
