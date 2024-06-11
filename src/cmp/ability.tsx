@@ -77,7 +77,7 @@ export function AbilityCarousel({
 export function DrawAbility({ ability }: { ability: AbilityCard }) {
   return (
     <div key={ability.name} className="flex flex-col">
-      <div className="flex flex-row justify-between items-baseline">
+      <div className="flex flex-row justify-between gap-2 items-start">
         <h1 className="text-xl font-bold">{ability.name}</h1>
         <div>{ability.uses} uses remaining</div>
       </div>

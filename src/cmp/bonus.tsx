@@ -56,7 +56,7 @@ export function BonusCarousel({
 export function DrawBonus({ bonus }: { bonus: BonusCard }) {
   return (
     <div key={bonus.name} className="flex flex-col">
-      <div className="flex flex-row justify-between items-baseline">
+      <div className="flex flex-row justify-between gap-2 items-start">
         <div className="text-xl font-bold">{bonus.name}</div>
         <div className="text-sm">
           <span className="font-bold">Level {bonus.level}:</span>
