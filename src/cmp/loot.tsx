@@ -9,7 +9,7 @@ import { DrawAbility } from "./ability";
 import { DrawBonus } from "./bonus";
 import { DrawWordpack } from "./wordpack";
 
-import { ButtonX, OnDarkGlass } from "@/cmp/misc";
+import { OnBackground, OnDarkGlass } from "@/cmp/misc";
 
 export function DrawLootContainer({
   loot,
@@ -118,14 +118,9 @@ function DrawOpenContainer({
   claimfn: () => void;
 }) {
   return (
-    <div
-      style={
-        { "--image-url": `url(/items/${loot.image})` } as React.CSSProperties
-      }
-      className="flex-1 flex flex-col bg-[image:var(--image-url)] bg-center bg-cover"
-    >
+    <OnBackground bg={`/items/${loot.image}`}>
       <DrawNextLoot loot={loot} claimfn={claimfn} />
-    </div>
+    </OnBackground>
   );
 }
 

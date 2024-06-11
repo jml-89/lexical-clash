@@ -25,7 +25,7 @@ import { OpponentMugshotMinimal } from "@/cmp/opponent";
 import { DrawLootContainer } from "@/cmp/loot";
 import { PlayShop } from "@/cmp/shop";
 
-import { OnDarkGlass, useStateShim } from "@/cmp/misc";
+import { OnBackground, OnDarkGlass, useStateShim } from "@/cmp/misc";
 
 export type SceneFnT = (a: Scene) => Promise<Scene>;
 type StateFnT = (scene: Scene) => Promise<void>;
@@ -179,6 +179,7 @@ function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
     scene.shop as Shop,
     async (x: Shop) => await statefn(await SetShop(scene, x)),
   );
+  const [loaded, setLoaded] = useState(false);
 
   if (!scene.shop) {
     return <></>;
@@ -199,10 +200,10 @@ function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
           key="explore-button"
           className="flex flex-row self-center justify-center"
           initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+          animate={loaded ? { scale: 1 } : undefined}
           exit={{ scale: 1.5 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={clickfn}
+          whileTap={loaded ? { scale: 0.9 } : undefined}
+          onClick={loaded ? clickfn : undefined}
         >
           <OnDarkGlass>
             <Image
@@ -210,10 +211,11 @@ function SceneShop({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
               alt="Picture of a trader"
               width={320}
               height={320}
+              onLoad={() => setLoaded(true)}
             />
           </OnDarkGlass>
         </motion.button>
-      )) || <PlayShop shop={scene.shop} handleReturn={returnHandler} />}
+      )) || <PlayShop shop={shop} handleReturn={returnHandler} />}
     </SceneLayout>
   );
 }
@@ -328,7 +330,7 @@ function DrawConnections({
 
   return (
     <SceneLayout title="Choose Your Path">
-      <div className="flex-1 flex flex-col justify-evenly items-center gap-2 backdrop-blur-sm">
+      <div className="p-2 flex-1 flex flex-col justify-evenly items-center gap-2 backdrop-blur-sm">
         <AnimatePresence>
           {(clicked === "" &&
             GetConnectedLocations(scene).map((location) => (
@@ -360,13 +362,15 @@ function DrawLocationPreview({
   clickHandler: () => Promise<void>;
   picked?: boolean;
 }) {
+  const [loaded, setLoaded] = useState(false);
+
   return (
     <motion.button
       layoutId={location}
-      onClick={clickHandler}
+      onClick={loaded ? clickHandler : undefined}
       initial={{ scale: 0 }}
-      animate={{ scale: picked ? 1.5 : 1 }}
-      whileTap={{ scale: 0.9 }}
+      animate={loaded ? { scale: picked ? 1.5 : 1 } : undefined}
+      whileTap={loaded ? { scale: 0.9 } : undefined}
       exit={{ opacity: 0 }}
       transition={{ type: "spring", bounce: 0.4, duration: 0.5 }}
     >
@@ -374,8 +378,9 @@ function DrawLocationPreview({
         <Image
           src={`/bg/${location}`}
           alt={`Illustration of a location`}
-          height={240}
-          width={240}
+          height={320}
+          width={320}
+          onLoad={() => setLoaded(true)}
         />
       </div>
     </motion.button>
@@ -385,18 +390,9 @@ function DrawLocationPreview({
 function DrawLocation({
   location,
   children,
-  picked,
 }: {
   location: string;
   children: React.ReactNode;
-  picked?: boolean;
 }) {
-  return (
-    <motion.div
-      style={{ "--image-url": `url(/bg/${location})` } as React.CSSProperties}
-      className="flex-1 flex flex-col bg-[image:var(--image-url)] bg-center bg-cover"
-    >
-      {children}
-    </motion.div>
-  );
+  return <OnBackground bg={`/bg/${location}`}>{children}</OnBackground>;
 }

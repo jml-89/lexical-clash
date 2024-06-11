@@ -1,5 +1,7 @@
 import { memo, useState, useRef, useEffect, useCallback } from "react";
 
+import Image from "next/image";
+
 import {
   motion,
   AnimatePresence,
@@ -106,4 +108,79 @@ export function useStateShim<Thing>(
   };
 
   return [shim.local ? shim.local : thing, returnHandler];
+}
+
+function LazyBackground({ bg }: { bg: string }) {
+  const [me, setMe] = useState({
+    prev: "",
+    curr: bg,
+    loaded: false,
+  });
+
+  if (me.loaded && bg != me.curr) {
+    setMe({
+      prev: me.curr,
+      curr: bg,
+      loaded: false,
+    });
+  }
+
+  return (
+    <div className="size-full grid">
+      {me.prev == "" ? (
+        <div
+          key="blank"
+          className="bg-black/50 row-start-1 col-start-1 size-full"
+        />
+      ) : (
+        <div
+          key={me.prev}
+          className="brightness-50 row-start-1 col-start-1 relative"
+        >
+          <Image
+            src={me.prev}
+            alt="A stale old background"
+            fill
+            priority
+            className="object-cover object-center"
+          />
+        </div>
+      )}
+      <motion.div
+        key={me.curr}
+        className="row-start-1 col-start-1 relative"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: me.loaded ? 1 : 0 }}
+        transition={{ duration: 1 }}
+      >
+        <Image
+          src={me.curr}
+          alt="A beautiful new background!"
+          fill
+          priority
+          onLoad={() => setMe({ ...me, loaded: true })}
+          className="object-cover object-center"
+        />
+      </motion.div>
+    </div>
+  );
+}
+
+export function OnBackground({
+  bg,
+  children,
+}: {
+  bg: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex-1 grid">
+      <div className="row-start-1 col-start-1">
+        <LazyBackground bg={bg} />
+      </div>
+      <div className="row-start-1 col-start-1 flex flex-col z-10">
+        {children}
+      </div>
+    </div>
+  );
 }
