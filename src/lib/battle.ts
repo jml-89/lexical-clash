@@ -75,9 +75,13 @@ export async function Submit(g: Battle): Promise<Battle> {
 
   const diff = g.player.scoresheet.score - g.opponent.scoresheet.score;
   if (diff > 0) {
-    g.opponent = { ...g.opponent, health: g.opponent.health - diff };
+    g.opponent = {
+      ...g.opponent,
+      health: Math.max(0, g.opponent.health - diff),
+    };
   } else if (diff < 0) {
-    g.player = { ...g.player, health: g.player.health + diff };
+    // + diff ? yes, because diff is negative in this branch
+    g.player = { ...g.player, health: Math.max(0, g.player.health + diff) };
   }
 
   g = { ...g };
@@ -88,13 +92,13 @@ export async function Submit(g: Battle): Promise<Battle> {
     g.player.player.wordbank.push(str);
   }
 
-  if (g.player.health <= 0) {
+  if (g.player.health === 0) {
     g.victory = false;
     g.done = true;
     return g;
   }
 
-  if (g.opponent.health <= 0) {
+  if (g.opponent.health === 0) {
     g.victory = true;
     g.done = true;
     return g;
