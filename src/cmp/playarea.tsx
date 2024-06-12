@@ -120,7 +120,7 @@ const Hand = memo(function Hand({
   );
 
   return (
-    <div className="flex flex-row gap-1 flex-wrap items-end">
+    <div className="flex flex-row gap-1 flex-wrap justify-center items-end">
       {letters.map((stack, idx) => (
         <button
           key={idx}
@@ -142,33 +142,33 @@ const HandStack = memo(function HandStack({ stack }: { stack: LetterStack }) {
   }
 
   const startRow = (n: number) => {
-    if (n < 1) {
-      return "row-start-1 z-40";
+    switch (n) {
+      case 0:
+        return "row-start-1 z-40";
+      case 1:
+        return "row-start-2 z-30";
+      case 2:
+        return "row-start-3 z-20";
+      default:
+        return "row-start-4 z-10";
     }
-    if (n < 3) {
-      return "row-start-2 z-30";
-    }
-    if (n < 5) {
-      return "row-start-3 z-20";
-    }
-    return "row-start-4 z-10";
   };
 
-  const rowCount = (n: number) => {
-    if (n < 2) {
-      return "grid-rows-5";
+  const rowCount = () => {
+    switch (stack.length) {
+      case 1:
+        return "grid-rows-5";
+      case 2:
+        return "grid-rows-6";
+      case 3:
+        return "grid-rows-7";
+      default:
+        return "grid-rows-8";
     }
-    if (n < 4) {
-      return "grid-rows-6";
-    }
-    if (n < 6) {
-      return "grid-rows-7";
-    }
-    return "grid-rows-8";
   };
 
   return (
-    <div className={`grid ${rowCount(stack.length)}`}>
+    <div className={`grid ${rowCount()}`}>
       {stack.map((letter, idx) => (
         <div
           key={letter.id}
