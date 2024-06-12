@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <StrictMode>
         <body className={inter.className}>
-          <div className="w-dvw h-dvh bg-slate-800 text-amber-400 flex flex-col justify-between">
+          <div className="w-dvw min-h-dvh h-full bg-slate-800 text-amber-400 flex flex-col justify-between">
             <nav className="flex flex-row justify-between items-baseline bg-slate-900">
               <Link
                 href="/"
