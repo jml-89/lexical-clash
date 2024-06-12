@@ -69,7 +69,7 @@ export async function NewShop(
     image: "seller.jpg",
     done: false,
 
-    available: await randomShopItems(prng, level, 2),
+    available: await randomShopItems(prng, level, 4),
     basket: [],
     bought: [],
     price: 0,
@@ -97,8 +97,9 @@ async function randomShopItems(
 ): Promise<ShopItem[]> {
   let items: ShopItem[] = [];
 
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < num; i++) {
     const randresult = prng(1, 4);
+    const price = prng(10, 10 + level * 5);
 
     if (randresult === 1) {
       const boost = Math.trunc(level / 4);
@@ -106,7 +107,7 @@ async function randomShopItems(
         items.push({
           type: "ability",
           item: { ...v, uses: v.uses + boost },
-          price: level * 5,
+          price: price,
         });
       }
     } else if (randresult === 2) {
@@ -115,17 +116,17 @@ async function randomShopItems(
         items.push({
           type: "bonus",
           item: { ...v, level: v.level + boost },
-          price: level * 5,
+          price: price,
         });
       }
     } else if (randresult === 3) {
       const pack = await NewWordpack(level);
-      items.push({ type: "wordpack", item: pack, price: level * 5 });
+      items.push({ type: "wordpack", item: pack, price: price });
     } else if (randresult === 4) {
       const letters = Shuffle(prng, ScrabbleDistribution())
         .slice(0, prng(3, 10))
         .map((letter) => ({ ...letter, bonus: level }));
-      items.push({ type: "letters", item: letters, price: level * 5 });
+      items.push({ type: "letters", item: letters, price: price });
     }
   }
 
