@@ -115,6 +115,13 @@ const basicContainers = [
   "small-chest.jpg",
   "rusty-chest.jpg",
   "nice-chest.jpg",
+  "loot-1.jpg",
+  "loot-2.jpg",
+  "loot-3.jpg",
+  "loot-4.jpg",
+  "loot-5.jpg",
+  "loot-6.jpg",
+  "loot-7.jpg",
   "grand-treasure.jpg",
 ];
 
@@ -123,5 +130,13 @@ const battleContainers = [
   "sack.jpg",
   "big-pack.jpg",
   "sparkly-pack.jpg",
+  "battle-loot-1.jpg",
+  "battle-loot-2.jpg",
+  "battle-loot-3.jpg",
+  "battle-loot-4.jpg",
+  "battle-loot-5.jpg",
+  "battle-loot-6.jpg",
+  "battle-loot-7.jpg",
+  "battle-loot-8.jpg",
   "backpack.jpg",
 ];

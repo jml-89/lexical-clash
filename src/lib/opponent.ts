@@ -93,6 +93,8 @@ const gangs = [
     weakness: "flora",
     members: [
       { name: "Dog", image: "dog.jpg" },
+      { name: "Dog", image: "dog-2.jpg" },
+      { name: "Dog", image: "dog-3.jpg" },
       { name: "Cat", image: "cat.jpg" },
       { name: "Bee", image: "bee.jpg" },
     ],
@@ -106,6 +108,9 @@ const gangs = [
     weakness: "feeling",
     members: [
       { name: "Ant", image: "ant.jpg" },
+      { name: "Moth", image: "moth-1.jpg" },
+      { name: "Moth", image: "moth-2.jpg" },
+      { name: "Moth", image: "moth-3.jpg" },
       { name: "Millipede", image: "millipede.jpg" },
       { name: "Centipede", image: "centipede.jpg" },
     ],
