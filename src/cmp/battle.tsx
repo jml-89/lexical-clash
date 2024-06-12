@@ -21,7 +21,7 @@ import { DrawComBattler } from "@/cmp/opponent";
 import type { Battler } from "@/lib/battler";
 import { DrawBattler } from "@/cmp/battler";
 
-import { SquishyButton, OnDarkGlass, useStateShim } from "@/cmp/misc";
+import { TapGlass, OnDarkGlass, useStateShim } from "@/cmp/misc";
 
 export type BattleFnT = (a: Battle) => Promise<Battle>;
 type StateFnT = (battle: Battle) => Promise<void>;
@@ -97,10 +97,12 @@ const Contest = memo(function Contest({
 
 function AttackButton({ attackfn }: { attackfn: () => Promise<void> }) {
   return (
-    <SquishyButton key="attackbutton" onClick={attackfn}>
-      <OnDarkGlass className="bg-lime-500/75 text-white text-4xl p-4">
-        Attack
-      </OnDarkGlass>
-    </SquishyButton>
+    <TapGlass
+      key="attackbutton"
+      onClick={attackfn}
+      className="bg-lime-500/75 text-white text-4xl p-4"
+    >
+      Attack
+    </TapGlass>
   );
 }

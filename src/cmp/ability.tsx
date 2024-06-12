@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import type { AbilityCard } from "@/lib/ability";
 
-import { TapGlass, SquishyButton, OnDarkGlass } from "./misc";
+import { TapGlass, OnDarkGlass } from "./misc";
 
 type AbilityFnT = (s: string) => Promise<void>;
 
@@ -44,29 +44,35 @@ export function AbilityCarousel({
 
         {idx > 0 && (
           <div className="col-start-2 grid">
-            <SquishyButton onClick={() => setIdx(idx - 1)} manyClick>
-              <OnDarkGlass className="bg-yellow-300/50">Prev</OnDarkGlass>
-            </SquishyButton>
+            <TapGlass
+              onClick={() => setIdx(idx - 1)}
+              repeat
+              className="bg-yellow-300/50"
+            >
+              Prev
+            </TapGlass>
           </div>
         )}
 
         {idx + 1 !== keys.length && (
           <div className="col-start-3 grid">
-            <SquishyButton onClick={() => setIdx(idx + 1)} manyClick>
-              <OnDarkGlass className="bg-yellow-300/50">Next</OnDarkGlass>
-            </SquishyButton>
+            <TapGlass
+              onClick={() => setIdx(idx + 1)}
+              repeat
+              className="bg-yellow-300/50"
+            >
+              Next
+            </TapGlass>
           </div>
         )}
 
         <div className="col-start-4 grid">
           {canuse ? (
-            <SquishyButton onClick={use} manyClick>
-              <OnDarkGlass className="bg-lime-300/75">Use</OnDarkGlass>
-            </SquishyButton>
+            <TapGlass onClick={use} repeat className="bg-lime-300/75">
+              Use
+            </TapGlass>
           ) : (
-            <SquishyButton>
-              <OnDarkGlass className="bg-neutral-300/50">Use</OnDarkGlass>
-            </SquishyButton>
+            <TapGlass className="bg-neutral-300/50">Use</TapGlass>
           )}
         </div>
       </div>
@@ -76,13 +82,13 @@ export function AbilityCarousel({
 
 export function DrawAbility({ ability }: { ability: AbilityCard }) {
   return (
-    <div key={ability.name} className="flex flex-col items-stretch">
+    <div key={ability.name} className="flex-1 flex flex-col items-stretch">
       <div className="flex flex-row justify-between gap-2 items-start">
-        <h1 className="flex-1 text-xl font-bold">{ability.name}</h1>
+        <h1 className="flex-1 text-start text-xl font-bold">{ability.name}</h1>
         <div className="text-sm">Ability</div>
         <div className="text-sm">{ability.uses} charges</div>
       </div>
-      <div className="text-sm italic">{ability.desc}</div>
+      <div className="text-sm italic self-baseline">{ability.desc}</div>
     </div>
   );
 }

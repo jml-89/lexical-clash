@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { BonusCard } from "@/lib/bonus";
 
-import { SquishyButton, OnDarkGlass } from "./misc";
+import { TapGlass, OnDarkGlass } from "./misc";
 
 export function BonusCarousel({
   bonuses,
@@ -28,24 +28,32 @@ export function BonusCarousel({
 
       <div className="self-stretch grid grid-cols-3 gap-1">
         <div className="col-start-1 grid">
-          <SquishyButton onClick={closefn}>
-            <OnDarkGlass className="bg-red-400/50">Back</OnDarkGlass>
-          </SquishyButton>
+          <TapGlass onClick={closefn} className="bg-red-400/50">
+            Back
+          </TapGlass>
         </div>
 
         {idx > 0 && (
           <div className="col-start-2 grid">
-            <SquishyButton onClick={() => setIdx(idx - 1)} manyClick>
-              <OnDarkGlass className="bg-yellow-300/50">Prev</OnDarkGlass>
-            </SquishyButton>
+            <TapGlass
+              onClick={() => setIdx(idx - 1)}
+              repeat
+              className="bg-yellow-300/50"
+            >
+              Prev
+            </TapGlass>
           </div>
         )}
 
         {idx + 1 !== keys.length && (
           <div className="col-start-3 grid">
-            <SquishyButton onClick={() => setIdx(idx + 1)} manyClick>
-              <OnDarkGlass className="bg-yellow-300/50">Next</OnDarkGlass>
-            </SquishyButton>
+            <TapGlass
+              onClick={() => setIdx(idx + 1)}
+              repeat
+              className="bg-yellow-300/50"
+            >
+              Next
+            </TapGlass>
           </div>
         )}
       </div>

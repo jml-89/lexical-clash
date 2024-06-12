@@ -24,13 +24,7 @@ import { AbilityCarousel } from "@/cmp/ability";
 import { BonusCarousel } from "@/cmp/bonus";
 import type { PlayAreaFnT } from "@/cmp/playarea";
 import { DrawPlayArea } from "@/cmp/playarea";
-import {
-  HealthBar,
-  TapGlass,
-  SquishyButton,
-  OnDarkGlass,
-  useStateShim,
-} from "@/cmp/misc";
+import { HealthBar, TapGlass, OnDarkGlass, useStateShim } from "@/cmp/misc";
 
 export type BattlerFnT = (a: Battler) => Promise<Battler>;
 type StateFnT = (battler: Battler) => Promise<void>;
@@ -59,11 +53,12 @@ function PlayBattler({
 
   const somebutton = useCallback(
     (alias: string, key: string): React.ReactNode => (
-      <SquishyButton onClick={() => setView(key)}>
-        <OnDarkGlass className="bg-lime-500/50 text-white p-2">
-          {alias}
-        </OnDarkGlass>
-      </SquishyButton>
+      <TapGlass
+        onClick={() => setView(key)}
+        className="bg-lime-500/50 text-white p-2"
+      >
+        {alias}
+      </TapGlass>
     ),
     [setView],
   );
@@ -163,6 +158,7 @@ function ListWords({
             <TapGlass
               onClick={async () => await placefn(word)}
               className="px-0.5 bg-green-400/50"
+              repeat
             >
               {word}
             </TapGlass>
@@ -183,29 +179,32 @@ const ActionButton = memo(function ActionButton({
   requestfn: () => Promise<void>;
 }) {
   return checking ? (
-    <SquishyButton key="checkbutton" manyClick>
-      <OnDarkGlass className="text-2xl bg-lime-500/50 text-white p-2">
-        Checking...
-      </OnDarkGlass>
-    </SquishyButton>
+    <TapGlass
+      key="checkbutton"
+      repeat
+      className="text-2xl bg-lime-500/50 text-white p-2"
+    >
+      Checking...
+    </TapGlass>
   ) : !scoresheet ? (
-    <SquishyButton
+    <TapGlass
       key="checkbutton"
       onClick={async () => {
         await requestfn();
       }}
-      manyClick
+      repeat
+      className="text-2xl bg-lime-500/50 text-white p-2"
     >
-      <OnDarkGlass className="text-2xl bg-lime-500/50 text-white p-2">
-        Check
-      </OnDarkGlass>
-    </SquishyButton>
+      Check
+    </TapGlass>
   ) : !scoresheet.ok ? (
-    <SquishyButton key="checkbutton" manyClick>
-      <OnDarkGlass className="text-2xl bg-red-500/50 text-white p-2">
-        Invalid
-      </OnDarkGlass>
-    </SquishyButton>
+    <TapGlass
+      key="checkbutton"
+      repeat
+      className="text-2xl bg-red-500/50 text-white p-2"
+    >
+      Invalid
+    </TapGlass>
   ) : (
     <></>
   );

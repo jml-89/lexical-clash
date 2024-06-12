@@ -25,12 +25,7 @@ import { OpponentMugshotMinimal } from "@/cmp/opponent";
 import { DrawLootContainer } from "@/cmp/loot";
 import { PlayShop } from "@/cmp/shop";
 
-import {
-  OnBackground,
-  SquishyButton,
-  OnDarkGlass,
-  useStateShim,
-} from "@/cmp/misc";
+import { OnBackground, TapGlass, OnDarkGlass, useStateShim } from "@/cmp/misc";
 
 export type SceneFnT = (a: Scene) => Promise<Scene>;
 type StateFnT = (scene: Scene) => Promise<void>;
@@ -74,30 +69,17 @@ function SceneLayout({
 
 function SceneLoot({ children }: { children: React.ReactNode }) {}
 
-/*
-          <motion.button
-            key="explore-button"
-            className="flex flex-row self-center justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 100 }}
-            exit={{ opacity: 0 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={clickfn}
-          >
-*/
-
 function SceneExplore({ scene, statefn }: { scene: Scene; statefn: StateFnT }) {
   return (
     <SceneLayout title={scene.region.name}>
       <div className="self-center">
-        <SquishyButton
+        <TapGlass
           key="explore"
           onClick={async () => statefn(await EndIntro(scene))}
+          className="p-4 text-4xl text-white"
         >
-          <OnDarkGlass className="p-4 text-4xl text-white">
-            Explore!
-          </OnDarkGlass>
-        </SquishyButton>
+          Explore!
+        </TapGlass>
       </div>
     </SceneLayout>
   );
