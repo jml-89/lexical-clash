@@ -7,6 +7,7 @@ import {
   UnplaceById,
   UnplaceLast,
   UnplaceAll,
+  FlipHand,
 } from "@/lib/playarea";
 
 import type { Letter } from "@/lib/letter";
@@ -116,6 +117,11 @@ const Hand = memo(function Hand({
   const placefn = useCallback(
     async (letter: Letter) =>
       await statefn((p: PlayArea) => PlaceById(p, letter.id)),
+    [statefn],
+  );
+
+  const flipfn = useCallback(
+    async () => statefn((p: PlayArea) => FlipHand(p)),
     [statefn],
   );
 

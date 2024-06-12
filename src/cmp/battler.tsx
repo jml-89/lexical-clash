@@ -147,7 +147,7 @@ function ListWords({
 }) {
   return (
     <div className="self-stretch flex flex-col gap-1 text-white">
-      <ul className="flex-1 flex flex-row justify-between gap-0.5 flex-wrap-reverse">
+      <ul className="flex-1 flex flex-row justify-start gap-0.5 flex-wrap-reverse">
         <li key="back-button">
           <TapGlass className="px-2 bg-red-400/50" onClick={closefn}>
             Back

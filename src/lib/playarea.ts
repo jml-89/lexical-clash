@@ -130,6 +130,22 @@ function sortStacks(stacks: LetterStack[]): LetterStack[] {
   return xs;
 }
 
+export function FlipHand(g: PlayArea): PlayArea {
+  let hand: LetterStack[] = [];
+  for (let stack of g.hand) {
+    hand.push([...stack]);
+  }
+
+  for (let stack of hand) {
+    stack.sort((a: Letter, b: Letter) => a.bonus - b.bonus);
+  }
+
+  return {
+    ...g,
+    hand: hand,
+  };
+}
+
 export function AddToHand(g: PlayArea, letters: Letter[]): PlayArea {
   return {
     ...g,
