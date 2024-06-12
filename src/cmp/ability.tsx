@@ -76,10 +76,11 @@ export function AbilityCarousel({
 
 export function DrawAbility({ ability }: { ability: AbilityCard }) {
   return (
-    <div key={ability.name} className="flex flex-col">
+    <div key={ability.name} className="flex flex-col items-stretch">
       <div className="flex flex-row justify-between gap-2 items-start">
-        <h1 className="text-xl font-bold">{ability.name}</h1>
-        <div>{ability.uses} uses remaining</div>
+        <h1 className="flex-1 text-xl font-bold">{ability.name}</h1>
+        <div className="text-sm">Ability</div>
+        <div className="text-sm">{ability.uses} charges</div>
       </div>
       <div className="text-sm italic">{ability.desc}</div>
     </div>

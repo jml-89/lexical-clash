@@ -26,6 +26,7 @@ import type { PlayAreaFnT } from "@/cmp/playarea";
 import { DrawPlayArea } from "@/cmp/playarea";
 import {
   HealthBar,
+  TapGlass,
   SquishyButton,
   OnDarkGlass,
   useStateShim,
@@ -150,24 +151,21 @@ function ListWords({
   closefn: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-1 text-black">
-      <ul className="flex-1 flex flex-row font-bold gap-1 flex-wrap-reverse">
+    <div className="self-stretch flex flex-col gap-1 text-white">
+      <ul className="flex-1 flex flex-row justify-between gap-0.5 flex-wrap-reverse">
         <li key="back-button">
-          <button
-            className="self-baseline bg-red-500 px-2 py-0.5 rounded-lg"
-            onClick={closefn}
-          >
+          <TapGlass className="px-2 bg-red-400/50" onClick={closefn}>
             Back
-          </button>
+          </TapGlass>
         </li>
         {words.map((word, letters) => (
           <li key={word}>
-            <button
+            <TapGlass
               onClick={async () => await placefn(word)}
-              className="bg-orange-200 px-2 py-0.5 rounded-lg"
+              className="px-0.5 bg-green-400/50"
             >
               {word}
-            </button>
+            </TapGlass>
           </li>
         ))}
       </ul>

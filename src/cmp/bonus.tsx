@@ -57,9 +57,10 @@ export function DrawBonus({ bonus }: { bonus: BonusCard }) {
   return (
     <div key={bonus.name} className="flex flex-col">
       <div className="flex flex-row justify-between gap-2 items-start">
-        <div className="text-xl font-bold">{bonus.name}</div>
+        <div className="flex-1 text-xl font-bold">{bonus.name}</div>
+        <div className="text-sm">Bonus</div>
         <div className="text-sm">
-          <span className="font-bold">Level {bonus.level}:</span>
+          <span className="font-bold">L.{bonus.level}:</span>
           {" +"}
           {bonus.weight * bonus.level} points
         </div>

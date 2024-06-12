@@ -244,25 +244,21 @@ export async function Definitions(s: string): Promise<string[]> {
 
 // GetHypernyms
 // lo & hi, bounds on number of hyponyms
-// maxlen, ignore hyponyms longer than this
 export async function GetRandomHypernym(
   lo: number,
   hi: number,
-  maxlen: number,
 ): Promise<string> {
   const res = await pool.query({
     text: `
 			select hyper
 			from simplerelations 
 			group by hyper
-			having 
-			avg(length(hypo)) < $3
-			and count(*) > $1
+			having count(*) > $1
 			and count(*) < $2
 			order by random()
 			limit 1;
 		`,
-    values: [lo, hi, maxlen],
+    values: [lo, hi],
   });
 
   return res.rows[0].hyper;

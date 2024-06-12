@@ -106,7 +106,7 @@ async function randomShopItems(
         items.push({
           type: "ability",
           item: { ...v, uses: v.uses + boost },
-          price: 10,
+          price: level * 5,
         });
       }
     } else if (randresult === 2) {
@@ -115,17 +115,17 @@ async function randomShopItems(
         items.push({
           type: "bonus",
           item: { ...v, level: v.level + boost },
-          price: 10,
+          price: level * 5,
         });
       }
     } else if (randresult === 3) {
       const pack = await NewWordpack(level);
-      items.push({ type: "wordpack", item: pack, price: 10 });
+      items.push({ type: "wordpack", item: pack, price: level * 5 });
     } else if (randresult === 4) {
       const letters = Shuffle(prng, ScrabbleDistribution())
         .slice(0, prng(3, 10))
         .map((letter) => ({ ...letter, bonus: level }));
-      items.push({ type: "letters", item: letters, price: 10 });
+      items.push({ type: "letters", item: letters, price: level * 5 });
     }
   }
 

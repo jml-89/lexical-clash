@@ -41,7 +41,6 @@ export interface Scene {
 
   nextShop: number;
   nextLoot: number;
-  nextOpponent: number;
 
   region: Region;
   regidx: number;
@@ -110,7 +109,6 @@ export function FirstSceneCheat(prng: PRNG): Scene {
     cheatmode: true,
     nextShop: 1,
     nextLoot: 1,
-    nextOpponent: 1,
     region: {
       name: "Your Journey Begins",
       minLevel: 1,
@@ -131,7 +129,6 @@ export function FirstScene(prng: PRNG): Scene {
     cheatmode: false,
     nextShop: prng(3, 5),
     nextLoot: 1,
-    nextOpponent: prng(1, 3),
     region: {
       name: "Your Journey Begins",
       minLevel: 1,
@@ -171,35 +168,28 @@ export async function NextScene(scene: Scene): Promise<Scene> {
     regidx = regidx + 1;
   }
 
+  let nextShop = scene.nextShop - 1;
   let nextLoot = scene.nextLoot - 1;
-  let loot = undefined;
-  if (scene.cheatmode || nextLoot < 1) {
-    loot = await NewLootContainer(
-      scene.prng,
-      scene.prng(region.minLevel, region.maxLevel),
-    );
-    nextLoot = scene.cheatmode ? 1 : scene.prng(1, 3);
-  }
 
-  let nextOpponent = scene.nextOpponent - 1;
+  let shop = undefined;
+  let loot = undefined;
   let opponent = undefined;
+
   if (regidx + 1 === region.path.length) {
     opponent = await NewBoss(region.name, region.maxLevel + 1);
-  } else if (scene.cheatmode || nextOpponent < 1) {
+  } else if (nextShop < 1) {
+    shop = await NewShop(scene.prng, region.maxLevel + 2, scene.player.bag);
+    nextShop = scene.prng(3, 5);
+  } else if (nextLoot < 1) {
+    loot = await NewLootContainer(scene.prng, region.maxLevel + 1);
+    nextLoot = scene.prng(2, 4);
+  } else {
     opponent = await NewOpponent(
       scene.prng,
       region.name,
       region.minLevel,
       region.maxLevel,
     );
-    nextOpponent = scene.cheatmode ? 1 : scene.prng(1, 3);
-  }
-
-  let nextShop = scene.nextShop - 1;
-  let shop = undefined;
-  if (scene.cheatmode || nextShop < 1) {
-    shop = await NewShop(scene.prng, region.maxLevel, scene.player.bag);
-    nextShop = scene.cheatmode ? 1 : scene.prng(2, 4);
   }
 
   return {
@@ -209,7 +199,6 @@ export async function NextScene(scene: Scene): Promise<Scene> {
 
     nextShop: nextShop,
     nextLoot: nextLoot,
-    nextOpponent: nextOpponent,
 
     intro: true,
     opponent: opponent,
@@ -224,7 +213,10 @@ export async function SetShop(scene: Scene, shop: Shop): Promise<Scene> {
     return scene;
   }
 
-  let player = { ...scene.player };
+  let player = {
+    ...scene.player,
+    bag: shop.playArea.bag,
+  };
   for (const item of shop.bought) {
     player = AddShopItem(player, item);
   }

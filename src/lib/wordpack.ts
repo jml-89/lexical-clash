@@ -13,7 +13,7 @@ export interface Wordpack {
 }
 
 export async function NewWordpack(level: number): Promise<Wordpack> {
-  const hyper = await GetRandomHypernym(100, level * 300, 6);
+  const hyper = await GetRandomHypernym(250, 3000);
   const definitions = await Definitions(hyper);
   const hyponyms = await HypoForms(hyper);
 
