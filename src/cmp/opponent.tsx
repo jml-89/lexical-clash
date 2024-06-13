@@ -18,15 +18,18 @@ export const DrawComBattler = memo(function DrawComBattler({
   const hd = opp.healthMax - opp.health;
   return (
     <motion.div className="self-stretch flex flex-col items-center gap-2">
-      <div className="self-stretch">
-        <HealthBar
-          badguy={true}
-          health={opp.health}
-          healthMax={opp.healthMax}
-        />
-      </div>
+      <div className="self-stretch flex flex-row gap-1">
+        <DrawProfile opp={opp.profile} hd={hd} />
 
-      <DrawProfile opp={opp.profile} hd={hd} />
+        <div className="flex-1 flex flex-col">
+          <HealthBar
+            badguy={true}
+            health={opp.health}
+            healthMax={opp.healthMax}
+          />
+          <DrawInfo opp={opp.profile} />
+        </div>
+      </div>
 
       <motion.div initial={{ y: -100 }} animate={{ y: 0 }}>
         <DrawLetters
@@ -38,7 +41,26 @@ export const DrawComBattler = memo(function DrawComBattler({
   );
 });
 
-//{opp.scoresheet && opp.scoresheet.ok && <DrawScoresheet sheet={opp.scoresheet} color="text-red-300" />}
+const DrawInfo = memo(function DrawInfo({ opp }: { opp: Opponent }) {
+  return (
+    <div className="flex flex-col">
+      <div className="text-amber-300 flex flex-row gap-1 items-baseline">
+        <span className="text-lg font-bold">{opp.name}</span>
+        <span className="italic">
+          (Level {opp.level} {opp.memberof})
+        </span>
+      </div>
+      <div className="flex flex-row items-baseline gap-2">
+        <div className="text-lime-300">
+          <span className="font-bold">Weak to:</span> {opp.weakness}
+        </div>
+        <div className="text-red-300">
+          <span className="font-bold">Uses:</span> {opp.strength}
+        </div>
+      </div>
+    </div>
+  );
+});
 
 const DrawProfile = memo(function DrawProfile({
   opp,
@@ -71,21 +93,6 @@ const DrawProfile = memo(function DrawProfile({
           alt={`Mugshot of ${opp.name}`}
         />
       </motion.div>
-
-      <div className="flex flex-col">
-        <div className="text-amber-300 flex flex-row gap-1 items-baseline">
-          <span className="text-lg font-bold">{opp.name}</span>
-          <span className="italic">
-            (Level {opp.level} {opp.memberof})
-          </span>
-        </div>
-        <div className="text-red-300">
-          <span className="font-bold">Uses:</span> {opp.strength}
-        </div>
-        <div className="text-lime-300">
-          <span className="font-bold">Weak to:</span> {opp.weakness}
-        </div>
-      </div>
     </div>
   );
 });

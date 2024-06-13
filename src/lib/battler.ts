@@ -8,7 +8,13 @@ import {
 } from "./letter";
 
 import type { PlayArea } from "./playarea";
-import { PlaceWord, UnplaceAll, NewHand, LettersInPlay } from "./playarea";
+import {
+  NewPlayArea,
+  PlaceWord,
+  UnplaceAll,
+  NewHand,
+  LettersInPlay,
+} from "./playarea";
 
 import type { Opponent } from "./opponent";
 
@@ -57,13 +63,7 @@ export function NewBattler(prng: PRNG, player: Player): Battler {
     scoresheet: undefined,
     wordMatches: [],
 
-    playArea: {
-      prng: prng,
-      handSize: player.handSize,
-      bag: player.bag,
-      hand: [],
-      placed: [],
-    },
+    playArea: NewPlayArea(prng, player.handSize, player.bag),
   };
 }
 
@@ -73,13 +73,7 @@ export function NewComBattler(prng: PRNG, profile: Opponent): ComBattler {
     healthMax: 10 + profile.level,
     profile: profile,
     scoresheet: undefined,
-    playArea: {
-      prng: prng,
-      handSize: 2 + profile.level * 4,
-      bag: ScrabbleDistribution(),
-      hand: [],
-      placed: [],
-    },
+    playArea: NewPlayArea(prng, 2 + profile.level * 4, ScrabbleDistribution()),
   };
 }
 

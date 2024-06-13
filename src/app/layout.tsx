@@ -22,18 +22,6 @@ export default function RootLayout({
       <StrictMode>
         <body className={inter.className}>
           <div className="w-dvw min-h-dvh h-full bg-slate-800 text-amber-400 flex flex-col justify-between">
-            <nav className="flex flex-row justify-between items-baseline bg-slate-900">
-              <Link
-                href="/"
-                className="text-3xl tracking-tighter font-extralight"
-              >
-                Lexical Clash
-              </Link>
-              <a href="https://github.com/jml-89/lexical-clash" target="_blank">
-                source: github/jml-89
-              </a>
-            </nav>
-
             {children}
           </div>
         </body>

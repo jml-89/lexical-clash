@@ -144,9 +144,11 @@ function DrawNicely({
 
   return (
     <div className="flex-1 self-stretch flex flex-col gap-2 justify-center items-center">
-      <div className="self-stretch text-2xl bg-slate-800 flex flex-row justify-center">
-        You Found {title}!
-      </div>
+      {false && (
+        <div className="self-stretch text-2xl bg-slate-800 flex flex-row justify-center">
+          You Found {title}!
+        </div>
+      )}
       <div className="flex-1 self-stretch flex flex-col justify-center items-center">
         <motion.div
           animate={{ y: [0, -2, 2, 0] }}
@@ -210,7 +212,7 @@ function DrawNextLoot({
           title={`${next.item.length} Letters`}
           claimfn={claimfn}
         >
-          <DrawLetters letters={next.item} />
+          <DrawLetters letters={next.item} small={next.item.length > 10} />
         </DrawNicely>
       );
   }

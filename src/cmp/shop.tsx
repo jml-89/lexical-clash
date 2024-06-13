@@ -118,7 +118,7 @@ function DrawShopItem({
     >
       <div className="flex-1 flex flex-row justify-between items-center gap-2">
         <DrawShopItemContent item={item} />
-        <div className="text-4xl font-light tracking-tight text-lime-200">
+        <div className="text-2xl font-light tracking-tight text-lime-200">
           ${item.price}
         </div>
       </div>

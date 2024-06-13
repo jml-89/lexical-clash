@@ -15,13 +15,7 @@ import type { Wordpack } from "./wordpack";
 import { NewWordpack } from "./wordpack";
 
 import type { PlayArea } from "./playarea";
-import {
-  NewPlayArea,
-  DrawAll,
-  LiquidatePlaced,
-  PackUp,
-  FlipHand,
-} from "./playarea";
+import { NewPlayArea, DrawAll, LiquidatePlaced, PackUp } from "./playarea";
 
 import type { PRNG } from "./util";
 import { Shuffle, PickRandom } from "./util";
@@ -80,7 +74,7 @@ export async function NewShop(
     bought: [],
     price: 0,
 
-    playArea: FlipHand(DrawAll(NewPlayArea(prng, bag.length, bag))),
+    playArea: DrawAll(NewPlayArea(prng, bag.length, bag, true)),
     payment: 0,
   };
 }

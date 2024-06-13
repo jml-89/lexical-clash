@@ -72,7 +72,9 @@ export function AbilityCarousel({
               Use
             </TapGlass>
           ) : (
-            <TapGlass className="bg-neutral-300/50">Use</TapGlass>
+            <TapGlass className="bg-neutral-300/50" repeat>
+              Use
+            </TapGlass>
           )}
         </div>
       </div>

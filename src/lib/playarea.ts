@@ -21,6 +21,7 @@ export interface PlayArea {
 
   placed: Letter[];
   hand: LetterStack[];
+  flipStacks: boolean;
 
   bag: Letter[];
 }
@@ -29,6 +30,7 @@ export function NewPlayArea(
   prng: PRNG,
   handSize: number,
   bag: Letter[],
+  flip?: boolean,
 ): PlayArea {
   return {
     handSize: handSize,
@@ -36,6 +38,7 @@ export function NewPlayArea(
     bag: bag,
     placed: [],
     hand: [],
+    flipStacks: flip ? flip : false,
   };
 }
 
@@ -95,11 +98,13 @@ export function NewHand(g: PlayArea): PlayArea {
 
 export function DrawN(g: PlayArea, n: number): PlayArea {
   const shaken = Shuffle(g.prng, g.bag.filter(isPerm));
-  return {
-    ...g,
-    hand: sortStacks(stackIn(g.hand, shaken.slice(0, n))),
-    bag: shaken.slice(n),
-  };
+  return AddToHand(
+    {
+      ...g,
+      bag: shaken.slice(n),
+    },
+    shaken.slice(0, n),
+  );
 }
 
 // Draw a specific id out of the bag
@@ -113,55 +118,52 @@ export function DrawById(g: PlayArea, id: string): PlayArea {
 }
 
 export function DrawByIndex(g: PlayArea, idx: number): PlayArea {
+  return AddToHand(
+    {
+      ...g,
+      bag: g.bag
+        .slice(0, idx)
+        .concat(g.bag.slice(idx + 1))
+        .filter(isPerm),
+    },
+    [g.bag[idx]],
+  );
+}
+
+export function SortHand(g: PlayArea): PlayArea {
   return {
     ...g,
-    hand: stackIn(g.hand, [g.bag[idx]]),
-    bag: g.bag
-      .slice(0, idx)
-      .concat(g.bag.slice(idx + 1))
-      .filter(isPerm),
+    hand: sortStacks(g.hand),
   };
 }
 
 function sortStacks(stacks: LetterStack[]): LetterStack[] {
-  const xs = [...stacks];
-  xs.sort((a: LetterStack, b: LetterStack) => a.length - b.length);
-  //(a.length === 0 ? 0 : a[0].base) - (b.length === 0 ? 0 : b[0].base)
-  return xs;
-}
-
-export function FlipHand(g: PlayArea): PlayArea {
-  let hand: LetterStack[] = [];
-  for (let stack of g.hand) {
-    hand.push([...stack]);
-  }
-
-  for (let stack of hand) {
-    stack.sort((a: Letter, b: Letter) => a.bonus - b.bonus);
-  }
-
-  return {
-    ...g,
-    hand: hand,
-  };
+  const next = [...stacks];
+  next.sort((a, b) => a.length - b.length);
+  return next;
 }
 
 export function AddToHand(g: PlayArea, letters: Letter[]): PlayArea {
-  return {
+  const next = {
     ...g,
-    hand: stackIn(g.hand, letters),
+    hand: stackIn(g.hand, letters, g.flipStacks),
   };
+
+  return g.hand.length === 0 ? SortHand(next) : next;
 }
 
-function stackIn(hand: LetterStack[], letters: Letter[]): LetterStack[] {
+function stackIn(
+  hand: LetterStack[],
+  letters: Letter[],
+  flip: boolean,
+): LetterStack[] {
   let xs: LetterStack[] = [...hand];
   for (const letter of letters) {
     let idx = xs.findIndex(
       (stack) => stack.length > 0 && stack[0].char === letter.char,
     );
     if (idx >= 0) {
-      xs[idx] = [letter, ...xs[idx]];
-      xs[idx].sort((a: Letter, b: Letter) => b.bonus - a.bonus);
+      xs[idx] = sortStack([letter, ...xs[idx]], flip);
       continue;
     }
 
@@ -175,6 +177,12 @@ function stackIn(hand: LetterStack[], letters: Letter[]): LetterStack[] {
   }
 
   return xs;
+}
+
+function sortStack(stack: LetterStack, flip: boolean): LetterStack {
+  const next = [...stack];
+  next.sort((a, b) => (flip ? a.bonus - b.bonus : b.bonus - a.bonus));
+  return next;
 }
 
 export function LettersInPlay(g: PlayArea): Letter[] {
@@ -195,11 +203,13 @@ function handLetters(hand: LetterStack[]): Letter[] {
 export function UnplaceById(g: PlayArea, id: string): PlayArea {
   const pi = g.placed.findIndex((letter) => letter.id === id);
 
-  return {
-    ...g,
-    placed: [...g.placed.slice(0, pi), ...g.placed.slice(pi + 1)],
-    hand: stackIn(g.hand, [g.placed[pi]]),
-  };
+  return AddToHand(
+    {
+      ...g,
+      placed: [...g.placed.slice(0, pi), ...g.placed.slice(pi + 1)],
+    },
+    [g.placed[pi]],
+  );
 }
 
 export function UnplaceLast(g: PlayArea): PlayArea {
@@ -209,11 +219,13 @@ export function UnplaceLast(g: PlayArea): PlayArea {
 
   const li = g.placed.length - 1;
 
-  return {
-    ...g,
-    hand: stackIn(g.hand, [g.placed[li]]),
-    placed: g.placed.slice(0, li),
-  };
+  return AddToHand(
+    {
+      ...g,
+      placed: g.placed.slice(0, li),
+    },
+    [g.placed[li]],
+  );
 }
 
 export function UnplaceAll(g: PlayArea): PlayArea {
@@ -221,18 +233,13 @@ export function UnplaceAll(g: PlayArea): PlayArea {
     return g;
   }
 
-  return {
-    ...g,
-    placed: [],
-    hand: stackIn(g.hand, g.placed),
-  };
-}
-
-export function SortHand(g: PlayArea): PlayArea {
-  return {
-    ...g,
-    hand: g.hand.toSorted(),
-  };
+  return AddToHand(
+    {
+      ...g,
+      placed: [],
+    },
+    g.placed,
+  );
 }
 
 export function PlaceByChar(g: PlayArea, c: string): PlayArea {

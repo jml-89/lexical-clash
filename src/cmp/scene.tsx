@@ -57,9 +57,11 @@ function SceneLayout({
 }) {
   return (
     <div className="flex-1 flex flex-col">
-      <div className="text-4xl font-light bg-slate-800 self-stretch p-1 flex flex-row justify-center">
-        {title}
-      </div>
+      {false && (
+        <div className="text-4xl font-light bg-slate-800 self-stretch p-1 flex flex-row justify-center">
+          {title}
+        </div>
+      )}
       <div className="flex-1 flex flex-col justify-center items-stretch">
         {children}
       </div>

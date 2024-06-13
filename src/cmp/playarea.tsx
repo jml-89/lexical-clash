@@ -7,7 +7,6 @@ import {
   UnplaceById,
   UnplaceLast,
   UnplaceAll,
-  FlipHand,
 } from "@/lib/playarea";
 
 import type { Letter } from "@/lib/letter";
@@ -58,8 +57,8 @@ const PlayerPlaced = memo(function PlayerPlaced({
   if (letters.length === 0) {
     return <></>;
   }
-  const size = letters.length < 8 ? 1 : 2;
-  const gap = size === 2 ? "gap-0.5" : "gap-1";
+  const small = letters.length > 6;
+  const gap = small ? "gap-0.5" : "gap-1";
 
   const unplacefn = async (letter: Letter) => {
     await statefn((p: PlayArea) => UnplaceById(p, letter.id));
@@ -77,7 +76,7 @@ const PlayerPlaced = memo(function PlayerPlaced({
       <div className={`flex flex-row flex-wrap ${gap}`}>
         {letters.map((letter) => (
           <button key={letter.id} onClick={() => unplacefn(letter)}>
-            <PlacedLetter key={letter.id} letter={letter} size={size} />
+            <PlacedLetter key={letter.id} letter={letter} small={small} />
           </button>
         ))}
       </div>
@@ -95,14 +94,14 @@ const PlayerPlaced = memo(function PlayerPlaced({
 
 const PlacedLetter = memo(function PlacedLetter({
   letter,
-  size,
+  small,
 }: {
   letter: Letter;
-  size: number;
+  small?: boolean;
 }) {
   return (
     <motion.div layoutId={letter.id}>
-      <DrawLetter letter={letter} size={size} />
+      <DrawLetter letter={letter} small={small} />
     </motion.div>
   );
 });
@@ -117,11 +116,6 @@ const Hand = memo(function Hand({
   const placefn = useCallback(
     async (letter: Letter) =>
       await statefn((p: PlayArea) => PlaceById(p, letter.id)),
-    [statefn],
-  );
-
-  const flipfn = useCallback(
-    async () => statefn((p: PlayArea) => FlipHand(p)),
     [statefn],
   );
 
@@ -144,7 +138,7 @@ const Hand = memo(function Hand({
 
 const HandStack = memo(function HandStack({ stack }: { stack: LetterStack }) {
   if (stack.length === 0) {
-    return <DrawLetter size={0} />;
+    return <DrawLetter />;
   }
 
   const startRow = (n: number) => {
@@ -181,7 +175,7 @@ const HandStack = memo(function HandStack({ stack }: { stack: LetterStack }) {
           className={`col-start-1 ${startRow(idx)} row-span-5`}
         >
           <motion.div layoutId={letter.id}>
-            <DrawLetter letter={letter} size={0} />
+            <DrawLetter letter={letter} />
           </motion.div>
         </div>
       ))}
