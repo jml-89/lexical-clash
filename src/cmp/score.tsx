@@ -20,8 +20,8 @@ export const DrawScoresheet = memo(function DrawScoresheet({
   color: string;
 }) {
   return (
-    <div className={`flex flex-row-reverse justify-between ${color}`}>
-      <div className={`text-6xl ${color}`}>
+    <div className={`flex flex-row-reverse justify-between gap-1 ${color}`}>
+      <div className={`text-4xl ${color}`}>
         <AnimatedNumber n={sheet.score} />
       </div>
       <ScoreTable sheet={sheet} />
@@ -31,7 +31,7 @@ export const DrawScoresheet = memo(function DrawScoresheet({
 
 function ScoreTable({ sheet }: { sheet: Scoresheet }) {
   return (
-    <table className="text-right">
+    <table className="text-right text-sm">
       <tbody>
         {sheet.adds.map((sm) => (
           <tr key={sm.source}>

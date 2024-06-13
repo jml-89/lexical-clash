@@ -5,6 +5,8 @@ import { GetSession } from "@/lib/wordnet";
 
 import { PlayGame } from "@/cmp/game";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home({
   params,
 }: {

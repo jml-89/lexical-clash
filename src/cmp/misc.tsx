@@ -244,3 +244,63 @@ export function OnBackground({
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export function StringCycler({ strings }: { strings: String[] }) {
+  const [idx, setIdx] = useState(0);
+
+  const fn = async () => {
+    await delay(5000);
+    setIdx((idx + 1) % strings.length);
+  };
+
+  fn(); // Yes, run on _every_ render!
+
+  return (
+    <div className="grid">
+      {strings.map((s, i) => (
+        <motion.div
+          key={i}
+          className="row-start-1 col-start-1 flex justify-center items-center"
+          initial={{ opacity: 0 }}
+          animate={i === idx ? { opacity: 1 } : { opacity: 0 }}
+        >
+          [{i + 1}/{strings.length}]<span className="italic">{s}</span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+export function Cycler({ items }: { items: React.ReactNode[] }) {
+  const [idx, setIdx] = useState(0);
+
+  if (items.length === 0) {
+    return <></>;
+  }
+
+  if (idx < 0 || idx >= items.length) {
+    setIdx(0);
+  }
+
+  const fn = async () => {
+    await delay(5000);
+    setIdx((idx + 1) % items.length);
+  };
+
+  fn(); // Yes, run on _every_ render!
+
+  return (
+    <div className="grid flex justify-center items-center">
+      {items.map((item, i) => (
+        <motion.div
+          key={i}
+          className="row-start-1 col-start-1 italic text-start"
+          initial={{ opacity: 0 }}
+          animate={i === idx ? { opacity: 1 } : { opacity: 0 }}
+        >
+          {item}
+        </motion.div>
+      ))}
+    </div>
+  );
+}

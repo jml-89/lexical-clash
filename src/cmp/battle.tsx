@@ -21,7 +21,7 @@ import { DrawComBattler } from "@/cmp/opponent";
 import type { Battler } from "@/lib/battler";
 import { DrawBattler } from "@/cmp/battler";
 
-import { TapGlass, OnDarkGlass, useStateShim } from "@/cmp/misc";
+import { StringCycler, TapGlass, OnDarkGlass, useStateShim } from "@/cmp/misc";
 
 export type BattleFnT = (a: Battle) => Promise<Battle>;
 type StateFnT = (battle: Battle) => Promise<void>;
@@ -84,13 +84,21 @@ const Contest = memo(function Contest({
   attackfn: () => Promise<void>;
 }) {
   return (
-    <div className="flex flex-row justify-center items-center gap-2">
-      <div className="flex flex-col justify-center text-sm font-light">
-        {os && os.ok && <DrawScoresheet sheet={os} color="text-red-300" />}
-        {ps && ps.ok && <DrawScoresheet sheet={ps} color="text-lime-400" />}
-      </div>
+    <div className="flex flex-col items-center">
+      {os && os.definitions.length > 0 && (
+        <StringCycler strings={os.definitions} />
+      )}
+      <div className="flex flex-row justify-center items-center gap-2">
+        <div className="flex flex-col justify-center text-sm font-light">
+          {os && os.ok && <DrawScoresheet sheet={os} color="text-red-300" />}
+          {ps && ps.ok && <DrawScoresheet sheet={ps} color="text-lime-400" />}
+        </div>
 
-      {ps && ps.ok && <AttackButton attackfn={attackfn} />}
+        {ps && ps.ok && <AttackButton attackfn={attackfn} />}
+      </div>
+      {ps && ps.definitions.length > 0 && (
+        <StringCycler strings={ps.definitions} />
+      )}
     </div>
   );
 });

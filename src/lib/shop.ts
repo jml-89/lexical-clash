@@ -103,38 +103,41 @@ async function randomShopItems(
 ): Promise<ShopItem[]> {
   let items: ShopItem[] = [];
 
-  for (let i = 0; i < num; i++) {
-    const randresult = prng(1, 4);
-    const price = prng(10, 10 + level * 5);
+  const pricefn = () => prng(10, 10 + level * 5);
 
-    if (randresult === 1) {
-      const boost = Math.trunc(level / 4);
-      for (const [k, v] of PickRandom(prng, AbilityCards, 1)) {
-        items.push({
-          type: "ability",
-          item: { ...v, uses: v.uses + boost },
-          price: price,
-        });
-      }
-    } else if (randresult === 2) {
-      for (const [k, v] of PickRandom(prng, BonusCards, 1)) {
-        const boost = Math.trunc(level / 2);
-        items.push({
-          type: "bonus",
-          item: { ...v, level: v.level + boost },
-          price: price,
-        });
-      }
-    } else if (randresult === 3) {
-      const pack = await NewWordpack(level);
-      items.push({ type: "wordpack", item: pack, price: price });
-    } else if (randresult === 4) {
-      const letters = Shuffle(prng, ScrabbleDistribution())
-        .slice(0, prng(3, 10))
-        .map((letter) => ({ ...letter, bonus: level }));
-      items.push({ type: "letters", item: letters, price: price });
-    }
+  for (const [k, v] of PickRandom(prng, AbilityCards, 1)) {
+    const boost = Math.trunc(level / 4);
+    items.push({
+      type: "ability",
+      item: { ...v, uses: v.uses + boost },
+      price: pricefn(),
+    });
   }
+
+  for (const [k, v] of PickRandom(prng, BonusCards, 1)) {
+    const boost = Math.trunc(level / 2);
+    items.push({
+      type: "bonus",
+      item: { ...v, level: v.level + boost },
+      price: pricefn(),
+    });
+  }
+
+  const pack = await NewWordpack(level);
+  items.push({
+    type: "wordpack",
+    item: pack,
+    price: pricefn(),
+  });
+
+  const letters = Shuffle(prng, ScrabbleDistribution())
+    .slice(0, prng(3, 10))
+    .map((letter) => ({ ...letter, bonus: level }));
+  items.push({
+    type: "letters",
+    item: letters,
+    price: pricefn(),
+  });
 
   return items;
 }

@@ -19,7 +19,12 @@ import { lettersToString, LetterScore } from "./letter";
 import type { BonusCard, BonusImpl } from "./bonus";
 import { BonusImpls } from "./bonus";
 
-import { IsWordValid, AreWordsRelated, ApplyBonuses } from "./wordnet";
+import {
+  Definitions,
+  IsWordValid,
+  AreWordsRelated,
+  ApplyBonuses,
+} from "./wordnet";
 
 // score = totalAdd+totalMul = sum(adds) + sum(muls)
 // Redundant, yes; convenient, very yes
@@ -32,6 +37,8 @@ export interface Scoresheet {
   totalMul: number;
   adds: ScoreModifier[];
   muls: ScoreModifier[];
+
+  definitions: string[];
 }
 
 export interface ScoreModifier {
@@ -52,6 +59,7 @@ export async function ScoreWord(
     totalMul: 0,
     adds: [],
     muls: [],
+    definitions: [],
   };
 
   sheet.adds.push({
@@ -69,6 +77,8 @@ export async function ScoreWord(
   if (!sheet.ok) {
     return sheet;
   }
+
+  sheet.definitions = await Definitions(word);
 
   if (bonuses) {
     for (const bonus of bonuses) {
