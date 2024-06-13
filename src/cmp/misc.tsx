@@ -166,7 +166,13 @@ export function useStateShim<Thing>(
   return [shim.local ? shim.local : thing, returnHandler];
 }
 
-function LazyBackground({ bg }: { bg: string }) {
+function LazyBackground({
+  bg,
+  onComplete,
+}: {
+  bg: string;
+  onComplete?: () => void;
+}) {
   const [me, setMe] = useState({
     prev: "",
     curr: bg,
@@ -208,6 +214,7 @@ function LazyBackground({ bg }: { bg: string }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: me.loaded ? 1 : 0 }}
         transition={{ duration: 1 }}
+        onAnimationComplete={me.loaded ? onComplete : undefined}
       >
         <Image
           src={me.curr}
@@ -229,13 +236,21 @@ export function OnBackground({
   bg: string;
   children: React.ReactNode;
 }) {
+  const [me, setMe] = useState({ bg: bg, show: false });
+  if (bg != me.bg) {
+    setMe({ bg: bg, show: false });
+  }
+
   return (
     <div className="flex-1 grid">
       <div className="row-start-1 col-start-1">
-        <LazyBackground bg={bg} />
+        <LazyBackground
+          bg={bg}
+          onComplete={() => setMe({ ...me, show: true })}
+        />
       </div>
       <div className="row-start-1 col-start-1 flex flex-col z-10">
-        {children}
+        {me.show && children}
       </div>
     </div>
   );
@@ -247,6 +262,14 @@ export function delay(ms: number): Promise<void> {
 
 export function StringCycler({ strings }: { strings: String[] }) {
   const [idx, setIdx] = useState(0);
+
+  if (strings.length === 0) {
+    return <></>;
+  }
+
+  if (idx < 0 || idx >= strings.length) {
+    setIdx(0);
+  }
 
   const fn = async () => {
     await delay(5000);

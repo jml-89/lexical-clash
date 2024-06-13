@@ -117,7 +117,7 @@ export function FirstSceneCheat(prng: PRNG): Scene {
       connections: ["Cave", "Forest"],
     },
     regidx: 0,
-    intro: true,
+    intro: false,
     loot: FirstLootContainer(),
   };
 }
@@ -137,7 +137,7 @@ export function FirstScene(prng: PRNG): Scene {
       connections: ["Cave", "Forest"],
     },
     regidx: 0,
-    intro: true,
+    intro: false,
     loot: FirstLootContainer(),
   };
 }
@@ -200,7 +200,7 @@ export async function NextScene(scene: Scene): Promise<Scene> {
     nextShop: nextShop,
     nextLoot: nextLoot,
 
-    intro: true,
+    intro: false,
     opponent: opponent,
     loot: loot,
     shop: shop,
