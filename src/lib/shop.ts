@@ -124,9 +124,10 @@ async function randomShopItems(
     price: pricefn(),
   });
 
+  const letterBoost = Math.max(1, Math.trunc(level / 2));
   const letters = Shuffle(prng, ScrabbleDistribution())
     .slice(0, prng(3, 10))
-    .map((letter) => ({ ...letter, bonus: level }));
+    .map((letter) => ({ ...letter, bonus: letterBoost }));
   items.push({
     type: "letters",
     item: letters,

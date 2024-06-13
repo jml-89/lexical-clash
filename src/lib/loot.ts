@@ -90,9 +90,10 @@ export async function NewBattleLootContainer(
   }
 
   if (container.contents.length === 0 || prng(0, 1) === 1) {
+    const boost = Math.max(1, Math.trunc(opponent.level / 2));
     const letters = Shuffle(prng, ScrabbleDistribution())
       .slice(0, prng(3, 10))
-      .map((letter) => ({ ...letter, bonus: opponent.level }));
+      .map((letter) => ({ ...letter, bonus: boost }));
     container.contents.push({ type: "letters", item: letters });
   }
 
