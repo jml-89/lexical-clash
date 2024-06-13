@@ -7,7 +7,7 @@ interface Ramble {
 
 const basics: Ramble[] = [
   {
-    title: "How to Aventure",
+    title: "Adventure?",
     body: `
     There's not much to it, just tap the buttons that appear.
     Sometimes there's even a choice.
@@ -15,7 +15,7 @@ const basics: Ramble[] = [
   },
 
   {
-    title: "How to Battle",
+    title: "Battle?",
     body: `
     It's simple, put together better words than your opponent.
 
@@ -30,7 +30,7 @@ const basics: Ramble[] = [
   },
 
   {
-    title: "Words and Weaknesses",
+    title: "Weaknesses?",
     body: `
 		Each opponent you face has words they use and words they are weak to.
 		Attacking your opponent's weakness makes your word far more powerful.
@@ -65,7 +65,7 @@ const basics: Ramble[] = [
 
 // It may have been a better idea to just use remark & remark-html etc.
 // I avoided that because it requires the use of setinnerhtmldangerously, not my cup of tea
-function processBody(s: string): React.ReactNode[] {
+function processBody(s: string): React.ReactNode {
   const lines = s.split(/\r?\n/);
 
   let lo = 0;
@@ -78,7 +78,11 @@ function processBody(s: string): React.ReactNode[] {
     hi--;
   }
 
-  return lines.slice(lo, hi + 1).flatMap((line, i) => [line, <br key={i} />]);
+  return (
+    <p className="text-wrap">
+      {lines.slice(lo, hi + 1).flatMap((line, i) => [line, <br key={i} />])}
+    </p>
+  );
 }
 
 export default async function Intro() {
@@ -89,17 +93,26 @@ export default async function Intro() {
   }
 
   return (
-    <main className="text-amber-400 text-sm flex flex-col justify-between items-center gap-2 p-1">
+    <main className="text-amber-400 text-sm flex flex-col justify-between items-start gap-2 p-2">
       <div className="flex flex-col items-baseline gap-2">
         {basics.map((x) => (
           <div key={x.title} className="flex flex-col items-baseline">
             <h1 className="text-3xl font-light tracking-tight">{x.title}</h1>
-            <p className="px-1">{processBody(x.body)}</p>
+            <div className="px-1">{processBody(x.body)}</div>
           </div>
         ))}
 
+        <div className="flex flex-col items-baseline">
+          <div className="text-2xl">Source?</div>
+          <a
+            className="px-1 text-lime-400 underline"
+            href="https://github.com/jml-89/lexical-clash"
+          >
+            github.com/jml-89/lexical-clash
+          </a>
+        </div>
         <div className="flex flex-col items-baseline font-mono">
-          <h1 className="font-sans text-2xl">Version</h1>
+          <h1 className="font-sans text-2xl">Version?</h1>
           <div className="px-1">{process.env.NEXT_PUBLIC_GIT_REF}</div>
           <div className="px-1">{process.env.NEXT_PUBLIC_GIT_HASH}</div>
         </div>
