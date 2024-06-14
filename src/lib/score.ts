@@ -63,13 +63,8 @@ export async function ScoreWord(
   };
 
   sheet.adds.push({
-    source: "Letter Score Sum",
+    source: "Letters",
     value: LetterScore(placed),
-  });
-
-  sheet.muls.push({
-    source: "Base Mult.",
-    value: 1,
   });
 
   const word = lettersToString(placed);
@@ -98,21 +93,21 @@ export async function ScoreWord(
   if (weakness && (await AreWordsRelated("hypernym", weakness, word))) {
     sheet.muls.push({
       source: `Weakness: ${weakness}`,
-      value: 1,
+      value: 2,
     });
   }
 
   if (opposingWord && (await AreWordsRelated("hypernym", opposingWord, word))) {
     sheet.muls.push({
       source: "Undercut",
-      value: 0.2,
+      value: 1.2,
     });
   }
 
   if (opposingWord && (await AreWordsRelated("hypernym", word, opposingWord))) {
     sheet.muls.push({
       source: "Overcut",
-      value: 0.2,
+      value: 1.2,
     });
   }
 
@@ -123,6 +118,6 @@ export async function ScoreWord(
 function sumScore(s: Scoresheet): void {
   const add = (xs: number, x: ScoreModifier): number => xs + x.value;
   s.totalAdd = s.adds.reduce(add, 0);
-  s.totalMul = s.muls.reduce(add, 0);
+  s.totalMul = s.muls.reduce((xs, x) => xs + (x.value - 1), 1);
   s.score = Math.round(s.totalAdd * s.totalMul);
 }
