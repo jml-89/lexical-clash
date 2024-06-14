@@ -56,26 +56,28 @@ export function PlayShop({
           />
         ))}
 
-        <div className="flex flex-row justify-center items-baseline gap-2">
-          {shop.price > 0 && (
-            <OnDarkGlass className="p-2 text-red-300">
-              Asking Price: {shop.price}
-            </OnDarkGlass>
-          )}
+        <div className="flex flex-row justify-center items-center gap-2">
+          <OnDarkGlass className="p-1 text-sm flex flex-col items-center">
+            {shop.price > 0 && (
+              <div className="text-red-300">Asking Price: {shop.price}</div>
+            )}
+            {shop.payment > 0 && (
+              <div className="text-lime-300">Letter Value: {shop.payment}</div>
+            )}
+          </OnDarkGlass>
 
-          {shop.price > 0 && shop.payment >= shop.price && (
+          {shop.price > 0 && (
             <TapGlass
-              onClick={async () => statefn(await BuyItems(shop))}
-              className="p-2 text-lime-300"
+              onClick={
+                shop.payment < shop.price
+                  ? undefined
+                  : async () => statefn(await BuyItems(shop))
+              }
+              className={`p-2 text-2xl ${shop.payment < shop.price ? "text-red-300" : "text-lime-300"}`}
+              repeat
             >
               Buy!
             </TapGlass>
-          )}
-
-          {shop.payment > 0 && (
-            <OnDarkGlass className="p-2 text-lime-300">
-              Letter Value: {shop.payment}
-            </OnDarkGlass>
           )}
         </div>
       </div>
