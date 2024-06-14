@@ -98,6 +98,42 @@ const base: BonusBase[] = [
         select hypo from simplerelations where hyper = 'flora'
       )`,
   },
+  {
+    key: "food",
+    name: "Foodie",
+    desc: "Word is a food e.g. pasta",
+    weight: 2,
+    query: `word in (
+        select hypo from simplerelations where hyper = 'food'
+      )`,
+  },
+  {
+    key: "shape",
+    name: "Shapeshifter",
+    desc: "Word is a shape e.g. sphere",
+    weight: 2,
+    query: `word in (
+        select hypo from simplerelations where hyper = 'shape'
+      )`,
+  },
+  {
+    key: "action",
+    name: "Action!",
+    desc: "Word is an action e.g. jog",
+    weight: 2,
+    query: `word in (
+        select hypo from simplerelations where hyper = 'act'
+      )`,
+  },
+  {
+    key: "instrument",
+    name: "Instrumental",
+    desc: "Word is an instrument e.g. kazoo",
+    weight: 2,
+    query: `word in (
+        select hypo from simplerelations where hyper = 'instrument'
+      )`,
+  },
 ];
 
 export const BonusCards = new Map(

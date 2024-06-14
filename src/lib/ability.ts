@@ -114,6 +114,99 @@ const AbilitiesBase: AbilityBase[] = [
       };
     },
   },
+
+  {
+    key: "vampire",
+    name: "Vampirism",
+    desc: "Leftmost placed letter absorbs all other placed letters' bonuses",
+    pred: (pr: PlayArea): boolean => {
+      return pr.placed.length > 1;
+    },
+    func: (pr: PlayArea): PlayArea => {
+      if (pr.placed.length < 2) {
+        return pr;
+      }
+
+      let boost = 0;
+      let drained: Letter[] = [];
+      for (const letter of pr.placed.slice(1)) {
+        boost += letter.bonus;
+        drained.push({ ...letter, bonus: 0 });
+      }
+
+      const boosted = {
+        ...pr.placed[0],
+        bonus: pr.placed[0].bonus + boost,
+      };
+
+      return {
+        ...pr,
+        placed: [boosted, ...drained],
+      };
+    },
+  },
+
+  {
+    key: "shiftleft",
+    name: "Shift Left",
+    desc: "Placed letters are transformed into their preceding letter in the alphabet",
+    pred: (pr: PlayArea): boolean => {
+      return pr.placed.length > 0;
+    },
+    func: (pr: PlayArea): PlayArea => {
+      if (pr.placed.length < 1) {
+        return pr;
+      }
+
+      let shifted: Letter[] = [];
+      for (const letter of pr.placed) {
+        const char =
+          letter.char === "A"
+            ? "Z"
+            : String.fromCharCode(letter.char.charCodeAt(0) - 1);
+        shifted.push({
+          ...letter,
+          char: char,
+        });
+      }
+
+      return {
+        ...pr,
+        placed: shifted,
+      };
+    },
+  },
+
+  {
+    key: "shiftright",
+    name: "Shift Right",
+    desc: "Placed letters are transformed into their succeeding letter in the alphabet",
+    pred: (pr: PlayArea): boolean => {
+      return pr.placed.length > 0;
+    },
+    func: (pr: PlayArea): PlayArea => {
+      if (pr.placed.length < 1) {
+        return pr;
+      }
+
+      let shifted: Letter[] = [];
+      for (const letter of pr.placed) {
+        const char =
+          letter.char === "Z"
+            ? "A"
+            : String.fromCharCode(letter.char.charCodeAt(0) + 1);
+        shifted.push({
+          ...letter,
+          char: char,
+        });
+      }
+
+      return {
+        ...pr,
+        placed: shifted,
+      };
+    },
+  },
 ];
 
 export const AbilityCards = new Map(
