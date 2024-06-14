@@ -42,6 +42,9 @@ export interface Scene {
   nextShop: number;
   nextLoot: number;
 
+  minLevel: number;
+  maxLevel: number;
+
   region: Region;
   regidx: number;
 
@@ -61,11 +64,7 @@ export interface Scene {
 
 export interface Region {
   name: string;
-  minLevel: number;
-  maxLevel: number;
-
   path: string[];
-
   connections: string[];
 }
 
@@ -107,12 +106,15 @@ export function FirstSceneCheat(prng: PRNG): Scene {
     prng: prng,
     player: NewPlayerCheat(),
     cheatmode: true,
+
     nextShop: 1,
     nextLoot: 1,
+
+    minLevel: 0,
+    maxLevel: 0,
+
     region: {
       name: "Your Journey Begins",
-      minLevel: 1,
-      maxLevel: 1,
       path: ["meadow.jpg"],
       connections: ["Cave", "Forest"],
     },
@@ -127,12 +129,15 @@ export function FirstScene(prng: PRNG): Scene {
     prng: prng,
     player: NewPlayer(),
     cheatmode: false,
+
     nextShop: prng(3, 5),
     nextLoot: 1,
+
+    minLevel: 0,
+    maxLevel: 0,
+
     region: {
       name: "Your Journey Begins",
-      minLevel: 1,
-      maxLevel: 1,
       path: ["meadow.jpg"],
       connections: ["Cave", "Forest"],
     },
@@ -155,14 +160,20 @@ export async function StartBattle(scene: Scene): Promise<Scene> {
 }
 
 export async function NextScene(scene: Scene): Promise<Scene> {
+  let minLevel = scene.minLevel;
+  let maxLevel = scene.maxLevel;
+
   let region = undefined;
   let regidx = scene.regidx;
   if (scene.exit) {
     region = regions.find((region) => region.path[0] === scene.exit);
     if (region) {
       regidx = 0;
+      minLevel = maxLevel + 1;
+      maxLevel = minLevel + 1;
     }
   }
+
   if (!region) {
     region = scene.region;
     regidx = regidx + 1;
@@ -176,29 +187,32 @@ export async function NextScene(scene: Scene): Promise<Scene> {
   let opponent = undefined;
 
   if (regidx + 1 === region.path.length) {
-    opponent = await NewBoss(region.name, region.maxLevel + 1);
+    opponent = await NewBoss(region.name, maxLevel + 1);
   } else if (nextShop < 1) {
-    shop = await NewShop(scene.prng, region.maxLevel + 2, scene.player.bag);
+    shop = await NewShop(scene.prng, maxLevel + 2, scene.player.bag);
     nextShop = scene.prng(3, 5);
   } else if (nextLoot < 1) {
-    loot = await NewLootContainer(scene.prng, region.maxLevel + 1);
+    loot = await NewLootContainer(scene.prng, maxLevel + 1);
     nextLoot = scene.prng(2, 4);
   } else {
-    opponent = await NewOpponent(
-      scene.prng,
-      region.name,
-      region.minLevel,
-      region.maxLevel,
-    );
+    opponent = await NewOpponent(scene.prng, region.name, minLevel, maxLevel);
   }
 
+  // Rather than use ...scene here, be more explicit
+  // Because there's a LOT changing, and a lot of optional fields too
   return {
-    ...scene,
+    prng: scene.prng,
+    player: scene.player,
+    cheatmode: scene.cheatmode,
+
     region: region,
     regidx: regidx,
 
     nextShop: nextShop,
     nextLoot: nextLoot,
+
+    minLevel: minLevel,
+    maxLevel: maxLevel,
 
     intro: false,
     opponent: opponent,
@@ -284,8 +298,6 @@ export async function ChooseConnection(
 const regions = [
   {
     name: "Forest",
-    minLevel: 1,
-    maxLevel: 2,
 
     path: [
       "forest-path.jpg",
@@ -300,8 +312,6 @@ const regions = [
 
   {
     name: "Cave",
-    minLevel: 1,
-    maxLevel: 2,
 
     path: [
       "cave-entrance.jpg",
@@ -315,8 +325,6 @@ const regions = [
 
   {
     name: "Castle",
-    minLevel: 3,
-    maxLevel: 4,
 
     path: [
       "castle-entrance.jpg",
@@ -332,8 +340,6 @@ const regions = [
 
   {
     name: "Mushroom Forest",
-    minLevel: 5,
-    maxLevel: 7,
 
     path: [
       "mushroom-1.jpg",
@@ -348,8 +354,6 @@ const regions = [
 
   {
     name: "Sewer",
-    minLevel: 5,
-    maxLevel: 7,
 
     path: [
       "sewer-entrance.jpg",
@@ -364,8 +368,6 @@ const regions = [
 
   {
     name: "City",
-    minLevel: 8,
-    maxLevel: 10,
 
     path: [
       "city-1.jpg",
@@ -380,8 +382,6 @@ const regions = [
 
   {
     name: "Sea",
-    minLevel: 11,
-    maxLevel: 15,
 
     path: ["sea-1.jpg", "sea-2.jpg", "sea-3.jpg", "sea-4.jpg", "sea-5.jpg"],
 
@@ -390,8 +390,6 @@ const regions = [
 
   {
     name: "Jungle",
-    minLevel: 11,
-    maxLevel: 15,
 
     path: [
       "jungle-1.jpg",
