@@ -74,6 +74,11 @@ function BattlerState({
   return <DrawBattler battler={battler} handleReturn={returnHandler} />;
 }
 
+function trimLongStrings(xs: string[]): string[] {
+  const trimmed = xs.filter((s) => s.length < 200);
+  return trimmed.length > 0 ? trimmed : xs;
+}
+
 const Contest = memo(function Contest({
   ps,
   os,
@@ -86,7 +91,7 @@ const Contest = memo(function Contest({
   return (
     <div className="flex flex-col items-center">
       {os && os.definitions.length > 0 && (
-        <StringCycler strings={os.definitions} />
+        <StringCycler strings={trimLongStrings(os.definitions)} />
       )}
       <div className="flex flex-row justify-center items-center gap-2">
         <div className="flex flex-col justify-center text-sm font-light">
@@ -97,7 +102,7 @@ const Contest = memo(function Contest({
         {ps && ps.ok && <AttackButton attackfn={attackfn} />}
       </div>
       {ps && ps.definitions.length > 0 && (
-        <StringCycler strings={ps.definitions} />
+        <StringCycler strings={trimLongStrings(ps.definitions)} />
       )}
     </div>
   );
