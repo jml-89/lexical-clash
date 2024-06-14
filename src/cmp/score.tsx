@@ -20,11 +20,11 @@ export const DrawScoresheet = memo(function DrawScoresheet({
   color: string;
 }) {
   return (
-    <div className={`flex flex-row-reverse justify-between gap-1 ${color}`}>
+    <div className={`flex flex-row justify-end gap-1 ${color}`}>
+      <ScoreTable sheet={sheet} />
       <div className={`text-4xl ${color}`}>
         <AnimatedNumber n={sheet.score} />
       </div>
-      <ScoreTable sheet={sheet} />
     </div>
   );
 });
@@ -62,5 +62,12 @@ function AnimatedNumber({ n }: { n: number }) {
     animate(bigScore, n, { duration: (1 / 30) * n });
   }, [animate, bigScore, n]);
 
-  return <motion.div>{rounded}</motion.div>;
+  return (
+    <div className="grid">
+      <div className="row-start-1 col-start-1 opacity-0">999</div>
+      <motion.div className="row-start-1 col-start-1 flex justify-start">
+        {rounded}
+      </motion.div>
+    </div>
+  );
 }
